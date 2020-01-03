@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>SDFUI</title>
+		<meta charset="utf-8">
+		<link rel="stylesheet" href="sdfui.css">
+    <link rel="stylesheet" href="ui-buttons.css">
+
+    <!-- UIkit CSS -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.2.3/dist/css/uikit.min.css" /> -->
+
+    <!-- UIkit JS -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/uikit@3.2.3/dist/js/uikit.min.js"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/uikit@3.2.3/dist/js/uikit-icons.min.js"></script> -->
+
+    <script type="text/javascript" src="./js/libjs/kdTree.js"></script>
+    <!-- <script type="module" src="./js/Hfloat16.js"></script> -->
+
+    <script type="module" src="./js/sdfui.js"></script>
+
+    <!-- https://github.com/petamoriken/float16 -->
+    <script src="./js/libjs/float16.js"></script>
+
+    <!-- <script type="module" src="./js/loadmodels.js"></script> -->
+	</head>
+
+  <body>
+
+    <!-- <script src="./js/GhostUI.js"></script> -->
+    <!-- <div id="drop_zone"></div> -->
+    <div id="save" class="button button-export" type="button">Sa<div class="button-dot">s</div></div>
+    <div id="pause" class="button button-view" type="button">Pa<div class="button-dot">p</div></div>
+    <div id="plus" class="button button-view" type="button">Zi<div class="button-dot">+</div></div>
+    <div id="minus" class="button button-view" type="button">Zo<div class="button-dot">-</div></div>
+
+    <div id="snapGrid" class="button button-snap" type="button">Sg<div class="button-dot">g</div></div>
+    <div id="snapWorld" class="button button-snap" type="button">Sw<div class="button-dot">sh</div></div>
+    <div id="snapPrev" class="button button-snap" type="button">Sp<div class="button-dot">s</div></div>
+
+    <div id="lineWeight" class="button button-edit" type="button">Lw<div class="button-dot">w</div></div>
+    <div id="bezier" class="button button-edit" type="button">Bz<div class="button-dot">b</div></div>
+
+
+    <!-- <div id="test" class="button button-snap" type="button"><div class="button-dot">T</div></div> -->
+
+    <canvas id="c"></canvas>
+
+    <svg xmlns='http://wwww.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' id='draw-shapes' class='annotations' style='position:absolute;'>
+      <defs>
+        <filter id="drop-shadow" x="0" y="0" width="200%" height="200%">
+         <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+         <feOffset dx="3" dy="3" result="offsetblur"/>
+         <feFlood flood-color="gray"/>
+         <feComposite in2="offsetblur" operator="in"/>
+         <feMerge>
+           <feMergeNode/>
+           <feMergeNode in="SourceGraphic"/>
+         </feMerge>
+       </filter>
+      </defs>
+      <style>
+        .annot:hover {
+          opacity: 1;
+          -webkit-filter: url(#drop-shadow);
+          filter: url(#drop-shadow);
+        }
+      </style>
+    </svg>
+
+    <div id="Fluent">Fluent.</div>
+
+    <a id="downloadAnchorElem" style="display:none"></a>
+
+  </body>
+  <script>
+    // https://github.com/petamoriken/float16
+    const { Float16Array, getFloat16, setFloat16, hfround } = float16;
+  </script>
+
+</html>

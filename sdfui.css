@@ -1,0 +1,75 @@
+html, body {
+   margin: 0;
+   height: 100%;
+}
+
+#c {
+   width: 100%;
+   height: 100%;
+   display: block;
+}
+
+#draw-shapes{
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+
+#save {
+  left: 1vmin;
+  top: 1vmin;
+}
+
+#Fluent{
+  position: absolute;
+  bottom: 0vmin;
+  right: 1vmin;
+
+  color: ;
+
+  font: bold 8vmin Helvetica;
+  font-style: italic;
+
+  -webkit-user-select: none;  /* Chrome all / Safari all */
+  -moz-user-select: none;     /* Firefox all */
+  -ms-user-select: none;      /* IE 10+ */
+  user-select: none;          /* Likely future */
+}
+
+.slider {
+  -webkit-appearance: none;
+  width: 85%;
+  height: 10%;
+  /* background: #111111; */
+  background-image: linear-gradient(to right, #FFFFFF , #000000);
+  outline: none;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+}
+
+/* .slider:hover {
+  opacity: 1;
+} */
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 7px;
+  height: 20px;
+  background: #000000;
+  cursor: pointer;
+}
+
+/* .slider::-webkit-slider-thumb:hover {
+  opacity: 1;
+} */
+
+.slider::-moz-range-thumb {
+  width: 7px;
+  height: 20px;
+  background: #AAAAAA;
+  cursor: pointer;
+}

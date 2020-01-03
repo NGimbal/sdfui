@@ -1,0 +1,130 @@
+
+#pause{
+  left: 1vmin;
+  top: 6.5vmin;
+}
+
+#plus{
+  left: 1vmin;
+  top: 12vmin;
+}
+
+#minus{
+  left: 1vmin;
+  top: 17.5vmin;
+}
+
+#snapGrid{
+  left: 1vmin;
+  top: 23vmin;
+}
+
+#snapWorld{
+  left: 1vmin;
+  top: 28.5vmin;
+}
+
+#snapPrev{
+  left: 1vmin;
+  top: 34vmin;
+}
+
+#lineWeight{
+  left: 1vmin;
+  top: 39.5vmin;
+}
+
+#bezier{
+  left: 1vmin;
+  top: 45vmin;
+}
+
+.button {
+  border-radius: .25vmin .25vmin .25vmin .25vmin;
+
+  width: 5vmin;
+  height: 5vmin;
+
+  cursor: pointer;
+  z-index: 10;
+  position: absolute;
+
+  color: black;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 3vmin;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  -webkit-transition: width .25s, border-radius .25s; /* Safari prior 6.1 */
+  transition: width .25s, border-radius .25s;
+  transition-timing-function: ease-in;
+
+  -webkit-user-select: none;  /* Chrome all / Safari all */
+  -moz-user-select: none;     /* Firefox all */
+  -ms-user-select: none;      /* IE 10+ */
+  user-select: none;          /* Likely future */
+}
+
+.button:hover {
+  border-radius: 1.25vmin 1.25vmin 1.25vmin 1.25vmin;
+
+  box-shadow: 2px 2px 2px .5px rgba(136, 161, 180, 0.6);
+
+  -webkit-transition: width 1s, border-radius 1s; /* Safari prior 6.1 */
+  transition: width 1s, border-radius 1s;
+  transition-timing-function: ease-out;
+}
+
+.input-slider {
+  border-radius: 1.25vmin 1.25vmin 1.25vmin 1.25vmin;
+  width:15vmin;
+}
+
+.button-dot {
+  right: 0%;
+  bottom: 0%;
+  position: absolute;
+
+  height: 2.5vmin;
+  width: 2.5vmin;
+  background-color: rgba(255, 255, 255, .6);
+  border-radius: 50%;
+
+  color: white;
+
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 2vmin;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  -webkit-user-select: none;  /* Chrome all / Safari all */
+  -moz-user-select: none;     /* Firefox all */
+  -ms-user-select: none;      /* IE 10+ */
+  user-select: none;          /* Likely future */
+}
+
+.button:focus {
+  outline: none;
+}
+
+.button-snap {
+  background: rgba(237, 55, 67, .75);
+}
+
+.button-export {
+  background: rgba(251, 91, 0, .75);
+}
+
+.button-view {
+  background: rgba(0, 98, 174, .75);
+}
+
+.button-edit {
+  background: rgba(0, 111, 80, .75);
+}
