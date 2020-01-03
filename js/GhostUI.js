@@ -118,6 +118,7 @@ class GhostUI{
   }
 
   //Establishes grid aligned with the shader
+  //Will be useful for document units
   drawGrid(){
 
     // so scaleX and scaleY are the same, set scale to 1 for explanation
@@ -155,8 +156,8 @@ class GhostUI{
     // }
   }
 
-  //id as string; x & y as pixel coords; opacity as 0 -1, fill & stroke as colors
   //returns svg element
+  //id as string; x & y as pixel coords; opacity as 0 -1, fill & stroke as colors
   addSVGCircle(id, x, y, r, opacity, fill, stroke, strokeWeight){
   	var r = r || 15;
   	var height = 2 * r;
@@ -209,6 +210,7 @@ class GhostUI{
   }
 
   // Helper to save a HalfFloat16 data texture
+  // Doesn't work yet
   saveDataTHalfFloat16(pixels, name, width, height){
     // Create a 2D canvas to store the result
     for (let p of pixels){
@@ -233,77 +235,6 @@ class GhostUI{
     dlAnchorElem.setAttribute("download", name);
     dlAnchorElem.click();
   }
-
-  bakePolyLine(polyLine){
-    let shader = this.shader;
-    let insString = "//$INSERT$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    let oldPosX = 0;
-    let oldPosY = 0;
-
-    for (let p of polyLine.pts){
-      view.setUint16(0, p.texPt[0]);
-      let floatX = getFloat16(view, 0);
-      // console.log(getFloat16(view, 0));
-      // console.log(getFloat16(view, 0) * window.innerWidth);
-
-      //this should be a property of GhostUI
-      let dpr = window.devicePixelRatio;
-
-      view.setUint16(0, p.texPt[1]);
-      let floatY = getFloat16(view, 0);
-      // console.log(getFloat16(view, 0));
-      // console.log(window.innerHeight - getFloat16(view, 0) * window.innerHeight);
-
-      //The following matches the screenPt function in the fragment shader
-      floatX -= 0.5;
-      floatY -= 0.5;
-      floatX *= this.resolution.x / this.resolution.y;
-      //I think 1.0 is where scale should go for zoom
-      floatX = (floatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
-      floatY = (floatY * this.resolution.y) / (this.resolution.y / dpr * 1.0);
-
-      if(oldPosX == 0 && oldPosY ==0){
-        oldPosX = floatX;
-        oldPosY = floatY;
-
-        let posString = '\n\tpos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
-        // don't draw points
-        // posString += '\tDrawPoint(uv, pos, finalColor);\n';
-        startShader += posString;
-
-        continue;
-      }else{
-        let posString = '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
-        posString += '\toldPos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
-        // don't draw points
-        // posString += '\tfinalColor *= FillLinePix(uv, oldPos, pos, vec2(1.0, 1.0), 0.0);\n';
-        posString += '\tfinalColor *= FillLine(uv, oldPos, pos, vec2('+ polyLine.weight +', '+ polyLine.weight +'), '+ polyLine.weight +');\n';
-        // posString += '\tDrawPoint(uv, pos, finalColor);';
-        startShader += posString;
-        oldPosX = floatX;
-        oldPosY = floatY;
-      }
-
-      // console.log(p);
-    }
-
-
-    let fragShader = startShader + endShader;
-    // console.log(fragShader);
-
-    this.shader = fragShader;
-    this.shaderUpdate = true;
-  }
-
 
   mouseUp( event ) {
     if (!this.drawing && this.currPolyLine.pts.length >= 1) return;
@@ -341,7 +272,7 @@ class GhostUI{
 
     let plPt = this.currPolyLine.addPoint(addPt.x, addPt.y, addPt.tag);
 
-    this.tree.insert(plPt.screenPt);
+    this.tree.insert(plPt);
 
     this.currPolyLine.cTexel += 1;
   }
@@ -488,7 +419,7 @@ class GhostUI{
         // this.mPt.z *= -1.0;
         //
         // if (this.drawing){
-          this.bakePolyLine(this.currPolyLine);
+          this.currPolyLine.bakePolyLine(this.fragShader);
 
           this.currPolyLine = new PolyLine(this.resolution, this.editWeight, this.dataSize);
           this.pLines.push(this.currPolyLine);
@@ -623,30 +554,38 @@ class Button{
 }
 
 //Simple point class for insertion into kdTree
+//Holds information for kdTree / UI and for fragment shader
 class Point{
-  constructor(_x, _y, _tag, _texRef){
-    this.x = _x;
-    this.y = _y;
+  constructor(x, y, texRef, _texData, _tag){
+    this.x = x;
+    this.y = y;
+    //texture coordinates can be reconstructed from this and dataSize
+    this.texRef = texRef;
+
+    //half float data will be stored here for future use in bake function
+    this.texData = _texData || [];
+
+    this.tag = _tag || "none";
+
     this.id = (+new Date).toString(36).slice(-8);
-    this.texRef = _texRef;
-    this.tag = _tag;
   }
 }
 
-//Polyline class contains all point and per line styling
-//GhostUI contains list of all PolyLines and other primitives
-class PolyLine {
+//PolyPoint is an array of points, a texture representation and properties
+//Another class e.g. PolyLine extends PolyPoint to manipulate and bake
+//These classes are the sdfui primitives
+class PolyPoint {
 
-  //creates empty PolyLine object
+  //creates empty PolyPoint object
   constructor(resolution, _weight, _dataSize){
     this.resolution = resolution;
 
-    // this.kdTree = kdTree;
-
     this.dataSize = _dataSize || 16;
-    //input is 1 - 20
+
+    //input is 1 to 20 divided by 2500
     this.weight = _weight || .002,
 
+    //list of points
     this.pts=[];
 
     this.cTexel = 0;
@@ -657,16 +596,12 @@ class PolyLine {
 
     this.ptsTex.magFilter = THREE.NearestFilter;
     this.ptsTex.minFilter = THREE.NearestFilter;
-
-    // here's an idea
-    // this.ptsTexNeedsUpdate = false;
   }
 
-  getTexture(){
-    return this.ptsTex;
-  }
-
-  //takes x, y, yTransformBoolean, and tag
+  //takes x, y, and tag
+  //adds point to polyPoint
+  //point x, y are stored as HalfFloat16
+  //https://github.com/petamoriken/float16
   addPoint(x, y, tag){
     let index = this.cTexel * 4;
 
@@ -674,7 +609,8 @@ class PolyLine {
     let hFloatY = y / this.resolution.y;
     let hFloatYFlip = (this.resolution.y - y) / this.resolution.y;
 
-    //use view.setFloat16() to set the digits in the view, then use view.getUint16 to
+    //use view.setFloat16() to set the digits in the DataView
+    //then use view.getUint16 to retrieve and write to data Texture
     let buffer = new ArrayBuffer(64);
     let view = new DataView(buffer);
 
@@ -698,9 +634,9 @@ class PolyLine {
     this.ptsTex.needsUpdate = true;
 
     let _tag = tag || "none";
+    let texData = [view.getUint16(0, endD), view.getUint16(16, endD), view.getUint16(32, endD), view.getUint16(48, endD)];
 
-    let pt = new Point(x, y, _tag, this.cTexel);
-
+    let pt = new Point(x, y, this.cTexel, texData, _tag);
 
     // this needs to be at the GhostUI level
     // this.kdTree.insert(pt);
@@ -709,15 +645,93 @@ class PolyLine {
     // this.ptsTexNeedsUpdate = true;
 
     //this.addSVGCircle(tag, x, y, 2);
-    var twoPts = {
-      screenPt: pt,
-      texPt: [view.getUint16(0, endD), view.getUint16(16, endD), view.getUint16(32, endD), view.getUint16(48, endD)]
-    }
 
-    this.pts.push(twoPts);
+    this.pts.push(pt);
 
     //console.log(twoPts);
-    return twoPts;
+    return pt;
+  }
+}
+
+class PolyLine extends PolyPoint {
+
+  constructor(resolution, _weight, _dataSize){
+    //super is how PolyPoint class is constructed
+    //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
+    super(resolution, _weight, _dataSize);
+  }
+
+  //takes shader as argument, modifies string, returns modified shader
+  //this will be rewritten to bake each shape as a function and a function call
+  //the inputs to these functions e.g. position will be parameterized
+  bakePolyLine(_fragShader){
+    let shader = _fragShader;
+    let insString = "//$INSERT$------";
+    let insIndex = shader.indexOf(insString);
+    insIndex += insString.length;
+
+    let startShader = shader.slice(0, insIndex);
+    let endShader = shader.slice(insIndex);
+
+    let buffer = new ArrayBuffer(10);
+    let view = new DataView(buffer);
+
+    let oldPosX = 0;
+    let oldPosY = 0;
+
+    for (let p of polyLine.pts){
+      view.setUint16(0, p.texData[0]);
+      let floatX = getFloat16(view, 0);
+      // console.log(getFloat16(view, 0));
+      // console.log(getFloat16(view, 0) * window.innerWidth);
+
+      //this should be a property of GhostUI
+      let dpr = window.devicePixelRatio;
+
+      view.setUint16(0, p.texData[1]);
+      let floatY = getFloat16(view, 0);
+      // console.log(getFloat16(view, 0));
+      // console.log(window.innerHeight - getFloat16(view, 0) * window.innerHeight);
+
+      //The following matches the screenPt function in the fragment shader
+      floatX -= 0.5;
+      floatY -= 0.5;
+      floatX *= this.resolution.x / this.resolution.y;
+      //I think 1.0 is where scale should go for zoom
+      floatX = (floatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
+      floatY = (floatY * this.resolution.y) / (this.resolution.y / dpr * 1.0);
+
+      if(oldPosX == 0 && oldPosY ==0){
+        oldPosX = floatX;
+        oldPosY = floatY;
+
+        let posString = '\n\tpos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
+        // don't draw points
+        // posString += '\tDrawPoint(uv, pos, finalColor);\n';
+        startShader += posString;
+
+        continue;
+      }else{
+        let posString = '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
+        posString += '\toldPos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
+        // don't draw points
+        // posString += '\tfinalColor *= FillLinePix(uv, oldPos, pos, vec2(1.0, 1.0), 0.0);\n';
+        posString += '\tfinalColor *= FillLine(uv, oldPos, pos, vec2('+ polyLine.weight +', '+ polyLine.weight +'), '+ polyLine.weight +');\n';
+        // posString += '\tDrawPoint(uv, pos, finalColor);';
+        startShader += posString;
+        oldPosX = floatX;
+        oldPosY = floatY;
+      }
+
+      // console.log(p);
+    }
+
+
+    let fragShader = startShader + endShader;
+    // console.log(fragShader);
+
+    this.shader = fragShader;
+    this.shaderUpdate = true;
   }
 }
 
