@@ -79,7 +79,7 @@
 }
 
 .button:hover {
-  border-radius: 1.25vmin 1.25vmin 1.25vmin 1.25vmin;
+  border-radius: 1.25vmin;
 
   box-shadow: 2px 2px 2px .5px rgba(136, 161, 180, 0.6);
 

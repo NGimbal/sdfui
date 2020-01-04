@@ -38,6 +38,7 @@ class GhostUI{
     //In some ways GhostUI holds the ui State itself
     //Making these different state variables iterable to Functions
     //within GhostUI makes sense
+    //references to buttons could be included in this
     // this.uiState = {
     //   Pause: {toggle:false},
     //   Zoom: {toggle:false, factor:1.0},
@@ -432,16 +433,6 @@ class GhostUI{
         // console.log(this.ptsTex);
         this.saveDataTHalfFloat16(this.currPolyLine.ptsTex.image.data, "ptsTex", 16, 16);
         break;
-      //snapPrev
-      case "s":
-        this.snapPrev = !this.snapPrev;
-        // console.log(this.snapPrev);
-        break;
-      //snapGrid
-      case "g":
-        this.snapGrid = !this.snapGrid;
-        // console.log(this.snapPrev);
-        break;
       //edit by SelectPt
       case "a":
         this.editPolyLn = !this.editPolyLn;
@@ -507,7 +498,7 @@ class GhostUI{
 
 //clickable draggable button, onclick is a function
 class Button{
-  constructor(elem, onclick, _ondblclick){
+  constructor(elem, onclick, _name, _keyCut, _ondblclick){
     //for offsets, could clean up these names
     this.pos1 = 0;
     this.pos2 = 0;
@@ -518,6 +509,8 @@ class Button{
 
     this.innerHTML = this.elem.innerHTML;
 
+    this.keyCut = _keyCut || "";
+
     //bool for checking if we are dragging or clicking the button
     this.click = true;
     //bool for checking if input method is active
@@ -525,21 +518,63 @@ class Button{
     //use for locking position of buttons
     this.pinned = false;
 
+    this.name = _name || "";
+
     //dbl click functions for picking
     if (_ondblclick){
       elem.ondblclick = _ondblclick.bind(this);
     }
-    // console.log(onclick);
 
     //original positions
     let style = window.getComputedStyle(elem);
     this.top = style.getPropertyValue('top');
     this.left = style.getPropertyValue('left');
 
+    this.onclick = onclick;
+
+    window.addEventListener('keyup', this.keyUp.bind(this));
+
     //what happens onclick
     elem.onclick = onclick.bind(this);
-
     elem.onmousedown = this.dragMouseDown.bind(this);
+
+    //interpret type and color from html element
+    let classes = elem.classList;
+    let buttonType = "";
+
+    for (let c of classes){
+      if(c.indexOf("edit") >= 0){
+        buttonType = "edit";
+        break;
+      }
+      if(c.indexOf("snap") >= 0){
+        buttonType = "snap";
+        break;
+      }
+      if(c.indexOf("view") >= 0){
+        buttonType = "view";
+        break;
+      }
+      if(c.indexOf("export") >= 0){
+        buttonType = "export";
+        break;
+      }
+    }
+
+    // too finicky
+    // let keyCutIndex = this.innerHTML.indexOf('button-dot') + 'button-dot'.length;
+    // let _keyCut = this.innerHTML.slice(keyCutIndex);
+    // keyCutIndex = _keyCut.indexOf('>') + 1;
+    // this.keyCut = _keyCut.slice(keyCutIndex, keyCutIndex + 1);
+
+    this.contents = {
+      name: this.name,
+      type: buttonType,
+      background: style.background,
+      innerHTML: this.innerHTML,
+    }
+
+    // console.log(this.contents);
   }
 
   dragMouseDown(e) {
@@ -598,6 +633,26 @@ class Button{
     // stop moving when mouse button is released:
     document.onmouseup = null;
     document.onmousemove = null;
+  }
+
+  snackHint(){
+    let snackbar = document.getElementById('snackbar');
+
+    if(snackbar.classList.contains('show')) return;
+
+    snackbar.innerHTML = this.contents.name;
+    snackbar.style.background = this.contents.background;
+
+    snackbar.classList.toggle('show');
+    setTimeout(function(){ snackbar.classList.toggle('show'); }, 2000);
+  }
+
+  keyUp(e){
+    if(e.key == this.keyCut){
+      this.onclick();
+      console.log(e);
+      console.log(this);
+    }
   }
 
   //experiment to add double click functionality

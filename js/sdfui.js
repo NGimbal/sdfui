@@ -60,32 +60,32 @@ function main() {
   ui = new GhostUI(canvas, sdfLines, new THREE.Vector2(canvas.width, canvas.height));
 
   let save = document.getElementById("save");
-  let saveButton = new Button(save, screenshot);
+  let saveButton = new Button(save, screenshot, "Download PNG");
   // console.log(testButton);
 
   let pause = document.getElementById("pause");
-  let pauseButton = new Button(pause, pauseShader);
+  let pauseButton = new Button(pause, pauseShader, "Pause Shader", "p");
 
   let plus = document.getElementById("plus");
-  let plusButton = new Button(plus, zoomPlus);
+  let plusButton = new Button(plus, zoomPlus, "Zoom In", "+");
 
   let minus = document.getElementById("minus");
-  let minusButton = new Button(minus, zoomMinus);
+  let minusButton = new Button(minus, zoomMinus, "Zoom Out", "-");
 
   let snapGrid = document.getElementById("snapGrid");
-  let snapGridButton = new Button(snapGrid, snapGridClick);
+  let snapGridButton = new Button(snapGrid, snapGridClick, "Snap Grid", "g");
 
   let snapPrev = document.getElementById("snapPrev");
-  let snapPrevButton = new Button(snapPrev, snapPrevClick);
+  let snapPrevButton = new Button(snapPrev, snapPrevClick, "Snap to Previous Line", "s");
 
   let snapWorld = document.getElementById("snapWorld");
-  let snapWorldButton = new Button(snapWorld, snapWorldClick);
+  let snapWorldButton = new Button(snapWorld, snapWorldClick, "Snap to Global Angle");
 
   let lineWeight = document.getElementById("lineWeight");
-  let lineWeightButton = new Button(lineWeight, lineWeightClick, Button.linearSlider);
+  let lineWeightButton = new Button(lineWeight, lineWeightClick, "Edit Lineweight", "w", Button.linearSlider);
 
   let selectPt = document.getElementById("selectPt");
-  let selectPtButton = new Button(selectPt, selectPtClick);
+  let selectPtButton = new Button(selectPt, selectPtClick, "Select Point", "a");
 
   // let circle = document.getElementById("circle");
   // let circleButton = new Button(circle, circleClick);
@@ -197,6 +197,7 @@ function screenshot(e){
   canvas.toBlob((blob) => {
     saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
   });
+  this.snackHint();
 }
 
 function pauseShader(e){
@@ -206,6 +207,7 @@ function pauseShader(e){
     // console.log(e);
 
     state.pauseR = !state.pauseR;
+    this.snackHint();
 }
 
 function zoomMinus(e){
@@ -216,6 +218,7 @@ function zoomMinus(e){
     let oldVal = screenMesh.material.uniforms.scale.value;
     screenMesh.material.uniforms.scale.value = oldVal + 0.25;
     screenMesh.material.uniforms.needsUpdate = true;
+    this.snackHint();
 }
 
 function zoomPlus(e){
@@ -226,21 +229,25 @@ function zoomPlus(e){
     let oldVal = screenMesh.material.uniforms.scale.value;
     screenMesh.material.uniforms.scale.value = oldVal - 0.25;
     screenMesh.material.uniforms.needsUpdate = true;
+    this.snackHint();
 }
 
-function snapGridClick(){
+function snapGridClick(e){
   ui.snapGrid = !ui.snapGrid;
+  this.snackHint();
 }
 
-function snapWorldClick(){
+function snapWorldClick(e){
   ui.snapGlobal = !ui.snapGlobal;
+  this.snackHint();
 }
 
-function snapPrevClick(){
+function snapPrevClick(e){
   ui.snapPrev = !ui.snapPrev;
+  this.snackHint();
 }
 
-function lineWeightClick(event){
+function lineWeightClick(e){
   // console.log(this);
 
   if(!this.click) return;
@@ -267,24 +274,28 @@ function lineWeightClick(event){
     window.setTimeout(function(){this.elem.innerHTML = this.innerHTML;}.bind(this), 900);
     this.input = false;
   }
+  this.snackHint();
 }
 
 function selectPtClick(event){
   console.log("selectPt");
   console.log(event);
   console.log(this);
+  this.snackHint();
 }
 
 function circleClick(event){
   console.log("circle");
   console.log(event);
   console.log(this);
+  this.snackHint();
 }
 
 function bezierClick(event){
   console.log("bezierClick");
   console.log(event);
   console.log(this);
+  this.snackHint();
 }
 //Utility Functions-----------------------------------------------
 
