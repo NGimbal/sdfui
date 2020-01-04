@@ -41,8 +41,9 @@ float sdSegment( in vec2 p, in vec2 a, in vec2 b )
 	return sqrt(sdSegmentSq(p,a,b));
 }
 
-// slow, do not use in production. Can probably do better than
-// tesselation in linear segments.
+// iq says this is slow, but I like the variable precision
+// and the possibility of using it to calculate the signed distance
+// for interior filled polygon. May implement something fancier later
 vec2 udBezier(vec2 p0, vec2 p1, vec2 p2, vec2 p3, vec2 pos)
 {
     const int kNum = 50;
@@ -84,10 +85,10 @@ float sdPoly( in vec2[256] v, in vec2 p )
     return s*sqrt(d);
 }
 
-// This function will make a signed distance field that says how far you are from the edge
-// of the line at any point U,V.
-// Pass it UVs, line end points, line thickness (x is along the line and y is perpendicular),
-// How rounded the end points should be (0.0 is rectangular, setting rounded to thick.y will be circular),
+//https://www.shadertoy.com/view/4tc3DX
+// signed distance to line
+// takes UVs, line end points, line thickness (x is along the line and y is perpendicular),
+// rounded: 0.0 is rectangular, rounded = thick.y will be circular
 // dashOn is just 1.0 or 0.0 to turn on the dashed lines.
 float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
     // Don't let it get more round than circular.
@@ -181,8 +182,11 @@ vec2 screenPt(vec2 p) {
   return pos;
 }
 
-void main( )
-{
+//$INSERT FUNCTION$------
+
+//$ENDINSERT FUNCTION$---
+
+void main(){
 
     vec2 uv = vUv;
 
@@ -228,25 +232,25 @@ void main( )
 
         }
 
-        float modNum = mod(j, 3.);
+        // float modNum = mod(j, 3.);
 
         //playing with bezier curves
-        if (j != 0. && modNum == 0.){
-          float a = (j - 3.) / 16. + texelOffset;
-          float b = (j - 2.) / 16. + texelOffset;
-          float c = (j - 1.) / 16. + texelOffset;
-          float d = j / 16. + texelOffset;
-
-          vec2 posA = screenPt(texture2D(posTex, vec2(a, yIndex)).xy);
-          vec2 posB = screenPt(texture2D(posTex, vec2(b, yIndex)).xy);
-          vec2 posC = screenPt(texture2D(posTex, vec2(c, yIndex)).xy);
-          vec2 posD = screenPt(texture2D(posTex, vec2(d, yIndex)).xy);
-
-          float dBz = udBezier(posA, posB, posC, posD, uv).x;
-          finalColor *= vec3(smoothstep(0.002, 0.009, dBz));
+        // if (j != 0. && modNum == 0.){
+        //   float a = (j - 3.) / 16. + texelOffset;
+        //   float b = (j - 2.) / 16. + texelOffset;
+        //   float c = (j - 1.) / 16. + texelOffset;
+        //   float d = j / 16. + texelOffset;
+        //
+        //   vec2 posA = screenPt(texture2D(posTex, vec2(a, yIndex)).xy);
+        //   vec2 posB = screenPt(texture2D(posTex, vec2(b, yIndex)).xy);
+        //   vec2 posC = screenPt(texture2D(posTex, vec2(c, yIndex)).xy);
+        //   vec2 posD = screenPt(texture2D(posTex, vec2(d, yIndex)).xy);
+        //
+        //   float dBz = udBezier(posA, posB, posC, posD, uv).x;
+        //   finalColor *= vec3(smoothstep(0.002, 0.009, dBz));
           // would be good to do better antialiasing using mix?
           // finalColor *= mix(vec3(0.0), vec3(1.0), smoothstep(0.003, 0.0035, d));
-        }
+        // }
 
         oldPos = pUv;
       }
@@ -258,9 +262,9 @@ void main( )
 
     vec2 pos = vec2(0.);
 
-    //$INSERT$------
+    //$INSERT CALL$------
 
-    //$ENDINSERT$---
+    //$ENDINSERT CALL$---
 
     // Blue grid lines
     finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.x) - 0.92)*4.0;

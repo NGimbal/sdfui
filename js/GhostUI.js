@@ -11,6 +11,7 @@ class GhostUI{
     this.resolution = new THREE.Vector2(elem.width, elem.height) || _resolution;
 
     this.shader = shader;
+    // console.log(this.shader);
     this.shaderUpdate = false;
 
     //square datatexture
@@ -314,8 +315,8 @@ class GhostUI{
       let prevY = 0;
 
       if (this.currPolyLine.pts.length >= 1){
-        prevX = this.currPolyLine.pts[this.currPolyLine.pts.length - 1].screenPt.x;
-        prevY = this.currPolyLine.pts[this.currPolyLine.pts.length - 1].screenPt.y;
+        prevX = this.currPolyLine.pts[this.currPolyLine.pts.length - 1].x;
+        prevY = this.currPolyLine.pts[this.currPolyLine.pts.length - 1].y;
       }
 
       let prevPt = {
@@ -342,8 +343,8 @@ class GhostUI{
     }
     //Snap prev
     else if (this.snapPrev && this.currPolyLine.pts.length > 1){
-      let ptPrevEnd = this.currPolyLine.pts[this.currPolyLine.pts.length - 1].screenPt;
-      let ptPrevBeg = this.currPolyLine.pts[this.currPolyLine.pts.length - 2].screenPt;
+      let ptPrevEnd = this.currPolyLine.pts[this.currPolyLine.pts.length - 1];
+      let ptPrevBeg = this.currPolyLine.pts[this.currPolyLine.pts.length - 2];
 
       //previous line, syntax?
       let lnPrev = new THREE.Vector2().subVectors(ptPrevEnd, ptPrevBeg);
@@ -405,9 +406,9 @@ class GhostUI{
         break;
       //End drawing
       case "Escape":
-        console.log(this.tree);
+        //console.log(this.tree);
         for (let p of this.currPolyLine.pts){
-          this.tree.remove(p.screenPt);
+          this.tree.remove(p);
           // console.log(this.tree);
         }
 
@@ -415,17 +416,14 @@ class GhostUI{
         break;
       //End drawing
       case "Enter":
-        // this.drawing = !this.drawing;
-        // this.mPt.z *= -1.0;
-        //
-        // if (this.drawing){
-          this.currPolyLine.bakePolyLine(this.fragShader);
+        let shaderUpdate = this.currPolyLine.bakePolyLineFunction(this.shader);
+        this.shader = this.currPolyLine.bakePolyLineCall(shaderUpdate);
+        this.shaderUpdate = true;
 
-          this.currPolyLine = new PolyLine(this.resolution, this.editWeight, this.dataSize);
-          this.pLines.push(this.currPolyLine);
-          console.log(this.pLines);
-          this.currPolyLineIndex++;
-        // }
+        this.currPolyLine = new PolyLine(this.resolution, this.editWeight, this.dataSize);
+        this.pLines.push(this.currPolyLine);
+        // console.log(this.pLines);
+        this.currPolyLineIndex++;
 
         break;
   	}
@@ -443,10 +441,6 @@ class GhostUI{
         break;
   	}
   }
-
-  // update(){
-  //   this.currPolyLine.weight = this.currWeight;
-  // }
 
 }
 
@@ -638,17 +632,8 @@ class PolyPoint {
 
     let pt = new Point(x, y, this.cTexel, texData, _tag);
 
-    // this needs to be at the GhostUI level
-    // this.kdTree.insert(pt);
-
-    // here's an idea
-    // this.ptsTexNeedsUpdate = true;
-
-    //this.addSVGCircle(tag, x, y, 2);
-
     this.pts.push(pt);
 
-    //console.log(twoPts);
     return pt;
   }
 }
@@ -659,14 +644,19 @@ class PolyLine extends PolyPoint {
     //super is how PolyPoint class is constructed
     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
     super(resolution, _weight, _dataSize);
+
+    this.id = (+new Date).toString(36).slice(-8);
+
+    this.fragFunction = "";
+
   }
 
   //takes shader as argument, modifies string, returns modified shader
   //this will be rewritten to bake each shape as a function and a function call
   //the inputs to these functions e.g. position will be parameterized
-  bakePolyLine(_fragShader){
+  bakePolyLineFunction(_fragShader){
     let shader = _fragShader;
-    let insString = "//$INSERT$------";
+    let insString = "//$INSERT FUNCTION$------";
     let insIndex = shader.indexOf(insString);
     insIndex += insString.length;
 
@@ -679,7 +669,16 @@ class PolyLine extends PolyPoint {
     let oldPosX = 0;
     let oldPosY = 0;
 
-    for (let p of polyLine.pts){
+    //create function
+    let posString = '\n';
+
+    // p is a translation for polygon
+    // eventually this will be a reference to another data texture
+    posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
+
+    posString += '\n\tvec2 tUv = uv - p;\n';
+
+    for (let p of this.pts){
       view.setUint16(0, p.texData[0]);
       let floatX = getFloat16(view, 0);
       // console.log(getFloat16(view, 0));
@@ -694,6 +693,7 @@ class PolyLine extends PolyPoint {
       // console.log(window.innerHeight - getFloat16(view, 0) * window.innerHeight);
 
       //The following matches the screenPt function in the fragment shader
+      //Could think about moving this code entirely to javascript, probably smart
       floatX -= 0.5;
       floatY -= 0.5;
       floatX *= this.resolution.x / this.resolution.y;
@@ -705,59 +705,66 @@ class PolyLine extends PolyPoint {
         oldPosX = floatX;
         oldPosY = floatY;
 
-        let posString = '\n\tpos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
-        // don't draw points
+        posString += '\n\tvec2 pos = vec2(0.0);\n';
+        posString += '\n\tvec2 oldPos = vec2(0.0);\n';
+
         // posString += '\tDrawPoint(uv, pos, finalColor);\n';
-        startShader += posString;
 
         continue;
       }else{
-        let posString = '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
+        posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
         posString += '\toldPos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
+
+        posString += '\tfinalColor *= FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +');\n';
+
         // don't draw points
-        // posString += '\tfinalColor *= FillLinePix(uv, oldPos, pos, vec2(1.0, 1.0), 0.0);\n';
-        posString += '\tfinalColor *= FillLine(uv, oldPos, pos, vec2('+ polyLine.weight +', '+ polyLine.weight +'), '+ polyLine.weight +');\n';
         // posString += '\tDrawPoint(uv, pos, finalColor);';
-        startShader += posString;
         oldPosX = floatX;
         oldPosY = floatY;
       }
-
-      // console.log(p);
     }
 
+    startShader += posString;
+
+    startShader +='}\n';
+    let fragShader = startShader + endShader;
+
+    //this.fragShaer = xxx
+    return fragShader;
+  }
+
+  //takes shader as argument, modifies string, returns modified shader
+  //creates function calls that calls function already created
+  //the inputs to these functions e.g. position will be parameterized
+  bakePolyLineCall(_fragShader){
+    let shader = _fragShader;
+    let insString = "//$INSERT CALL$------";
+    let insIndex = shader.indexOf(insString);
+    insIndex += insString.length;
+
+    let startShader = shader.slice(0, insIndex);
+    let endShader = shader.slice(insIndex);
+
+    let buffer = new ArrayBuffer(10);
+    let view = new DataView(buffer);
+
+    let oldPosX = 0;
+    let oldPosY = 0;
+
+    //create function
+    let posString = '\n';
+
+    // p here vec2(0.0,0.0) is a translation for polygon
+    // eventually this will be a reference to another data texture
+    posString += '\t' + this.id + '(uv, vec2(0.0,0.0), finalColor);\n';
+    startShader += posString;
 
     let fragShader = startShader + endShader;
+
     // console.log(fragShader);
 
-    this.shader = fragShader;
-    this.shaderUpdate = true;
+    return fragShader;
   }
 }
-
-
-//Reference shit
-//adding and removing pts / svg
-//this.tree.remove(point);
-//this.pts.splice(this.pts.indexOf(point), 1);
-//let e = document.getElementById(point.id);
-//e.remove();
-
-//rebuild tree
-// console.log(this.tree.balanceFactor());
-//this.tree = new kdTree(this.pts, this.pointDist, ["x", "y"]);
-
-// Transform screen space pt to shader space
-// vec2 screenPt(vec2 p) {
-//   vec2 pos = p;
-//   //0 to 1 => -.5 to .5
-//   pos -= 0.5;
-//   pos.x *= iResolution.x / iResolution.y;
-//
-//   // 1. represents scale if uv *= scale ends up making sense
-//   pos.x = (pos.x * iResolution.x) / (iResolution.x / (hiDPR * 1.));
-//   pos.y = (pos.y * iResolution.y) / (iResolution.y / (hiDPR * 1.));
-//   return pos;
-// }
 
 export {GhostUI, Button};

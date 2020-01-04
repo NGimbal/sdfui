@@ -34,9 +34,14 @@
   top: 39.5vmin;
 }
 
-#bezier{
+#circle{
   left: 1vmin;
   top: 45vmin;
+}
+
+#bezier{
+  left: 1vmin;
+  top: 50.5vmin;
 }
 
 .button {

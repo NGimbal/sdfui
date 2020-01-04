@@ -84,8 +84,11 @@ function main() {
   let lineWeight = document.getElementById("lineWeight");
   let lineWeightButton = new Button(lineWeight, lineWeightClick, Button.linearSlider);
 
-  let bezier = document.getElementById("bezier");
-  let bezierButton = new Button(bezier, bezierClick);
+  let circle = document.getElementById("circle");
+  let circleButton = new Button(circle, circleClick);
+
+  // let bezier = document.getElementById("bezier");
+  // let bezierButton = new Button(bezier, bezierClick);
 
 // linearSlider
   uniforms = {
@@ -261,12 +264,17 @@ function lineWeightClick(event){
   }
 }
 
-function bezierClick(event){
+function circleClick(event){
   console.log("bezierClick");
   console.log(event);
   console.log(this);
 }
 
+function bezierClick(event){
+  console.log("bezierClick");
+  console.log(event);
+  console.log(this);
+}
 //Utility Functions-----------------------------------------------
 
 const saveBlob = (function(){
