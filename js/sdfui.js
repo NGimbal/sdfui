@@ -84,8 +84,11 @@ function main() {
   let lineWeight = document.getElementById("lineWeight");
   let lineWeightButton = new Button(lineWeight, lineWeightClick, Button.linearSlider);
 
-  let circle = document.getElementById("circle");
-  let circleButton = new Button(circle, circleClick);
+  let selectPt = document.getElementById("selectPt");
+  let selectPtButton = new Button(selectPt, selectPtClick);
+
+  // let circle = document.getElementById("circle");
+  // let circleButton = new Button(circle, circleClick);
 
   // let bezier = document.getElementById("bezier");
   // let bezierButton = new Button(bezier, bezierClick);
@@ -99,6 +102,7 @@ function main() {
     posTexRes: {value: new THREE.Vector2(16.0, 16.0)},
     mousePt: {value: ui.mPt},
     editWeight : {value: ui.editWeight},
+    editOpacity : {value: ui.editOpacity},
     //this should be coming from GhostUI
     scale: {value: ui.scale},
     hiDPR: {value: window.devicePixelRatio}
@@ -146,6 +150,7 @@ function render() {
   //Why does this have to happen every frame?
   screenMesh.material.uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
   screenMesh.material.uniforms.editWeight.value = ui.editWeight;
+  screenMesh.material.uniforms.editOpacity.value = ui.editOpacity;
 
   if (ui.shaderUpdate){
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
@@ -264,8 +269,14 @@ function lineWeightClick(event){
   }
 }
 
+function selectPtClick(event){
+  console.log("selectPt");
+  console.log(event);
+  console.log(this);
+}
+
 function circleClick(event){
-  console.log("bezierClick");
+  console.log("circle");
   console.log(event);
   console.log(this);
 }

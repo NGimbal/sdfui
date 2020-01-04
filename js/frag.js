@@ -13,6 +13,8 @@ uniform vec2       posTexRes;
 uniform vec3       mousePt;
 
 uniform float      editWeight;
+uniform float      editOpacity;
+
 //scale
 uniform float      scale;
 uniform float      hiDPR;
@@ -201,7 +203,13 @@ void main(){
 
     vec2 mPt = vec2(mousePt.x, mousePt.y);
 
-    DrawPoint(uv, screenPt(mPt), finalColor);
+    vec2 pos = vec2(0.);
+
+    //$INSERT CALL$------
+
+    //$ENDINSERT CALL$---
+
+    finalColor = mix(finalColor, vec3(1.0), editOpacity);
 
     // this is for polyLine being edited
     // https://threejs.org/examples/?q=webgl2#webgl2_materials_texture2darray
@@ -227,7 +235,7 @@ void main(){
         // DrawPoint(uv, pUv, finalColor);
 
         if (oldPos != vec2(0.)){
-          finalColor *= FillLine(uv, oldPos, pUv, vec2(editWeight, editWeight), editWeight);
+          finalColor = min(finalColor, FillLine(uv, oldPos, pUv, vec2(editWeight, editWeight), editWeight));
           // finalColor *= smoothstep(0.0, 0.01, sdBezier(vec2 pos, vec2 A, vec2 B, vec2 C));
 
         }
@@ -260,11 +268,7 @@ void main(){
       finalColor *= FillLineDash(uv, oldPos, screenPt(mPt), vec2(editWeight, editWeight), 1.0);
     }
 
-    vec2 pos = vec2(0.);
-
-    //$INSERT CALL$------
-
-    //$ENDINSERT CALL$---
+    DrawPoint(uv, screenPt(mPt), finalColor);
 
     // Blue grid lines
     finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.x) - 0.92)*4.0;

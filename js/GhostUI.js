@@ -20,8 +20,6 @@ class GhostUI{
     //mousePos
     this.mPt = new THREE.Vector3(0, 0, 1.0);
 
-    //currentTexel
-    //this.cTexel =  0;
     //texel offset to access center of texel
     this.oTexel = 1 / this.dataSize / 2.0;
 
@@ -35,22 +33,44 @@ class GhostUI{
     this.tree = new kdTree(this.pts, this.pointDist, ["x", "y"]);
 
     this.editWeight = .002;
+    this.editOpacity = 0.0;
+
+    //In some ways GhostUI holds the ui State itself
+    //Making these different state variables iterable to Functions
+    //within GhostUI makes sense
+    // this.uiState = {
+    //   Pause: {toggle:false},
+    //   Zoom: {toggle:false, factor:1.0},
+    //   SnapGrid: {toggle:false},
+    //   SnapGlobal: {toggle:false, angle:90},
+    //   SnapPrev: {toggle:false, angle:45},
+    //   LineWeight: {toggle:false, factor:1.0},
+    //   SelectPt: {toggle:false},
+    //   EditPolyLn: {toggle:false},
+    //   AddCircle: {toggle:false},
+    //   AddBezier: {toggle:false},
+    //   AddPolyLn: {toggle:false},
+    //   Drawing: {toggle:true},
+    // }
 
     //current Polyline
     this.currPolyLineIndex = 0;
     this.currPolyLine = new PolyLine(this.resolution, this.editWeight, this.dataSize);
 
     //List of polyline objects
-    this.pLines = [this.currPolyLine];
+    //Eventually this will become a full scene tree
+    this.polyLines = [this.currPolyLine];
 
     //are we drawing?
     this.drawing = true;
+    this.editPolyLn = false;
 
     //Snap to previous line by snap angle
     this.snapPrev = false;
     this.snapGlobal = false;
     this.snapAngle = 45;
     this.snapGrid = false;
+    this.snapPt = {toggle:true, factor:100};
 
     // below are unused as of now
     this.snapGrid = false;
@@ -238,44 +258,66 @@ class GhostUI{
   }
 
   mouseUp( event ) {
-    if (!this.drawing && this.currPolyLine.pts.length >= 1) return;
 
-    let currPt = {
+    let evPt = {
       x: event.clientX,
       y: event.clientY
     };
 
-    let addPt = {
-      x: 0,
-      y: 0,
-      tag: ""
+    if(this.drawing){
+      let addPt = {
+        x: 0,
+        y: 0,
+        tag: ""
+      }
+
+      let ptNear = this.tree.nearest({x: evPt.x, y: evPt.y}, 1);
+
+      if (ptNear.length > 0 && ptNear[0][1] < 100){
+        let pt = ptNear[0][0];
+        addPt.x = pt.x;
+        addPt.y = pt.y;
+        addPt.tag = "plPoint";
+      }
+      else if ((this.currPolyLine.pts.length >= 1 && this.snapGlobal) || (this.currPolyLine.pts.length > 1 && this.snapPrev) || this.snapGrid){
+        //would like for there to just be one point representation in js
+        addPt.x = this.mPt.x * this.resolution.x;
+        addPt.y = this.elem.height - (this.mPt.y * this.resolution.y);
+        addPt.tag = "plPoint";
+      }
+      else{
+        addPt.x = evPt.x;
+        addPt.y = evPt.y;
+        addPt.tag = "plPoint";
+      }
+
+      let plPt = this.currPolyLine.addPoint(addPt.x, addPt.y, addPt.tag);
+
+      this.tree.insert(plPt);
+
+      this.currPolyLine.cTexel += 1;
+    }
+    else if(this.editPolyLn){
+      // console.log(this.editWeight);
+
+      let ptNear = this.tree.nearest(evPt, 1);
+
+      if (ptNear[0][1] < this.snapPt.factor){
+        for(let pl of this.polyLines){
+          // let ptID = ptNear[0][0].id;
+          let ptShapeID = ptNear[0][0].shapeID;
+          console.log(ptShapeID);
+          console.log(pl.id);
+
+          if(pl.id == ptShapeID){
+            this.currPolyLine = pl;
+            break;
+          }
+        }
+      }
+
     }
 
-    let ptNear = this.tree.nearest({x: currPt.x, y: currPt.y}, 1);
-
-    if (ptNear.length > 0 && ptNear[0][1] < 100){
-      let pt = ptNear[0][0];
-      addPt.x = pt.x;
-      addPt.y = pt.y;
-      addPt.tag = "plPoint";
-    }
-    else if ((this.currPolyLine.pts.length >= 1 && this.snapGlobal) || (this.currPolyLine.pts.length > 1 && this.snapPrev) || this.snapGrid){
-      //would like for there to just be one point representation in js
-      addPt.x = this.mPt.x * this.resolution.x;
-      addPt.y = this.elem.height - (this.mPt.y * this.resolution.y);
-      addPt.tag = "plPoint";
-    }
-    else{
-      addPt.x = currPt.x;
-      addPt.y = currPt.y;
-      addPt.tag = "plPoint";
-    }
-
-    let plPt = this.currPolyLine.addPoint(addPt.x, addPt.y, addPt.tag);
-
-    this.tree.insert(plPt);
-
-    this.currPolyLine.cTexel += 1;
   }
 
   //On mouse move, contains snapping logic, would be good to factor out
@@ -290,7 +332,7 @@ class GhostUI{
     let ptNear = this.tree.nearest(evPt, 1);
 
     //Object snap on pt closer than 200, excluding most recent point
-    if (ptNear.length > 0 && ptNear[0][1] < 100){
+    if (ptNear.length > 0 && ptNear[0][1] < this.snapPt.factor){
       // console.log(ptNear[0][0]);
       // console.log(this.currPolyLine.pts[this.currPolyLine.pts.length - 1].screenPt);
 
@@ -400,6 +442,25 @@ class GhostUI{
         this.snapGrid = !this.snapGrid;
         // console.log(this.snapPrev);
         break;
+      //edit by SelectPt
+      case "a":
+        this.editPolyLn = !this.editPolyLn;
+        //this is a problem in sone ways
+        //really need 3 states, selecting, editing, adding
+        this.drawing = !this.editPolyLn;
+
+        //when we're editing a polyLine
+        //we want to first select the line via a point that we're editing
+        //what needs to change is the mouseup function
+        //for now we can use an if statement but at some point
+        //different ui functions will have to register their own mouseUp or even mousemove
+        if(this.editPolyLn){
+          this.editOpacity = 0.3;
+        }
+        else{
+          this.editOpacity = 0.0;
+        }
+        break;
       //snapGlobal, on hold of Shift
       case "Shift":
         this.snapGlobal = false;
@@ -421,8 +482,8 @@ class GhostUI{
         this.shaderUpdate = true;
 
         this.currPolyLine = new PolyLine(this.resolution, this.editWeight, this.dataSize);
-        this.pLines.push(this.currPolyLine);
-        // console.log(this.pLines);
+        this.polyLines.push(this.currPolyLine);
+        // console.log(this.polyLines);
         this.currPolyLineIndex++;
 
         break;
@@ -550,7 +611,7 @@ class Button{
 //Simple point class for insertion into kdTree
 //Holds information for kdTree / UI and for fragment shader
 class Point{
-  constructor(x, y, texRef, _texData, _tag){
+  constructor(x, y, texRef, _texData, _shapeID, _tag){
     this.x = x;
     this.y = y;
     //texture coordinates can be reconstructed from this and dataSize
@@ -559,6 +620,10 @@ class Point{
     //half float data will be stored here for future use in bake function
     this.texData = _texData || [];
 
+    //for selection by point
+    this.shapeID = _shapeID || "";
+
+    //for filtering point selection
     this.tag = _tag || "none";
 
     this.id = (+new Date).toString(36).slice(-8);
@@ -590,6 +655,8 @@ class PolyPoint {
 
     this.ptsTex.magFilter = THREE.NearestFilter;
     this.ptsTex.minFilter = THREE.NearestFilter;
+
+    this.id = (+new Date).toString(36).slice(-8);
   }
 
   //takes x, y, and tag
@@ -630,7 +697,7 @@ class PolyPoint {
     let _tag = tag || "none";
     let texData = [view.getUint16(0, endD), view.getUint16(16, endD), view.getUint16(32, endD), view.getUint16(48, endD)];
 
-    let pt = new Point(x, y, this.cTexel, texData, _tag);
+    let pt = new Point(x, y, this.cTexel, texData, this.id, _tag);
 
     this.pts.push(pt);
 
@@ -645,8 +712,6 @@ class PolyLine extends PolyPoint {
     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
     super(resolution, _weight, _dataSize);
 
-    this.id = (+new Date).toString(36).slice(-8);
-
     this.fragFunction = "";
 
   }
@@ -656,6 +721,8 @@ class PolyLine extends PolyPoint {
   //the inputs to these functions e.g. position will be parameterized
   bakePolyLineFunction(_fragShader){
     let shader = _fragShader;
+
+    //insert new function
     let insString = "//$INSERT FUNCTION$------";
     let insIndex = shader.indexOf(insString);
     insIndex += insString.length;
@@ -663,20 +730,40 @@ class PolyLine extends PolyPoint {
     let startShader = shader.slice(0, insIndex);
     let endShader = shader.slice(insIndex);
 
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
+    // if function exists start and end should be before and after end
+    let exFuncStr = '//$START-' + this.id;
+    console.log(this.id);
+    console.log(exFuncStr);
+    let exFuncIndex = shader.indexOf(exFuncStr);
+    // exFuncIndex += exFuncStr.length;
 
-    let oldPosX = 0;
-    let oldPosY = 0;
+    if(exFuncIndex >= 0){
+      startShader = shader.slice(0, exFuncIndex);
+      console.log(startShader);
+
+      let postFuncStr = '//$END-' + this.id;
+      let postIndex = shader.indexOf(postFuncStr);
+      postIndex += postFuncStr.length;
+      endShader = shader.slice(postIndex);
+      console.log(postFuncStr);
+      // console.log()
+    }
 
     //create function
     let posString = '\n';
+    posString += '//$START-' + this.id + '\n';
 
     // p is a translation for polygon
     // eventually this will be a reference to another data texture
     posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
 
     posString += '\n\tvec2 tUv = uv - p;\n';
+
+    let buffer = new ArrayBuffer(10);
+    let view = new DataView(buffer);
+
+    let oldPosX = 0;
+    let oldPosY = 0;
 
     for (let p of this.pts){
       view.setUint16(0, p.texData[0]);
@@ -715,7 +802,7 @@ class PolyLine extends PolyPoint {
         posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
         posString += '\toldPos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
 
-        posString += '\tfinalColor *= FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +');\n';
+        posString += '\tfinalColor = min(finalColor, vec3(FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +')));\n';
 
         // don't draw points
         // posString += '\tDrawPoint(uv, pos, finalColor);';
@@ -724,12 +811,19 @@ class PolyLine extends PolyPoint {
       }
     }
 
+    // posString += '\tfinalColor = mix(finalColor, vec3(1.0), editOpacity);\n}\n';
+    posString += '\n}\n';
+    posString += '//$END-' + this.id + '\n';
+
+    this.fragShaer = posString;
+    // console.log(posString);
+
     startShader += posString;
 
-    startShader +='}\n';
     let fragShader = startShader + endShader;
 
-    //this.fragShaer = xxx
+    console.log(fragShader);
+
     return fragShader;
   }
 
