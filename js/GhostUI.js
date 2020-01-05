@@ -1,3 +1,4 @@
+
 "use strict";
 //keeps KD Tree of points to interact with
 //adds eventListeners to points
@@ -54,6 +55,11 @@ class GhostUI{
     //   Drawing: {toggle:true},
     // }
 
+    // constructor(tag, onclick, _toggle, _factor){
+    this.state = {
+      snapPt: new uiFunction(this.elem, "snap", this.snapPtClick, true, 100, this.snapPtMove, this.snapPtMUp),
+    }
+
     //current Polyline
     this.currPolyLineIndex = 0;
     this.currPolyLine = new PolyLine(this.resolution, this.editWeight, this.dataSize);
@@ -71,7 +77,7 @@ class GhostUI{
     this.snapGlobal = false;
     this.snapAngle = 45;
     this.snapGrid = false;
-    this.snapPt = {toggle:true, factor:100};
+    // this.snapPt = {toggle:true, factor:100};
 
     // below are unused as of now
     this.snapGrid = false;
@@ -303,7 +309,7 @@ class GhostUI{
 
       let ptNear = this.tree.nearest(evPt, 1);
 
-      if (ptNear[0][1] < this.snapPt.factor){
+      if (ptNear[0][1] < this.state.snapPt.factor){
         for(let pl of this.polyLines){
           // let ptID = ptNear[0][0].id;
           let ptShapeID = ptNear[0][0].shapeID;
@@ -330,17 +336,23 @@ class GhostUI{
       y: event.clientY
     };
 
-    let ptNear = this.tree.nearest(evPt, 1);
-
-    //Object snap on pt closer than 200, excluding most recent point
-    if (ptNear.length > 0 && ptNear[0][1] < this.snapPt.factor){
-      // console.log(ptNear[0][0]);
-      // console.log(this.currPolyLine.pts[this.currPolyLine.pts.length - 1].screenPt);
-
-      ptNear = ptNear[0][0];
-      this.mPt.x = ptNear.x / this.elem.width;
-      this.mPt.y = (this.elem.height - ptNear.y) / this.elem.height;
+    //pattern for mouse move functions, will return mPt
+    let snapPt = this.state.snapPt.mouseMove(evPt, this.mPt, this.tree);
+    if (snapPt.act){
+      this.mPt = snapPt.point;
     }
+    // }
+    // let ptNear = this.tree.nearest(evPt, 1);
+    //
+    // //Object snap on pt closer than 200, excluding most recent point
+    // if (ptNear.length > 0 && ptNear[0][1] < this.snapPt.factor){
+    //   // console.log(ptNear[0][0]);
+    //   // console.log(this.currPolyLine.pts[this.currPolyLine.pts.length - 1].screenPt);
+    //
+    //   ptNear = ptNear[0][0];
+    //   this.mPt.x = ptNear.x / this.elem.width;
+    //   this.mPt.y = (this.elem.height - ptNear.y) / this.elem.height;
+    // }
     //Snap grid
     else if (this.snapGrid){
       //offset and scale deteremined in drawGrid()
@@ -433,25 +445,6 @@ class GhostUI{
         // console.log(this.ptsTex);
         this.saveDataTHalfFloat16(this.currPolyLine.ptsTex.image.data, "ptsTex", 16, 16);
         break;
-      //edit by SelectPt
-      case "a":
-        this.editPolyLn = !this.editPolyLn;
-        //this is a problem in sone ways
-        //really need 3 states, selecting, editing, adding
-        this.drawing = !this.editPolyLn;
-
-        //when we're editing a polyLine
-        //we want to first select the line via a point that we're editing
-        //what needs to change is the mouseup function
-        //for now we can use an if statement but at some point
-        //different ui functions will have to register their own mouseUp or even mousemove
-        if(this.editPolyLn){
-          this.editOpacity = 0.3;
-        }
-        else{
-          this.editOpacity = 0.0;
-        }
-        break;
       //snapGlobal, on hold of Shift
       case "Shift":
         this.snapGlobal = false;
@@ -494,6 +487,61 @@ class GhostUI{
   	}
   }
 
+  snapPtClick(){
+    ui.state.snapPt.toggle = !ui.state.snapPt.toggle;
+    // could we get this snack hint going?
+    // this.snackHint();
+  }
+
+  //mouseMove functions return a modified mouse Point
+  snapPtMove(evPt, mPt, tree){
+    // console.log(this);
+    if (this.toggle == false) return {act:false, point:mPt};
+
+    let ptNear = tree.nearest(evPt, 1);
+    //Object snap on pt closer than 200, excluding most recent point
+    if (ptNear.length > 0 && ptNear[0][1] < this.factor){
+      ptNear = ptNear[0][0];
+      mPt.x = ptNear.x / this.elem.width;
+      mPt.y = (this.elem.height - ptNear.y) / this.elem.height;
+      return {act:true, point:mPt};
+    }
+    else{
+      return {act:false, point:mPt};
+    }
+  }
+
+  //MU stands for mouseup
+  snapPtMUp(){
+
+  }
+
+}
+
+class uiFunction{
+  //onclick is the function that modifies the uiFunction
+  constructor(elem, tag, onclick, _toggle, _factor, _mouseMove, _mouseUp, _mouseDown){
+    this.elem = elem;
+    this.tag = tag;
+    //tag is either snap, edit, view, export
+    this.onclick = onclick;
+    this.toggle = _toggle || false;
+    this.factor = _factor || 1.0;
+
+    if(_mouseMove){
+      this.mouseMove = _mouseMove.bind(this);
+    }
+    if(_mouseUp){
+      this.mouseUp = _mouseUp.bind(this);
+    }
+    if(_mouseDown){
+      this.mouseDown = _mouseDown.bind(this);
+    }
+  }
+
+  // createButton(){
+  //
+  // }
 }
 
 //clickable draggable button, onclick is a function

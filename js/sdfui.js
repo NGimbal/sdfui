@@ -278,9 +278,23 @@ function lineWeightClick(e){
 }
 
 function selectPtClick(event){
-  console.log("selectPt");
-  console.log(event);
-  console.log(this);
+  ui.editPolyLn = !ui.editPolyLn;
+  //this is a problem in sone ways
+  //really need 3 states, selecting, editing, adding
+  ui.drawing = !ui.editPolyLn;
+
+  //when we're editing a polyLine
+  //we want to first select the line via a point that we're editing
+  //what needs to change is the mouseup function
+  //for now we can use an if statement but at some point
+  //different ui functions will have to register their own mouseUp or even mousemove
+  if(ui.editPolyLn){
+    ui.editOpacity = 0.3;
+  }
+  else{
+    ui.editOpacity = 0.0;
+  }
+
   this.snackHint();
 }
 
