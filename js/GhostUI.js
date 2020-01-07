@@ -7,88 +7,12 @@ import * as THREE from './libjs/three.module.js';
 
 class GhostUI{
   //renderer docElem necessary, others optional
-  constructor(elem, shader, _resolution){
-    this.elem = elem;
-    this.resolution = new THREE.Vector2(elem.width, elem.height) || _resolution;
-
-    this.shader = shader;
-    // console.log(this.shader);
-    this.shaderUpdate = false;
-
+  constructor(elem, shader){
+    //GLOBAL CONSTANTS
     //square datatexture
     this.dataSize = 16;
-
-    //mousePos
-    this.mPt = new THREE.Vector3(0, 0, 1.0);
-
     //texel offset to access center of texel
     this.oTexel = 1 / this.dataSize / 2.0;
-
-    //grid scale
-    this.scale = 48;
-
-    //all Points for KD Tree
-    this.pts = [];
-
-    //all clickable / snappable points
-    this.tree = new kdTree(this.pts, this.pointDist, ["x", "y"]);
-
-    this.editWeight = .002;
-    this.editOpacity = 0.0;
-
-    //In some ways GhostUI holds the ui State itself
-    //Making these different state variables iterable to Functions
-    //within GhostUI makes sense
-    //references to buttons could be included in this
-    // this.uiState = {
-    //   Pause: {toggle:false},
-    //   Zoom: {toggle:false, factor:1.0},
-    //   SnapGrid: {toggle:false},
-    //   SnapGlobal: {toggle:false, angle:90},
-    //   SnapPrev: {toggle:false, angle:45},
-    //   LineWeight: {toggle:false, factor:1.0},
-    //   SelectPt: {toggle:false},
-    //   EditPolyLn: {toggle:false},
-    //   AddCircle: {toggle:false},
-    //   AddBezier: {toggle:false},
-    //   AddPolyLn: {toggle:false},
-    //   Drawing: {toggle:true},
-    // }
-
-    // constructor(tag, onclick, _toggle, _factor){
-    this.state = {
-      snapPt: new uiFunction(this.elem, "snap", this.snapPtClick, true, 100, this.snapPtMove, this.snapPtMUp),
-    }
-
-    //current Polyline
-    this.currPolyLineIndex = 0;
-    this.currPolyLine = new PolyLine(this.resolution, this.editWeight, this.dataSize);
-
-    //List of polyline objects
-    //Eventually this will become a full scene tree
-    this.polyLines = [this.currPolyLine];
-
-    //are we drawing?
-    this.drawing = true;
-    this.editPolyLn = false;
-
-    //Snap to previous line by snap angle
-    this.snapPrev = false;
-    this.snapGlobal = false;
-    this.snapAngle = 45;
-    this.snapGrid = false;
-    // this.snapPt = {toggle:true, factor:100};
-
-    // below are unused as of now
-    this.snapGrid = false;
-    this.snapObj = true;
-
-    this.grid = {
-      offX : 0.0,
-      offY : 0.0,
-      scaleX : 0.0,
-      scaleY : 0.0
-    }
 
     //need to check endianess for half float usage
     // https://abdulapopoola.com/2019/01/20/check-endianness-with-javascript/
@@ -126,94 +50,98 @@ class GhostUI{
 
     console.log(endianNess());
 
+    //DOCUMENT STATE
+    this.fluentDoc = new FluentDoc(elem, shader);
+
+    //array.unshift / array.shift to push and pop from array[0];
+    //this is a cool idea - will implement soon
+    //this.docState = [fluentDoc];
+
+    //MODE STATE
+    this.editWeight = .002;
+    this.editOpacity = 0.0;
+    // //current Polyline
+    // this.currPolyLineIndex = 0;
+    // this.currPolyLine = new PolyLine(this.resolution, this.editWeight, this.dataSize);
+    //are we drawing?
+    this.drawing = true;
+    this.editPolyLn = false;
+
+    //MODIFIERS
+    // constructor(tag, onclick, _toggle, _factor){
+    let snapPt = new UIModifier("snap", snapPtClck, true, {dist:100}, snapPtMv, snapPtUp);
+    let snapRef = new UIModifier("snap", snapRefClck, false, {angle:45}, snapRefMv, snapRefUp);
+    let snapGlobal = new UIModifier("snap", snapGlobalClck, false, {angle:90}, snapGlobalMv, snapGlobalUp);
+    let snapGrid = new UIModifier("snap", snapGrid, false, {}, snapGridMv, snapGridUp);
+
+    //MODES
+    //constructor(toggle, modifiers, enter, exit, mv, dwn, up){
+    this.modes = {
+      edit: new UIMode(true, [snapPt, snapRef, snapGlobal, snapGrid], editEnter, editExit, editMv, editDwn, editUp);
+    }
+
+    //Snap to previous line by snap angle
+    // this.snapPrev = false;
+    // this.snapGlobal = false;
+    // this.snapAngle = 45;
+    // this.snapGrid = false;
+    // this.snapPt = {toggle:true, factor:100};
+
+    // this.snapGrid = false;
+    // this.snapObj = true;
+
     document.getElementById("draw-shapes").addEventListener('mouseup', this.mouseUp.bind(this));
     window.addEventListener('mousemove', this.mouseMove.bind(this));
-
     window.addEventListener('keyup', this.keyUp.bind(this));
     window.addEventListener('keydown', this.keyDown.bind(this));
-
-    //establishes grid offsets
-    this.drawGrid();
 
     return this;
   }
 
   //distance function used by kdTree
-  pointDist(a, b){
-    var dx = a.x - b.x;
-    var dy = a.y - b.y;
-    return dx*dx + dy*dy;
-  }
+  // pointDist(a, b){
+  //   var dx = a.x - b.x;
+  //   var dy = a.y - b.y;
+  //   return dx*dx + dy*dy;
+  // }
 
-  //Establishes grid aligned with the shader
-  //Will be useful for document units
-  drawGrid(){
-
-    // so scaleX and scaleY are the same, set scale to 1 for explanation
-    let scaleX = (this.resolution.x / this.scale) * (this.resolution.y / this.resolution.x);
-    let scaleY = this.resolution.y / this.scale;
-
-    this.grid.scaleX = scaleX;
-    this.grid.scaleY = scaleY;
-
-    //There has got to be a more elegant way to do this...
-    //Is the remainder odd or even?
-    let r = ((this.resolution.x / scaleX) - (this.resolution.x / scaleX) % 1) % 2;
-    //If even, add scaleX * 0.5;
-    r = Math.abs(r - 1);
-    // let offX = (((this.resolution.x / scaleX) % 2) * scaleX) * 0.5 + scaleX * 0.5;
-    let offX = (((this.resolution.x / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
-
-    let offY = scaleY * 0.5;
-
-    this.grid.offX = offX;
-    this.grid.offY = offY;
-
-    // console.log("this.scale = " + this.scale);
-    // console.log("offX = " + offX);
-    // console.log("offY = " + offY);
-    // console.log("scaleX = " + scaleX);
-    // console.log("scaleY = " + scaleY);
-
-    // console.log(this.grid);
-
-    // for (let i = offY; i <= this.resolution.y; i+=scaleY){
-    //   for (let j = offX; j <= this.resolution.x; j+=scaleX){
-    //     this.addSVGCircle("blah", j, i, 2);
-    //   }
-    // }
-  }
-
-  //returns svg element
-  //id as string; x & y as pixel coords; opacity as 0 -1, fill & stroke as colors
-  addSVGCircle(id, x, y, r, opacity, fill, stroke, strokeWeight){
-  	var r = r || 15;
-  	var height = 2 * r;
-  	var width = 2 * r;
-  	var id = id || "no-id";
-  	var opacity = opacity || 0.85;
-  	var fill = fill || 'orange';
-  	var stroke = stroke || 'black';
-  	var strokeWeight = strokeWeight || 2.0;
-
-  	var svg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  	svg.setAttribute('width', String(width));
-  	svg.setAttribute('height', String(height));
-
-  	svg.setAttribute('class', 'annot');
-
-  	svg.setAttribute('cx', String(x));
-  	svg.setAttribute('cy', String(y));
-  	svg.setAttribute('r', String(r));
-  	svg.setAttribute('id', String(id));
-  	svg.setAttribute('opacity', opacity);
-  	svg.setAttribute('fill', fill);
-  	svg.setAttribute('stroke', stroke);
-  	svg.setAttribute('stroke-width', strokeWeight);
-
-  	document.getElementById('draw-shapes').appendChild(svg);
-    return svg;
-  }
+  // //Establishes grid aligned with the shader
+  // //Will be useful for document units
+  // drawGrid(){
+  //   // so scaleX and scaleY are the same, set scale to 1 for explanation
+  //   let scaleX = (this.resolution.x / this.scale) * (this.resolution.y / this.resolution.x);
+  //   let scaleY = this.resolution.y / this.scale;
+  //
+  //   this.grid.scaleX = scaleX;
+  //   this.grid.scaleY = scaleY;
+  //
+  //   //There has got to be a more elegant way to do this...
+  //   //Is the remainder odd or even?
+  //   let r = ((this.resolution.x / scaleX) - (this.resolution.x / scaleX) % 1) % 2;
+  //   //If even, add scaleX * 0.5;
+  //   r = Math.abs(r - 1);
+  //   // let offX = (((this.resolution.x / scaleX) % 2) * scaleX) * 0.5 + scaleX * 0.5;
+  //   let offX = (((this.resolution.x / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
+  //
+  //   let offY = scaleY * 0.5;
+  //
+  //   this.grid.offX = offX;
+  //   this.grid.offY = offY;
+  //
+  //   // console.log("this.scale = " + this.scale);
+  //   // console.log("offX = " + offX);
+  //   // console.log("offY = " + offY);
+  //   // console.log("scaleX = " + scaleX);
+  //   // console.log("scaleY = " + scaleY);
+  //
+  //   // console.log(this.grid);
+  //
+  //   // for (let i = offY; i <= this.resolution.y; i+=scaleY){
+  //   //   for (let j = offX; j <= this.resolution.x; j+=scaleX){
+  //   //     addSVGCircle("blah", j, i, 2);
+  //   //   }
+  //   // }
+  // }
 
   // Helper to save a Uint8 data texture
   saveDataTUint8(pixels, name, width, height){
@@ -237,8 +165,8 @@ class GhostUI{
     dlAnchorElem.click();
   }
 
+  // Placeholder
   // Helper to save a HalfFloat16 data texture
-  // Doesn't work yet
   saveDataTHalfFloat16(pixels, name, width, height){
     // Create a 2D canvas to store the result
     for (let p of pixels){
@@ -272,45 +200,45 @@ class GhostUI{
     };
 
     if(this.drawing){
-      let addPt = {
-        x: 0,
-        y: 0,
-        tag: ""
-      }
+      // let addPt = {
+      //   x: 0,
+      //   y: 0,
+      //   tag: ""
+      // }
 
-      let ptNear = this.tree.nearest({x: evPt.x, y: evPt.y}, 1);
-
-      if (ptNear.length > 0 && ptNear[0][1] < 100){
-        let pt = ptNear[0][0];
-        addPt.x = pt.x;
-        addPt.y = pt.y;
-        addPt.tag = "plPoint";
-      }
-      else if ((this.currPolyLine.pts.length >= 1 && this.snapGlobal) || (this.currPolyLine.pts.length > 1 && this.snapPrev) || this.snapGrid){
-        //would like for there to just be one point representation in js
-        addPt.x = this.mPt.x * this.resolution.x;
-        addPt.y = this.elem.height - (this.mPt.y * this.resolution.y);
-        addPt.tag = "plPoint";
-      }
-      else{
-        addPt.x = evPt.x;
-        addPt.y = evPt.y;
-        addPt.tag = "plPoint";
-      }
-
-      let plPt = this.currPolyLine.addPoint(addPt.x, addPt.y, addPt.tag);
-
-      this.tree.insert(plPt);
-
-      this.currPolyLine.cTexel += 1;
+      // let ptNear = this.tree.nearest({x: evPt.x, y: evPt.y}, 1);
+      //
+      // if (ptNear.length > 0 && ptNear[0][1] < 100){
+      //   let pt = ptNear[0][0];
+      //   addPt.x = pt.x;
+      //   addPt.y = pt.y;
+      //   addPt.tag = "plPoint";
+      // }
+      // else if ((this.currPolyLine.pts.length >= 1 && this.snapGlobal) || (this.currPolyLine.pts.length > 1 && this.snapPrev) || this.snapGrid){
+      //   //would like for there to just be one point representation in js
+      //   addPt.x = this.fluentDoc.mPt.x * this.fluentDoc.resolution.x;
+      //   addPt.y = this.fluentDoc.elem.height - (this.fluentDoc.mPt.y * this.fluentDoc.resolution.y);
+      //   addPt.tag = "plPoint";
+      // }
+      // else{
+      //   addPt.x = evPt.x;
+      //   addPt.y = evPt.y;
+      //   addPt.tag = "plPoint";
+      // }
+      //
+      // let plPt = this.currPolyLine.addPoint(addPt.x, addPt.y, addPt.tag);
+      //
+      // this.fluentDoc.tree.insert(plPt);
+      //
+      // this.currPolyLine.cTexel += 1;
     }
     else if(this.editPolyLn){
       // console.log(this.editWeight);
 
-      let ptNear = this.tree.nearest(evPt, 1);
+      let ptNear = this.fluentDoc.tree.nearest(evPt, 1);
 
       if (ptNear[0][1] < this.state.snapPt.factor){
-        for(let pl of this.polyLines){
+        for(let pl of this.fluentDoc.polyLines){
           // let ptID = ptNear[0][0].id;
           let ptShapeID = ptNear[0][0].shapeID;
           console.log(ptShapeID);
@@ -329,102 +257,90 @@ class GhostUI{
 
   //On mouse move, contains snapping logic, would be good to factor out
   //Task: factor out snapping logic and set mPt at the end
-  mouseMove( event ) {
+  mouseMove(e) {
 
     let evPt = {
-      x: event.clientX,
-      y: event.clientY
+      x: e.clientX,
+      y: e.clientY
     };
 
     //pattern for mouse move functions, will return mPt
-    let snapPt = this.state.snapPt.mouseMove(evPt, this.mPt, this.tree);
-    if (snapPt.act){
-      this.mPt = snapPt.point;
-    }
-    // }
-    // let ptNear = this.tree.nearest(evPt, 1);
-    //
-    // //Object snap on pt closer than 200, excluding most recent point
-    // if (ptNear.length > 0 && ptNear[0][1] < this.snapPt.factor){
-    //   // console.log(ptNear[0][0]);
-    //   // console.log(this.currPolyLine.pts[this.currPolyLine.pts.length - 1].screenPt);
-    //
-    //   ptNear = ptNear[0][0];
-    //   this.mPt.x = ptNear.x / this.elem.width;
-    //   this.mPt.y = (this.elem.height - ptNear.y) / this.elem.height;
+    // let snapPt = this.state.snapPt.mv(e, this.fluentDoc);
+    // if (snapPt.act){
+    //   this.mPt = snapPt.point;
     // }
     //Snap grid
     else if (this.snapGrid){
-      //offset and scale deteremined in drawGrid()
-      //current position, divided by grid.scaleX, round, times scaleX
-      let x = Math.round((evPt.x - 0.5 * this.grid.scaleX) / this.grid.scaleX) * this.grid.scaleX + this.grid.offX;
-      let y = Math.round((evPt.y - 0.5 * this.grid.scaleY) / this.grid.scaleY) * this.grid.scaleY + this.grid.offY;
-
-      this.mPt.x = x / this.elem.width;
-      this.mPt.y = (this.elem.height - y) / this.elem.height;
+      // //offset and scale deteremined in drawGrid()
+      // //current position, divided by grid.scaleX, round, times scaleX
+      // let x = Math.round((evPt.x - 0.5 * this.fluentDoc.grid.scaleX) / this.fluentDoc.grid.scaleX) * this.fluentDoc.grid.scaleX + this.fluentDoc.grid.offX;
+      // let y = Math.round((evPt.y - 0.5 * this.fluentDoc.grid.scaleY) / this.fluentDoc.grid.scaleY) * this.fluentDoc.grid.scaleY + this.fluentDoc.grid.offY;
+      //
+      // this.mPt.x = x / this.fluentDoc.elem.width;
+      // this.mPt.y = (ththis.fluentDocis.elem.height - y) / this.fluentDoc.elem.height;
     }
     //Snap global angle
     else if (this.snapGlobal && this.currPolyLine.pts.length >= 1){
-      // console.log(this.pts.length);
-      let prevX = 0;
-      let prevY = 0;
-
-      if (this.currPolyLine.pts.length >= 1){
-        prevX = this.currPolyLine.pts[this.currPolyLine.pts.length - 1].x;
-        prevY = this.currPolyLine.pts[this.currPolyLine.pts.length - 1].y;
-      }
-
-      let prevPt = {
-        x: prevX,
-        y: prevY
-      };
-
-      //previous line
-      let lnCurr = new THREE.Vector2().subVectors(prevPt, evPt);
-
-      let angle = lnCurr.angle()* (180 / Math.PI);
-
-      //global angle
-      let gAngle = 90;
-
-      let snapA = (Math.round(angle / gAngle) * gAngle);
-      snapA = (snapA * (Math.PI / 180));
-
-      let snapX = prevPt.x - lnCurr.length() * Math.cos(snapA);
-      let snapY = prevPt.y - lnCurr.length() * Math.sin(snapA);
-
-      this.mPt.x = snapX / this.elem.width;
-      this.mPt.y = (this.elem.height - snapY) / this.elem.height;
+      // // console.log(this.pts.length);
+      // let prevX = 0;
+      // let prevY = 0;
+      //
+      // if (this.currPolyLine.pts.length >= 1){
+      //   prevX = this.currPolyLine.pts[this.currPolyLine.pts.length - 1].x;
+      //   prevY = this.currPolyLine.pts[this.currPolyLine.pts.length - 1].y;
+      // }
+      //
+      // let prevPt = {
+      //   x: prevX,
+      //   y: prevY
+      // };
+      //
+      // //previous line
+      // let lnCurr = new THREE.Vector2().subVectors(prevPt, evPt);
+      //
+      // let angle = lnCurr.angle()* (180 / Math.PI);
+      //
+      // //global angle
+      // let gAngle = 90;
+      //
+      // let snapA = (Math.round(angle / gAngle) * gAngle);
+      // snapA = (snapA * (Math.PI / 180));
+      //
+      // let snapX = prevPt.x - lnCurr.length() * Math.cos(snapA);
+      // let snapY = prevPt.y - lnCurr.length() * Math.sin(snapA);
+      //
+      // this.mPt.x = snapX / this.fluentDoc.elem.width;
+      // this.mPt.y = (this.fluentDoc.elem.height - snapY) / tthis.fluentDoc.elem.height;
     }
     //Snap prev
-    else if (this.snapPrev && this.currPolyLine.pts.length > 1){
-      let ptPrevEnd = this.currPolyLine.pts[this.currPolyLine.pts.length - 1];
-      let ptPrevBeg = this.currPolyLine.pts[this.currPolyLine.pts.length - 2];
-
-      //previous line, syntax?
-      let lnPrev = new THREE.Vector2().subVectors(ptPrevEnd, ptPrevBeg);
-      let lnCurr = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
-      let lnCurrN = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
-
-      let dot = lnPrev.normalize().dot(lnCurrN.normalize());
-      let det = lnPrev.x * lnCurrN.y - lnPrev.y * lnCurrN.x
-
-      let angle = Math.atan2(det, dot) * (180 / Math.PI);
-
-      let snapA = (Math.round(angle / this.snapAngle) * this.snapAngle);
-
-      snapA = (snapA * (Math.PI / 180) + lnPrev.angle());
-
-      let snapX = ptPrevEnd.x - lnCurr.length() * Math.cos(snapA);
-      let snapY = ptPrevEnd.y - lnCurr.length() * Math.sin(snapA);
-
-      this.mPt.x = snapX / this.elem.width;
-      this.mPt.y = (this.elem.height - snapY) / this.elem.height;
-    }
+    // else if (this.snapPrev && this.currPolyLine.pts.length > 1){
+    //   let ptPrevEnd = this.currPolyLine.pts[this.currPolyLine.pts.length - 1];
+    //   let ptPrevBeg = this.currPolyLine.pts[this.currPolyLine.pts.length - 2];
+    //
+    //   //previous line, syntax?
+    //   let lnPrev = new THREE.Vector2().subVectors(ptPrevEnd, ptPrevBeg);
+    //   let lnCurr = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
+    //   let lnCurrN = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
+    //
+    //   let dot = lnPrev.normalize().dot(lnCurrN.normalize());
+    //   let det = lnPrev.x * lnCurrN.y - lnPrev.y * lnCurrN.x
+    //
+    //   let angle = Math.atan2(det, dot) * (180 / Math.PI);
+    //
+    //   let snapA = (Math.round(angle / this.snapAngle) * this.snapAngle);
+    //
+    //   snapA = (snapA * (Math.PI / 180) + lnPrev.angle());
+    //
+    //   let snapX = ptPrevEnd.x - lnCurr.length() * Math.cos(snapA);
+    //   let snapY = ptPrevEnd.y - lnCurr.length() * Math.sin(snapA);
+    //
+    //   this.mPt.x = snapX / this.fluentDoc.elem.width;
+    //   this.mPt.y = (this.fluentDoc.elem.height - snapY) / this.fluentDoc.elem.height;
+    // }
     //Typ
     else{
-      this.mPt.x = evPt.x / this.elem.width;
-      this.mPt.y = (this.elem.height - evPt.y) / this.elem.height;
+      this.mPt.x = evPt.x / this.fluentDoc.elem.width;
+      this.mPt.y = (this.fluentDoc.elem.height - evPt.y) / this.fluentDoc.elem.height;
     }
   }
 
@@ -487,55 +403,397 @@ class GhostUI{
   	}
   }
 
-  snapPtClick(){
-    ui.state.snapPt.toggle = !ui.state.snapPt.toggle;
-    // could we get this snack hint going?
-    // this.snackHint();
-  }
-
-  //mouseMove functions return a modified mouse Point
-  snapPtMove(evPt, mPt, tree){
-    // console.log(this);
-    if (this.toggle == false) return {act:false, point:mPt};
-
-    let ptNear = tree.nearest(evPt, 1);
-    //Object snap on pt closer than 200, excluding most recent point
-    if (ptNear.length > 0 && ptNear[0][1] < this.factor){
-      ptNear = ptNear[0][0];
-      mPt.x = ptNear.x / this.elem.width;
-      mPt.y = (this.elem.height - ptNear.y) / this.elem.height;
-      return {act:true, point:mPt};
-    }
-    else{
-      return {act:false, point:mPt};
-    }
-  }
-
-  //MU stands for mouseup
-  snapPtMUp(){
-
-  }
-
 }
 
-class uiFunction{
-  //onclick is the function that modifies the uiFunction
-  constructor(elem, tag, onclick, _toggle, _factor, _mouseMove, _mouseUp, _mouseDown){
+function snapPtClck(_fluentDoc){
+    this.toggle = !this.toggle;
+    // could we get this snack hint going?
+    // this.snackHint();
+}
+
+function snapRefClck(_fluentDoc){
+    this.toggle = !this.toggle;
+    // could we get this snack hint going?
+    // this.snackHint();
+}
+
+function snapGlobalClck(_fluentDoc){
+    this.toggle = !this.toggle;
+    // could we get this snack hint going?
+    // this.snackHint();
+}
+
+function snapGridClck(_fluentDoc){
+    this.toggle = !this.toggle;
+    // could we get this snack hint going?
+    // this.snackHint();
+}
+
+function snapPtMv(e, _fluentDoc){
+  let fluentDoc = Object.assign({}, _fluentDoc);
+  if (this.toggle == false) return null;
+
+  let evPt = {
+    x: e.clientX,
+    y: e.clientY
+  };
+
+  let ptNear = fluentDoc.tree.nearest(evPt, 1);
+
+  if (ptNear.length > 0 && ptNear[0][1] < this.factors.dist){
+    ptNear = ptNear[0][0];
+    fluentDoc.mPt.x = ptNear.x / this.elem.width;
+    fluentDoc.mPt.y = (fluentDoc.elem.height - ptNear.y) / fluentDoc.elem.height;
+
+    return fluentDoc;
+  }
+  else{
+    return null;
+  }
+}
+
+function snapRefMv(e, _fluentDoc){
+  let fluentDoc = Object.assign({}, _fluentDoc);
+  if (this.toggle == false) return null;
+
+  let evPt = {
+    x: e.clientX,
+    y: e.clientY
+  };
+
+  if (fluentDoc.currEditItem.pts.length > 1){
+    let ptPrevEnd = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 1];
+    let ptPrevBeg = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 2];
+
+    //previous line, syntax?
+    let lnPrev = new THREE.Vector2().subVectors(ptPrevEnd, ptPrevBeg);
+    let lnCurr = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
+    let lnCurrN = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
+
+    let dot = lnPrev.normalize().dot(lnCurrN.normalize());
+    let det = lnPrev.x * lnCurrN.y - lnPrev.y * lnCurrN.x
+
+    let angle = Math.atan2(det, dot) * (180 / Math.PI);
+
+    let snapA = (Math.round(angle / this.factors.angle) * this.factors.angle);
+
+    snapA = (snapA * (Math.PI / 180) + lnPrev.angle());
+
+    let snapX = ptPrevEnd.x - lnCurr.length() * Math.cos(snapA);
+    let snapY = ptPrevEnd.y - lnCurr.length() * Math.sin(snapA);
+
+    fluentDoc.mPt.x = snapX / fluentDoc.elem.width;
+    fluentDoc.mPt.y = (fluentDoc.elem.height - snapY) / fluentDoc.elem.height;
+
+    return fluentDoc;
+  }
+  else{
+    return null;
+  }
+}
+
+function snapGlobalMv(e, _fluentDoc){
+  let fluentDoc = Object.assign({}, _fluentDoc);
+  if (this.toggle == false) return null;
+
+  let evPt = {
+    x: e.clientX,
+    y: e.clientY
+  };
+
+  if (fluentDoc.currEditItem.pts.length > 1){
+    let prevX = 0;
+    let prevY = 0;
+
+    if (fluentDoc.currEditItem.pts.length >= 1){
+      prevX = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 1].x;
+      prevY = fluentDoc.currEditItem[fluentDoc.currEditItem.pts.length - 1].y;
+    }
+
+    let prevPt = {
+      x: prevX,
+      y: prevY
+    };
+
+    //previous line
+    let lnCurr = new THREE.Vector2().subVectors(prevPt, evPt);
+
+    let angle = lnCurr.angle()* (180 / Math.PI);
+
+    //global angle
+    let gAngle = 90;
+
+    let snapA = (Math.round(angle / gAngle) * gAngle);
+    snapA = (snapA * (Math.PI / 180));
+
+    let snapX = prevPt.x - lnCurr.length() * Math.cos(snapA);
+    let snapY = prevPt.y - lnCurr.length() * Math.sin(snapA);
+
+    this.mPt.x = snapX / fluentDoc.elem.width;
+    this.mPt.y = (fluentDoc.elem.height - snapY) / fluentDoc.elem.height;
+
+    return fluentDoc;
+  }
+  else{
+    return null;
+  }
+}
+
+function snapGridMv(e, _fluentDoc){
+  let fluentDoc = Object.assign({}, _fluentDoc);
+  if (this.toggle == false) return null;
+
+  let evPt = {
+    x: e.clientX,
+    y: e.clientY
+  };
+
+  //offset and scale deteremined in drawGrid()
+  //current position, divided by grid.scaleX, round, times scaleX
+  let x = Math.round((evPt.x - 0.5 * fluentDoc.gridScaleX) / fluentDoc.gridScaleX) * fluentDoc.gridScaleX + fluentDoc.gridOffX;
+  let y = Math.round((evPt.y - 0.5 * fluentDoc.gridScaleY) / fluentDoc.gridScaleY) * fluentDoc.gridScaleY + fluentDoc.gridOffY;
+
+  fluentDoc.mPt.x = x / fluentDoc.elem.width;
+  fluentDoc.mPt.y = (fluentDoc.elem.height - y) / fluentDoc.elem.height;
+
+  return fluentDoc;
+}
+
+function snapPtUp(e, _fluentDoc){
+  //let's say it returns a new fluentDoc
+  //we can also include a list of what's changed
+  //or we could check that it is a valid state for the program
+  //I think there are ways of handling problems that might arise later
+  let fluentDoc = Object.assign({}, _fluentDoc);
+  if (this.toggle == false) return null;
+
+  let addPt = {
+    x: 0,
+    y: 0,
+    tag: ""
+  }
+
+  let ptNear = fluentDoc.tree.nearest({x: evPt.x, y: evPt.y}, 1);
+
+  if (ptNear.length > 0 && ptNear[0][1] < 100){
+    let pt = ptNear[0][0];
+    addPt.x = pt.x;
+    addPt.y = pt.y;
+    addPt.tag = "plPoint";
+
+    let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
+
+    fluentDoc.tree.insert(plPt);
+    fluentDoc.currEditItem.cTexel += 1;
+
+    return fluentDoc;
+  }
+  else{
+    return null;
+  }
+}
+
+function snapRefUp(e, _fluentDoc){
+  let fluentDoc = Object.assign({}, _fluentDoc);
+  if (this.toggle == false) return null;
+
+  let addPt = {
+    x: 0,
+    y: 0,
+    tag: ""
+  }
+
+  if (fluentDoc.currEditItem.pts.length > 1){
+    //would like for there to just be one point representation in js
+    addPt.x = this.fluentDoc.mPt.x * this.fluentDoc.resolution.x;
+    addPt.y = this.fluentDoc.elem.height - (this.fluentDoc.mPt.y * this.fluentDoc.resolution.y);
+    addPt.tag = "plPoint";
+
+    let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
+
+    fluentDoc.tree.insert(plPt);
+    fluentDoc.currEditItem.cTexel += 1;
+
+    return fluentDoc;
+  }
+  else{
+    return null;
+  }
+}
+
+function snapGlobalUp(e, _fluentDoc){
+  let fluentDoc = Object.assign({}, _fluentDoc);
+  if (this.toggle == false) return null;
+
+  let addPt = {
+    x: 0,
+    y: 0,
+    tag: ""
+  }
+
+  if (fluentDoc.currEditItem.pts.length > 1){
+    //would like for there to just be one point representation in js
+    addPt.x = this.fluentDoc.mPt.x * this.fluentDoc.resolution.x;
+    addPt.y = this.fluentDoc.elem.height - (this.fluentDoc.mPt.y * this.fluentDoc.resolution.y);
+    addPt.tag = "plPoint";
+
+    let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
+
+    fluentDoc.tree.insert(plPt);
+    fluentDoc.currEditItem.cTexel += 1;
+
+    return fluentDoc;
+  }
+  else{
+    return null;
+  }
+}
+
+function snapGridUp(e, _fluentDoc){
+  let fluentDoc = Object.assign({}, _fluentDoc);
+  if (this.toggle == false) return null;
+
+  let addPt = {
+    x: 0,
+    y: 0,
+    tag: ""
+  }
+
+  //would like for there to just be one point representation in js
+  addPt.x = this.fluentDoc.mPt.x * this.fluentDoc.resolution.x;
+  addPt.y = this.fluentDoc.elem.height - (this.fluentDoc.mPt.y * this.fluentDoc.resolution.y);
+  addPt.tag = "plPoint";
+
+  let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
+
+  fluentDoc.tree.insert(plPt);
+  fluentDoc.currEditItem.cTexel += 1;
+
+  return fluentDoc;
+}
+
+class FluentDoc{
+  // new fluent doc from elem
+  // should move shader logic in here
+  // maybe this class should get moved to sdfui
+  constructor(elem, shader){
     this.elem = elem;
+    this.resolution = new THREE.Vector2(elem.width, elem.height);
+
+    //uniforms might want to get moved here
+    this.shader = shader;
+    this.shaderUpdate = false;
+
+    //mouse target position
+    this.mPt = new THREE.Vector3(0, 0, 1.0);
+
+    //grid scale
+    this.scale = 48;
+
+    //list of kdTree points, might not be necessary?
+    this.pts = [];
+    //all clickable / snappable points
+    this.tree = new kdTree(this.pts, this.pointDist, ["x", "y"]);
+
+    //List of polyline objects
+    //Eventually this will become a full scene graph of some sort
+    //this should be instantiated on entering edit mode
+    //current editItem
+    this.editItemIndex = 0;
+    this.currEditItem = new PolyLine(this.resolution, this.editWeight, this.dataSize);
+    this.editItems = [this.currEditItem];
+
+    //establishes grid offsets
+    //actually don't think this instantiation is necessary
+    this.gridOffX = 0.0;
+    this.gridOffY = 0.0;
+    this.scaleX = 0.0;
+    this.scaleyY = 0.0;
+    this.drawGrid();
+  }
+
+  pointDist(a, b){
+    var dx = a.x - b.x;
+    var dy = a.y - b.y;
+    return dx*dx + dy*dy;
+  }
+
+  //Establishes grid aligned with the shader
+  //Will be useful for document units
+  drawGrid(){
+    // so scaleX and scaleY are the same, set scale to 1 for explanation
+    let scaleX = (this.resolution.x / this.scale) * (this.resolution.y / this.resolution.x);
+    let scaleY = this.resolution.y / this.scale;
+
+    this.gridScaleX = scaleX;
+    this.gridScaleY = scaleY;
+
+    //There has got to be a more elegant way to do this...
+    //Is the remainder odd or even?
+    let r = ((this.resolution.x / scaleX) - (this.resolution.x / scaleX) % 1) % 2;
+    //If even, add scaleX * 0.5;
+    r = Math.abs(r - 1);
+    // let offX = (((this.resolution.x / scaleX) % 2) * scaleX) * 0.5 + scaleX * 0.5;
+    let offX = (((this.resolution.x / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
+
+    let offY = scaleY * 0.5;
+
+    this.gridOffX = offX;
+    this.gridOffY = offY;
+
+    // console.log("this.scale = " + this.scale);
+    // console.log("offX = " + offX);
+    // console.log("offY = " + offY);
+    // console.log("scaleX = " + scaleX);
+    // console.log("scaleY = " + scaleY);
+
+    // console.log(this.grid);
+
+    // for (let i = offY; i <= this.resolution.y; i+=scaleY){
+    //   for (let j = offX; j <= this.resolution.x; j+=scaleX){
+    //     addSVGCircle("blah", j, i, 2);
+    //   }
+    // }
+  }
+}
+
+//idea is to allow the creation of modes if/when that's necessary
+//modes are going to be collections of UIModifiers
+class UIMode{
+  //bool, [], functions
+  constructor(toggle, modifiers, enter, exit, mv, dwn, up){
+    this.toggle = toggle;
+    this.modifiers = modifiers;
+    this.enter = enter;
+    this.exit = exit;
+    //these should basically all be defined for every mode
+    if(mv) this.mv = mv;
+    if(dwn) this.dwn = dwn;
+    if(up) this.up = up;
+  }
+}
+
+//let's say it returns a new fluentDoc
+//we can also include a list of what's changed
+//or we could check that it is a valid state for the program
+//I think there are ways of handling problems that might arise later
+class UIModifier{
+  //clck
+  constructor(tag, clck, _toggle, _factors, mv, dwn, up){
     this.tag = tag;
     //tag is either snap, edit, view, export
-    this.onclick = onclick;
+    this.clck = clck;
     this.toggle = _toggle || false;
-    this.factor = _factor || 1.0;
+    this.factor = _factor || {factor:1.0};
 
-    if(_mouseMove){
-      this.mouseMove = _mouseMove.bind(this);
+    if(mv){
+      this.mv = mv.bind(this);
     }
-    if(_mouseUp){
-      this.mouseUp = _mouseUp.bind(this);
+    if(up){
+      this.up = up.bind(this);
     }
-    if(_mouseDown){
-      this.mouseDown = _mouseDown.bind(this);
+    if(dwn){
+      this.dwn = dwn.bind(this);
     }
   }
 
@@ -711,7 +969,7 @@ class Button{
 
 }
 
-//Simple point class for insertion into kdTree
+//Simple point class (for insertion into kdTree)
 //Holds information for kdTree / UI and for fragment shader
 class Point{
   constructor(x, y, texRef, _texData, _shapeID, _tag){
@@ -962,6 +1220,38 @@ class PolyLine extends PolyPoint {
 
     return fragShader;
   }
+}
+
+// good for debugging and for reference
+//returns svg element
+//id as string; x & y as pixel coords; opacity as 0 -1, fill & stroke as colors
+function addSVGCircle(id, x, y, r, opacity, fill, stroke, strokeWeight){
+  var r = r || 15;
+  var height = 2 * r;
+  var width = 2 * r;
+  var id = id || "no-id";
+  var opacity = opacity || 0.85;
+  var fill = fill || 'orange';
+  var stroke = stroke || 'black';
+  var strokeWeight = strokeWeight || 2.0;
+
+  var svg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  svg.setAttribute('width', String(width));
+  svg.setAttribute('height', String(height));
+
+  svg.setAttribute('class', 'annot');
+
+  svg.setAttribute('cx', String(x));
+  svg.setAttribute('cy', String(y));
+  svg.setAttribute('r', String(r));
+  svg.setAttribute('id', String(id));
+  svg.setAttribute('opacity', opacity);
+  svg.setAttribute('fill', fill);
+  svg.setAttribute('stroke', stroke);
+  svg.setAttribute('stroke-width', strokeWeight);
+
+  document.getElementById('draw-shapes').appendChild(svg);
+  return svg;
 }
 
 export {GhostUI, Button};

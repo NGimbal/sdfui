@@ -57,7 +57,7 @@ function main() {
   //gotta do this otherwise GhostUI doesn't get the proper dimensions
   resizeRendererToDisplaySize(renderer);
 
-  ui = new GhostUI(canvas, sdfLines, new THREE.Vector2(canvas.width, canvas.height));
+  ui = new GhostUI(canvas, sdfLines);
 
   let save = document.getElementById("save");
   let saveButton = new Button(save, screenshot, "Download PNG");
