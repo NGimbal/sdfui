@@ -77,7 +77,7 @@ class GhostUI{
     //MODES
     //constructor(toggle, modifiers, enter, exit, mv, dwn, up){
     this.modes = {
-      edit: new UIMode(true, [snapPt, snapRef, snapGlobal, snapGrid], editEnter, editExit, editMv, editDwn, editUp);
+      edit: new UIMode(true, [snapPt, snapRef, snapGlobal, snapGrid], editEnter, editExit, editMv, editDwn, editUp)
     }
 
     //Snap to previous line by snap angle
