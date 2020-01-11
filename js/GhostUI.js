@@ -60,35 +60,27 @@ class GhostUI{
     //MODE STATE
     this.editWeight = .002;
     this.editOpacity = 0.0;
-    // //current Polyline
-    // this.currPolyLineIndex = 0;
-    // this.currPolyLine = new PolyLine(this.resolution, this.editWeight, this.dataSize);
-    //are we drawing?
     this.drawing = true;
     this.editPolyLn = false;
 
     //MODIFIERS
-    // constructor(tag, onclick, _toggle, _factor){
-    let snapPt = new UIModifier("snap", snapPtClck, true, {dist:100}, snapPtMv, snapPtUp);
-    let snapRef = new UIModifier("snap", snapRefClck, false, {angle:45}, snapRefMv, snapRefUp);
-    let snapGlobal = new UIModifier("snap", snapGlobalClck, false, {angle:90}, snapGlobalMv, snapGlobalUp);
-    let snapGrid = new UIModifier("snap", snapGrid, false, {}, snapGridMv, snapGridUp);
+    // constructor(name, tag, clck, keyCut, _toggle, _factors, mv, up, dwn)
+    let snapPt = new UIModifier("snapPt", "snap", "p", snapPtClck, false, {dist:100}, snapPtMv, snapPtUp);
+    let snapRef = new UIModifier("snapRef", "snap", "s", snapRefClck, false, {angle:45}, snapRefMv, snapRefUp);
+    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", snapGlobalClck, false, {angle:90}, snapGlobalMv, snapGlobalUp);
+    let snapGrid = new UIModifier("snapGrid", "snap", "g", snapGridClck, true, {}, snapGridMv, snapGridUp);
+    this.initUIButton(snapGrid);
+
+    //global modifiers get GhostUI context bound
+    let endPLine = new UIModifier("endPLine", "global", "Enter", endPLineClck.bind(this), true);
 
     //MODES
-    //constructor(toggle, modifiers, enter, exit, mv, dwn, up){
-    this.modes = {
-      edit: new UIMode(true, [snapPt, snapRef, snapGlobal, snapGrid], editEnter, editExit, editMv, editDwn, editUp)
-    }
+    //constructor(toggle, modifiers, enter, exit, mv, up, dwn){
+    this.modes = [
+      new UIMode("draw", true, [snapPt, snapRef, snapGlobal, snapGrid], drawEnter, drawExit, drawMv, drawUp)
+    ]
 
-    //Snap to previous line by snap angle
-    // this.snapPrev = false;
-    // this.snapGlobal = false;
-    // this.snapAngle = 45;
-    // this.snapGrid = false;
-    // this.snapPt = {toggle:true, factor:100};
-
-    // this.snapGrid = false;
-    // this.snapObj = true;
+    this.modes[0].enter();
 
     document.getElementById("draw-shapes").addEventListener('mouseup', this.mouseUp.bind(this));
     window.addEventListener('mousemove', this.mouseMove.bind(this));
@@ -98,50 +90,12 @@ class GhostUI{
     return this;
   }
 
-  //distance function used by kdTree
-  // pointDist(a, b){
-  //   var dx = a.x - b.x;
-  //   var dy = a.y - b.y;
-  //   return dx*dx + dy*dy;
-  // }
+  initUIButton(uimodifier){
+    // constructor(elem, uimodifier, _keyCut)
 
-  // //Establishes grid aligned with the shader
-  // //Will be useful for document units
-  // drawGrid(){
-  //   // so scaleX and scaleY are the same, set scale to 1 for explanation
-  //   let scaleX = (this.resolution.x / this.scale) * (this.resolution.y / this.resolution.x);
-  //   let scaleY = this.resolution.y / this.scale;
-  //
-  //   this.grid.scaleX = scaleX;
-  //   this.grid.scaleY = scaleY;
-  //
-  //   //There has got to be a more elegant way to do this...
-  //   //Is the remainder odd or even?
-  //   let r = ((this.resolution.x / scaleX) - (this.resolution.x / scaleX) % 1) % 2;
-  //   //If even, add scaleX * 0.5;
-  //   r = Math.abs(r - 1);
-  //   // let offX = (((this.resolution.x / scaleX) % 2) * scaleX) * 0.5 + scaleX * 0.5;
-  //   let offX = (((this.resolution.x / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
-  //
-  //   let offY = scaleY * 0.5;
-  //
-  //   this.grid.offX = offX;
-  //   this.grid.offY = offY;
-  //
-  //   // console.log("this.scale = " + this.scale);
-  //   // console.log("offX = " + offX);
-  //   // console.log("offY = " + offY);
-  //   // console.log("scaleX = " + scaleX);
-  //   // console.log("scaleY = " + scaleY);
-  //
-  //   // console.log(this.grid);
-  //
-  //   // for (let i = offY; i <= this.resolution.y; i+=scaleY){
-  //   //   for (let j = offX; j <= this.resolution.x; j+=scaleX){
-  //   //     addSVGCircle("blah", j, i, 2);
-  //   //   }
-  //   // }
-  // }
+    let snapGrid = document.getElementById("snapGrid");
+    let snapGridButton = new Button(snapGrid, uimodifier, "g");
+  }
 
   // Helper to save a Uint8 data texture
   saveDataTUint8(pixels, name, width, height){
@@ -192,217 +146,121 @@ class GhostUI{
     dlAnchorElem.click();
   }
 
-  mouseUp( event ) {
+  mouseUp( e ) {
 
-    let evPt = {
-      x: event.clientX,
-      y: event.clientY
-    };
+    // let evPt = {
+    //   x: e.clientX,
+    //   y: e.clientY
+    // };
 
-    if(this.drawing){
-      // let addPt = {
-      //   x: 0,
-      //   y: 0,
-      //   tag: ""
-      // }
-
-      // let ptNear = this.tree.nearest({x: evPt.x, y: evPt.y}, 1);
-      //
-      // if (ptNear.length > 0 && ptNear[0][1] < 100){
-      //   let pt = ptNear[0][0];
-      //   addPt.x = pt.x;
-      //   addPt.y = pt.y;
-      //   addPt.tag = "plPoint";
-      // }
-      // else if ((this.currPolyLine.pts.length >= 1 && this.snapGlobal) || (this.currPolyLine.pts.length > 1 && this.snapPrev) || this.snapGrid){
-      //   //would like for there to just be one point representation in js
-      //   addPt.x = this.fluentDoc.mPt.x * this.fluentDoc.resolution.x;
-      //   addPt.y = this.fluentDoc.elem.height - (this.fluentDoc.mPt.y * this.fluentDoc.resolution.y);
-      //   addPt.tag = "plPoint";
-      // }
-      // else{
-      //   addPt.x = evPt.x;
-      //   addPt.y = evPt.y;
-      //   addPt.tag = "plPoint";
-      // }
-      //
-      // let plPt = this.currPolyLine.addPoint(addPt.x, addPt.y, addPt.tag);
-      //
-      // this.fluentDoc.tree.insert(plPt);
-      //
-      // this.currPolyLine.cTexel += 1;
-    }
-    else if(this.editPolyLn){
-      // console.log(this.editWeight);
-
-      let ptNear = this.fluentDoc.tree.nearest(evPt, 1);
-
-      if (ptNear[0][1] < this.state.snapPt.factor){
-        for(let pl of this.fluentDoc.polyLines){
-          // let ptID = ptNear[0][0].id;
-          let ptShapeID = ptNear[0][0].shapeID;
-          console.log(ptShapeID);
-          console.log(pl.id);
-
-          if(pl.id == ptShapeID){
-            this.currPolyLine = pl;
-            break;
-          }
-        }
+    for (let mode of this.modes){
+      if(mode.toggle == true){
+        console.log(mode.name);
+        this.fluentDoc = mode.up(e, this.fluentDoc);
       }
-
     }
-
   }
 
-  //On mouse move, contains snapping logic, would be good to factor out
-  //Task: factor out snapping logic and set mPt at the end
   mouseMove(e) {
 
-    let evPt = {
-      x: e.clientX,
-      y: e.clientY
-    };
+    // let evPt = {
+    //   x: e.clientX,
+    //   y: e.clientY
+    // };
 
-    //pattern for mouse move functions, will return mPt
-    // let snapPt = this.state.snapPt.mv(e, this.fluentDoc);
-    // if (snapPt.act){
-    //   this.mPt = snapPt.point;
-    // }
-    //Snap grid
-    else if (this.snapGrid){
-      // //offset and scale deteremined in drawGrid()
-      // //current position, divided by grid.scaleX, round, times scaleX
-      // let x = Math.round((evPt.x - 0.5 * this.fluentDoc.grid.scaleX) / this.fluentDoc.grid.scaleX) * this.fluentDoc.grid.scaleX + this.fluentDoc.grid.offX;
-      // let y = Math.round((evPt.y - 0.5 * this.fluentDoc.grid.scaleY) / this.fluentDoc.grid.scaleY) * this.fluentDoc.grid.scaleY + this.fluentDoc.grid.offY;
-      //
-      // this.mPt.x = x / this.fluentDoc.elem.width;
-      // this.mPt.y = (ththis.fluentDocis.elem.height - y) / this.fluentDoc.elem.height;
-    }
-    //Snap global angle
-    else if (this.snapGlobal && this.currPolyLine.pts.length >= 1){
-      // // console.log(this.pts.length);
-      // let prevX = 0;
-      // let prevY = 0;
-      //
-      // if (this.currPolyLine.pts.length >= 1){
-      //   prevX = this.currPolyLine.pts[this.currPolyLine.pts.length - 1].x;
-      //   prevY = this.currPolyLine.pts[this.currPolyLine.pts.length - 1].y;
-      // }
-      //
-      // let prevPt = {
-      //   x: prevX,
-      //   y: prevY
-      // };
-      //
-      // //previous line
-      // let lnCurr = new THREE.Vector2().subVectors(prevPt, evPt);
-      //
-      // let angle = lnCurr.angle()* (180 / Math.PI);
-      //
-      // //global angle
-      // let gAngle = 90;
-      //
-      // let snapA = (Math.round(angle / gAngle) * gAngle);
-      // snapA = (snapA * (Math.PI / 180));
-      //
-      // let snapX = prevPt.x - lnCurr.length() * Math.cos(snapA);
-      // let snapY = prevPt.y - lnCurr.length() * Math.sin(snapA);
-      //
-      // this.mPt.x = snapX / this.fluentDoc.elem.width;
-      // this.mPt.y = (this.fluentDoc.elem.height - snapY) / tthis.fluentDoc.elem.height;
-    }
-    //Snap prev
-    // else if (this.snapPrev && this.currPolyLine.pts.length > 1){
-    //   let ptPrevEnd = this.currPolyLine.pts[this.currPolyLine.pts.length - 1];
-    //   let ptPrevBeg = this.currPolyLine.pts[this.currPolyLine.pts.length - 2];
-    //
-    //   //previous line, syntax?
-    //   let lnPrev = new THREE.Vector2().subVectors(ptPrevEnd, ptPrevBeg);
-    //   let lnCurr = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
-    //   let lnCurrN = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
-    //
-    //   let dot = lnPrev.normalize().dot(lnCurrN.normalize());
-    //   let det = lnPrev.x * lnCurrN.y - lnPrev.y * lnCurrN.x
-    //
-    //   let angle = Math.atan2(det, dot) * (180 / Math.PI);
-    //
-    //   let snapA = (Math.round(angle / this.snapAngle) * this.snapAngle);
-    //
-    //   snapA = (snapA * (Math.PI / 180) + lnPrev.angle());
-    //
-    //   let snapX = ptPrevEnd.x - lnCurr.length() * Math.cos(snapA);
-    //   let snapY = ptPrevEnd.y - lnCurr.length() * Math.sin(snapA);
-    //
-    //   this.mPt.x = snapX / this.fluentDoc.elem.width;
-    //   this.mPt.y = (this.fluentDoc.elem.height - snapY) / this.fluentDoc.elem.height;
-    // }
-    //Typ
-    else{
-      this.mPt.x = evPt.x / this.fluentDoc.elem.width;
-      this.mPt.y = (this.fluentDoc.elem.height - evPt.y) / this.fluentDoc.elem.height;
+    this.fluentDoc.mPt.x = evPt.x / this.fluentDoc.elem.width;
+    this.fluentDoc.mPt.y = (this.fluentDoc.elem.height - evPt.y) / this.fluentDoc.elem.height;
+
+    for (let mode of this.modes){
+      if(mode.toggle == true){
+        console.log(mode.name);
+        this.fluentDoc = mode.mv(e, this.fluentDoc);
+      }
     }
   }
+}
 
-  //would like to move these to buttons
-  keyUp(event){
-  	var key = event.key;
-    console.log(key);
+function snackHint(text, _bgColor){
+  let snackbar = document.getElementById('snackbar');
 
-  	switch(key){
-      //rebuild kdTree
-      case "r":
-        console.log(this.tree.balanceFactor());
-        this.tree = new kdTree(this.pts, this.pointDist, ["x", "y"]);
-        console.log(this.tree.balanceFactor());
-        break;
-      //save dataTexture
-      case "x":
-        // console.log(this.ptsTex);
-        this.saveDataTHalfFloat16(this.currPolyLine.ptsTex.image.data, "ptsTex", 16, 16);
-        break;
-      //snapGlobal, on hold of Shift
-      case "Shift":
-        this.snapGlobal = false;
-        break;
-      //End drawing
-      case "Escape":
-        //console.log(this.tree);
-        for (let p of this.currPolyLine.pts){
-          this.tree.remove(p);
-          // console.log(this.tree);
-        }
+  if(snackbar.classList.contains('show')) return;
 
-        this.currPolyLine = new PolyLine(this.resolution, this.editWeight, this.dataSize);
-        break;
-      //End drawing
-      case "Enter":
-        let shaderUpdate = this.currPolyLine.bakePolyLineFunction(this.shader);
-        this.shader = this.currPolyLine.bakePolyLineCall(shaderUpdate);
-        this.shaderUpdate = true;
+  let bgColor = _bgColor || "rgba(237, 55, 67, .75)";
 
-        this.currPolyLine = new PolyLine(this.resolution, this.editWeight, this.dataSize);
-        this.polyLines.push(this.currPolyLine);
-        // console.log(this.polyLines);
-        this.currPolyLineIndex++;
+  snackbar.innerHTML = text;
+  snackbar.style.background = bgColor;
 
-        break;
-  	}
+  snackbar.classList.toggle('show');
+  setTimeout(function(){ snackbar.classList.toggle('show'); }, 2000);
+}
+
+function drawEnter(){
+  console.log(this);
+  snackHint("Begin Drawing!");
+}
+
+function drawExit(){
+  snackHint("End Drawing!");
+}
+
+function drawMv(e, _fluentDoc){
+  console.log("drawMv");
+  if (this.toggle == false) return null;
+  let fluentDoc = Object.assign({}, _fluentDoc);
+
+  for (let m of this.modifiers){
+    let modState = m.mv(e, fluentDoc)
+    if(!modState) continue;
+    fluentDoc = modState;
+  }
+  return fluentDoc;
+}
+
+function drawUp(e, _fluentDoc){
+  console.log("drawUp");
+  if (this.toggle == false) return null;
+  let fluentDoc = Object.assign({}, _fluentDoc);
+
+  let addPt = {
+    x: 0,
+    y: 0,
+    tag: "none",
   }
 
-  keyDown(event){
-  	var key = event.key;
-  	switch(key){
-      //snapGlobal, on hold of Shift
-      case "Shift":
-        this.snapGlobal = true;
-        console.log(this.snapGlobal);
-        break;
-      case "s":
-        break;
-  	}
+  for (let m of this.modifiers){
+    let modState = m.up(e, fluentDoc)
+    if(!modState) continue;
+    console.log(m.name);
+    fluentDoc = modState;
+    addPt = fluentDoc.addPt;
+    // this.fluentDoc.mPt = modState.mPt
+  }
+  if(addPt.tag === "none"){
+    addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
+    addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+    addPt.tag = "plPoint";
   }
 
+  let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
+
+  fluentDoc.tree.insert(plPt);
+  fluentDoc.currEditItem.cTexel += 1;
+
+  return fluentDoc;
+}
+
+//for right now Global UI Modifiers get GhostUI bound
+function endPLineClck(_fluentDoc){
+    // console.log(this);
+
+    let shaderUpdate = this.fluentDoc.currEditItem.bakePolyLineFunction(this.fluentDoc.shader);
+    this.fluentDoc.shader = this.fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
+    this.fluentDoc.shaderUpdate = true;
+
+    this.fluentDoc.currEditItem = new PolyLine(this.fluentDoc.resolution, this.editWeight, this.dataSize);
+    this.fluentDoc.editItems.push(this.fluentDoc.currEditItem);
+    // console.log(this.polyLines);
+    this.fluentDoc.editItemIndex++;
 }
 
 function snapPtClck(_fluentDoc){
@@ -424,14 +282,15 @@ function snapGlobalClck(_fluentDoc){
 }
 
 function snapGridClck(_fluentDoc){
-    this.toggle = !this.toggle;
-    // could we get this snack hint going?
-    // this.snackHint();
+  // console.log(this);
+  this.toggle = !this.toggle;
+  // could we get this snack hint going?
+  // this.snackHint();
 }
 
 function snapPtMv(e, _fluentDoc){
-  let fluentDoc = Object.assign({}, _fluentDoc);
   if (this.toggle == false) return null;
+  let fluentDoc = Object.assign({}, _fluentDoc);
 
   let evPt = {
     x: e.clientX,
@@ -442,8 +301,8 @@ function snapPtMv(e, _fluentDoc){
 
   if (ptNear.length > 0 && ptNear[0][1] < this.factors.dist){
     ptNear = ptNear[0][0];
-    fluentDoc.mPt.x = ptNear.x / this.elem.width;
-    fluentDoc.mPt.y = (fluentDoc.elem.height - ptNear.y) / fluentDoc.elem.height;
+    fluentDoc.mPt.x = ptNear.x / fluentDoc.resolution.x;
+    fluentDoc.mPt.y = (fluentDoc.resolution.y - ptNear.y) / fluentDoc.resolution.y;
 
     return fluentDoc;
   }
@@ -493,8 +352,8 @@ function snapRefMv(e, _fluentDoc){
 }
 
 function snapGlobalMv(e, _fluentDoc){
-  let fluentDoc = Object.assign({}, _fluentDoc);
   if (this.toggle == false) return null;
+  let fluentDoc = Object.assign({}, _fluentDoc);
 
   let evPt = {
     x: e.clientX,
@@ -507,7 +366,7 @@ function snapGlobalMv(e, _fluentDoc){
 
     if (fluentDoc.currEditItem.pts.length >= 1){
       prevX = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 1].x;
-      prevY = fluentDoc.currEditItem[fluentDoc.currEditItem.pts.length - 1].y;
+      prevY = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 1].y;
     }
 
     let prevPt = {
@@ -529,8 +388,8 @@ function snapGlobalMv(e, _fluentDoc){
     let snapX = prevPt.x - lnCurr.length() * Math.cos(snapA);
     let snapY = prevPt.y - lnCurr.length() * Math.sin(snapA);
 
-    this.mPt.x = snapX / fluentDoc.elem.width;
-    this.mPt.y = (fluentDoc.elem.height - snapY) / fluentDoc.elem.height;
+    fluentDoc.mPt.x = snapX / fluentDoc.elem.width;
+    fluentDoc.mPt.y = (fluentDoc.elem.height - snapY) / fluentDoc.elem.height;
 
     return fluentDoc;
   }
@@ -540,8 +399,8 @@ function snapGlobalMv(e, _fluentDoc){
 }
 
 function snapGridMv(e, _fluentDoc){
-  let fluentDoc = Object.assign({}, _fluentDoc);
   if (this.toggle == false) return null;
+  let fluentDoc = Object.assign({}, _fluentDoc);
 
   let evPt = {
     x: e.clientX,
@@ -560,31 +419,21 @@ function snapGridMv(e, _fluentDoc){
 }
 
 function snapPtUp(e, _fluentDoc){
-  //let's say it returns a new fluentDoc
-  //we can also include a list of what's changed
-  //or we could check that it is a valid state for the program
-  //I think there are ways of handling problems that might arise later
-  let fluentDoc = Object.assign({}, _fluentDoc);
   if (this.toggle == false) return null;
+  let fluentDoc = Object.assign({}, _fluentDoc);
 
-  let addPt = {
-    x: 0,
-    y: 0,
-    tag: ""
-  }
+  let evPt = {
+    x: e.clientX,
+    y: e.clientY
+  };
 
   let ptNear = fluentDoc.tree.nearest({x: evPt.x, y: evPt.y}, 1);
 
   if (ptNear.length > 0 && ptNear[0][1] < 100){
     let pt = ptNear[0][0];
-    addPt.x = pt.x;
-    addPt.y = pt.y;
-    addPt.tag = "plPoint";
-
-    let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
-
-    fluentDoc.tree.insert(plPt);
-    fluentDoc.currEditItem.cTexel += 1;
+    fluentDoc.addPt.x = pt.x;
+    fluentDoc.addPt.y = pt.y;
+    fluentDoc.addPt.tag = "plPoint";
 
     return fluentDoc;
   }
@@ -605,14 +454,9 @@ function snapRefUp(e, _fluentDoc){
 
   if (fluentDoc.currEditItem.pts.length > 1){
     //would like for there to just be one point representation in js
-    addPt.x = this.fluentDoc.mPt.x * this.fluentDoc.resolution.x;
-    addPt.y = this.fluentDoc.elem.height - (this.fluentDoc.mPt.y * this.fluentDoc.resolution.y);
-    addPt.tag = "plPoint";
-
-    let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
-
-    fluentDoc.tree.insert(plPt);
-    fluentDoc.currEditItem.cTexel += 1;
+    fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
+    fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+    fluentDoc.addPt.tag = "plPoint";
 
     return fluentDoc;
   }
@@ -633,14 +477,9 @@ function snapGlobalUp(e, _fluentDoc){
 
   if (fluentDoc.currEditItem.pts.length > 1){
     //would like for there to just be one point representation in js
-    addPt.x = this.fluentDoc.mPt.x * this.fluentDoc.resolution.x;
-    addPt.y = this.fluentDoc.elem.height - (this.fluentDoc.mPt.y * this.fluentDoc.resolution.y);
-    addPt.tag = "plPoint";
-
-    let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
-
-    fluentDoc.tree.insert(plPt);
-    fluentDoc.currEditItem.cTexel += 1;
+    fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
+    fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+    fluentDoc.addPt.tag = "plPoint";
 
     return fluentDoc;
   }
@@ -653,21 +492,10 @@ function snapGridUp(e, _fluentDoc){
   let fluentDoc = Object.assign({}, _fluentDoc);
   if (this.toggle == false) return null;
 
-  let addPt = {
-    x: 0,
-    y: 0,
-    tag: ""
-  }
-
   //would like for there to just be one point representation in js
-  addPt.x = this.fluentDoc.mPt.x * this.fluentDoc.resolution.x;
-  addPt.y = this.fluentDoc.elem.height - (this.fluentDoc.mPt.y * this.fluentDoc.resolution.y);
-  addPt.tag = "plPoint";
-
-  let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
-
-  fluentDoc.tree.insert(plPt);
-  fluentDoc.currEditItem.cTexel += 1;
+  fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
+  fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+  fluentDoc.addPt.tag = "plPoint";
 
   return fluentDoc;
 }
@@ -690,6 +518,12 @@ class FluentDoc{
     //grid scale
     this.scale = 48;
 
+    this.addPt = {
+      x: 0,
+      y: 0,
+      tag: "",
+    };
+
     //list of kdTree points, might not be necessary?
     this.pts = [];
     //all clickable / snappable points
@@ -697,7 +531,6 @@ class FluentDoc{
 
     //List of polyline objects
     //Eventually this will become a full scene graph of some sort
-    //this should be instantiated on entering edit mode
     //current editItem
     this.editItemIndex = 0;
     this.currEditItem = new PolyLine(this.resolution, this.editWeight, this.dataSize);
@@ -761,15 +594,16 @@ class FluentDoc{
 //modes are going to be collections of UIModifiers
 class UIMode{
   //bool, [], functions
-  constructor(toggle, modifiers, enter, exit, mv, dwn, up){
+  constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
+    this.name = name;
     this.toggle = toggle;
     this.modifiers = modifiers;
     this.enter = enter;
     this.exit = exit;
     //these should basically all be defined for every mode
     if(mv) this.mv = mv;
-    if(dwn) this.dwn = dwn;
     if(up) this.up = up;
+    if(dwn) this.dwn = dwn;
   }
 }
 
@@ -779,12 +613,15 @@ class UIMode{
 //I think there are ways of handling problems that might arise later
 class UIModifier{
   //clck
-  constructor(tag, clck, _toggle, _factors, mv, dwn, up){
+  constructor(name, tag, keyCut, clck, _toggle, _factors, mv, up, dwn){
+    this.name = name;
     this.tag = tag;
+    this.keyCut = keyCut;
+
     //tag is either snap, edit, view, export
-    this.clck = clck;
+    this.clck = clck.bind(this);
     this.toggle = _toggle || false;
-    this.factor = _factor || {factor:1.0};
+    this.factors = _factors || {factor:1.0};
 
     if(mv){
       this.mv = mv.bind(this);
@@ -795,6 +632,16 @@ class UIModifier{
     if(dwn){
       this.dwn = dwn.bind(this);
     }
+
+    window.addEventListener('keyup', this.keyUp.bind(this));
+  }
+
+  keyUp(e){
+    if(e.key == this.keyCut){
+      this.clck();
+      // console.log(e);
+      // console.log(this);
+    }
   }
 
   // createButton(){
@@ -804,7 +651,7 @@ class UIModifier{
 
 //clickable draggable button, onclick is a function
 class Button{
-  constructor(elem, onclick, _name, _keyCut, _ondblclick){
+  constructor(elem, uimodifier, _keyCut){
     //for offsets, could clean up these names
     this.pos1 = 0;
     this.pos2 = 0;
@@ -815,8 +662,6 @@ class Button{
 
     this.innerHTML = this.elem.innerHTML;
 
-    this.keyCut = _keyCut || "";
-
     //bool for checking if we are dragging or clicking the button
     this.click = true;
     //bool for checking if input method is active
@@ -824,24 +669,22 @@ class Button{
     //use for locking position of buttons
     this.pinned = false;
 
-    this.name = _name || "";
+    this.uimodifier = uimodifier;
 
     //dbl click functions for picking
-    if (_ondblclick){
-      elem.ondblclick = _ondblclick.bind(this);
-    }
+    // if (_ondblclick){
+    //   elem.ondblclick = _ondblclick.bind(this);
+    // }
 
     //original positions
     let style = window.getComputedStyle(elem);
     this.top = style.getPropertyValue('top');
     this.left = style.getPropertyValue('left');
 
-    this.onclick = onclick;
-
-    window.addEventListener('keyup', this.keyUp.bind(this));
+    this.onclick = this.uimodifier.clck.bind(this.uimodifier);
 
     //what happens onclick
-    elem.onclick = onclick.bind(this);
+    elem.onclick = this.onclick;
     elem.onmousedown = this.dragMouseDown.bind(this);
 
     //interpret type and color from html element
@@ -953,19 +796,11 @@ class Button{
     setTimeout(function(){ snackbar.classList.toggle('show'); }, 2000);
   }
 
-  keyUp(e){
-    if(e.key == this.keyCut){
-      this.onclick();
-      console.log(e);
-      console.log(this);
-    }
-  }
-
   //experiment to add double click functionality
-  static linearSlider(event){
-    console.log(event);
-    console.log(this);
-  }
+  // static linearSlider(event){
+  //   console.log(event);
+  //   console.log(this);
+  // }
 
 }
 
@@ -1093,21 +928,19 @@ class PolyLine extends PolyPoint {
 
     // if function exists start and end should be before and after end
     let exFuncStr = '//$START-' + this.id;
-    console.log(this.id);
-    console.log(exFuncStr);
+    // console.log(this.id);
+    // console.log(exFuncStr);
     let exFuncIndex = shader.indexOf(exFuncStr);
-    // exFuncIndex += exFuncStr.length;
 
     if(exFuncIndex >= 0){
       startShader = shader.slice(0, exFuncIndex);
-      console.log(startShader);
+      // console.log(startShader);
 
       let postFuncStr = '//$END-' + this.id;
       let postIndex = shader.indexOf(postFuncStr);
       postIndex += postFuncStr.length;
       endShader = shader.slice(postIndex);
-      console.log(postFuncStr);
-      // console.log()
+      // console.log(postFuncStr);
     }
 
     //create function
