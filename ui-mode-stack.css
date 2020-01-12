@@ -1,0 +1,80 @@
+/* Plan is to have a mode stack flexbox
+With thin event snackbar type things that are added to it
+or removed from it
+animate in from left, animate out to left
+eventually this pane will be clickable /draggable/closeable */
+
+/* Okay --- so idea is to init mode snack with margin left a negative val
+then animate  it in */
+
+#mode-stack{
+  background-color: rgba(172, 172, 180, 0.25);
+  box-shadow: 2px 2px 2px .5px rgba(136, 161, 180, 0.6);
+
+  position: absolute;
+  display: flex;
+  padding-bottom: 1%;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+
+  bottom:1%;
+  left:1%;
+  z-index: 10;
+
+  width: 30%;
+  height: 25%;
+  max-width: 300px;
+
+  overflow: hidden;
+}
+
+/* https://www.w3schools.com/howto/howto_js_snackbar.asp */
+/* The snackbar - position it at the bottom and in the middle of the screen */
+.mode-snack {
+  min-width: 200px; /* Set a default minimum width */
+  color: #fff; /* White text color */
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  border-radius: 0.75vmin;
+  width: 96%;
+  height: 10%;
+  font: 1.75vmin Helvetica;
+  font-weight: bold;
+  margin-top: 2%;
+  background-color: rgba(0, 111, 80, .75);
+}
+
+.enter-left{
+  -webkit-animation: enterleft 1s;
+  animation: enterleft 1s;
+}
+
+.exit-left{
+  -webkit-animation: exitleft 1s;
+  animation: exitleft 1s;
+}
+
+/* Animations to fade the snackbar in and out */
+@-webkit-keyframes enterleft {
+  from {margin-left: -500px; opacity: 0;}
+  to {margin-left: 0px; opacity: 1;}
+}
+
+@keyframes enterleft {
+  from {margin-left: -500px; opacity: 0;}
+  to {margin-left: 0px; opacity: 1;}
+}
+
+@-webkit-keyframes exitleft {
+  from {margin-left: 0px; opacity: 1;}
+  to {margin-left: -500px; opacity: 0;}
+}
+
+@keyframes exitleft {
+  from {margin-left: 0px; opacity: 1;}
+  to {margin-left: -500px; opacity: 0;}
+}

@@ -2,15 +2,15 @@
 #uiButtons{
   display:flex;
   justify-content: flex-start;
-  /* align-items: center; */
   flex-direction: column;
-  width:5%;
-  height:96%;
+
+  width:5vmin;
+  height:70%;
   position: absolute;
   z-index: 10;
-  top: 4%;
-  left: 0px;
-  padding: 1%;
+
+  top: 1%;
+  left: 1%;
 }
 
 .button {
@@ -18,7 +18,7 @@
 
   width: 5vmin;
   height: 5vmin;
-  margin: 1vmin;
+  margin-bottom: .5vmin;
 
   cursor: pointer;
   z-index: 10;

@@ -65,7 +65,7 @@ class GhostUI{
 
     //MODIFIERS
     // constructor(name, tag, clck, keyCut, _toggle, _factors, mv, up, dwn)
-    let snapPt = new UIModifier("snapPt", "snap", "p", snapPtClck, true, {dist:200}, snapPtMv, snapPtUp);
+    let snapPt = new UIModifier("snapPt", "snap", "p", snapPtClck, false, {dist:200}, snapPtMv, snapPtUp);
     let snapRef = new UIModifier("snapRef", "snap", "s", snapRefClck, false, {angle:45}, snapRefMv, snapRefUp);
     let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", snapGlobalClck, false, {angle:90}, snapGlobalMv, snapGlobalUp);
     let snapGrid = new UIModifier("snapGrid", "snap", "g", snapGridClck, false, {}, snapGridMv, snapGridUp);
@@ -193,6 +193,44 @@ class GhostUI{
   }
 }
 
+function pushModeHint(id, text, _bgColor){
+  let modeStack = document.getElementById('mode-stack');
+  let stack = modeStack.children;
+
+  let modeSnack = document.createElement("div");
+  modeSnack.id = id;
+
+  modeSnack.classList.add("mode-snack");
+  modeSnack.classList.add("enter-left");
+
+  let bgColor = _bgColor || "rgba(237, 55, 67, .75)";
+  modeSnack.innerText = text;
+  modeSnack.style.backgroundColor = bgColor;
+
+  if(stack.length>0){
+    modeStack.insertBefore(modeSnack, stack[0]);
+  } else {
+    modeStack.appendChild(modeSnack);
+  }
+  return modeSnack;
+}
+
+// function popModeSnackHint(text, _bgColor){
+//   let modeStack = document.getElementById('mode-stack');
+//   console.log(modeStack.children);
+// }
+function popModeHint(elem){
+  elem.classList.remove("enter-left");
+  elem.classList.add("exit-left");
+
+  setTimeout(function(){this.remove();}.bind(elem), 1000);
+}
+
+function pushPopModeHint(id, text, _bgColor){
+  let modeHint = pushModeHint(id, text, _bgColor);
+  setTimeout(function(){popModeHint(this);}.bind(modeHint), 3000);
+}
+
 function snackHint(text, _bgColor){
   let snackbar = document.getElementById('snackbar');
 
@@ -207,9 +245,20 @@ function snackHint(text, _bgColor){
   setTimeout(function(){ snackbar.classList.toggle('show'); }, 2000);
 }
 
+function getModeHintID(id){
+  let modeHints = document.getElementById("mode-stack").children;
+  for (let m of modeHints){
+    if(m.id === id) return m;
+  }
+  //if no mode hint exists
+  return null;
+}
+
 function drawEnter(){
-  console.log(this);
-  snackHint("Begin Drawing!");
+  pushPopModeHint(this.name, "Begin Drawing!");
+  //turns on snapping to pts by default
+  //function should take some default settings at some point
+  this.modifiers[3].clck();
 }
 
 function drawExit(){
@@ -322,25 +371,44 @@ function lineWeightClck(e){
   }
 }
 
-
 function snapPtClck(e){
-  snackHint("Snap to a Previous Point");
   this.toggle = !this.toggle;
+
+  if(this.toggle){
+    pushModeHint(this.name, "Snap to a Point");
+  } else {
+    popModeHint(getModeHintID(this.name));
+  }
 }
 
 function snapRefClck(e){
-  snackHint("Snap to Angle From Previous Line");
   this.toggle = !this.toggle;
+
+  if(this.toggle){
+    pushModeHint(this.name, "Snap to Relative Angle");
+  } else {
+    popModeHint(getModeHintID(this.name));
+  }
 }
 
 function snapGlobalClck(e){
-  snackHint("Snap to Global Angle");
   this.toggle = !this.toggle;
+
+  if(this.toggle){
+    pushModeHint(this.name, "Snap to Global Angle");
+  } else {
+    popModeHint(getModeHintID(this.name));
+  }
 }
 
 function snapGridClck(e){
-  snackHint("Snap to Grid");
   this.toggle = !this.toggle;
+
+  if(this.toggle){
+    pushModeHint(this.name, "Snap to Grid");
+  } else {
+    popModeHint(getModeHintID(this.name));
+  }
 }
 
 //not ideal behaviour because one has to move mouse
