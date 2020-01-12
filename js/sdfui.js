@@ -101,8 +101,8 @@ function render() {
 
   //Why does this have to happen every frame?
   screenMesh.material.uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
-  screenMesh.material.uniforms.editWeight.value = ui.editWeight;
-  screenMesh.material.uniforms.editOpacity.value = ui.editOpacity;
+  screenMesh.material.uniforms.editWeight.value = ui.fluentDoc.editWeight;
+  screenMesh.material.uniforms.editOpacity.value = ui.fluentDoc.editOpacity;
 
   if (ui.fluentDoc.shaderUpdate){
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
@@ -120,12 +120,20 @@ function render() {
   }
 
   renderer.render(scene, camera);
+
+  //is this a workaround?
+  if(ui.fluentDoc.screenshot){
+    canvas.toBlob((blob) => {
+      saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
+    });
+    ui.fluentDoc.screenshot = false;
+  }
 }
 
 function animate(time){
   state.time = time * 0.001; //convert to seconds
 
-  if(!state.pauseR){ render(); }
+  if(!ui.fluentDoc.shaderPause){ render(); }
 
   //proper way to update uniforms!
   screenMesh.material.uniforms.posTex.value = ui.fluentDoc.currEditItem.ptsTex;

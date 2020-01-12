@@ -4,9 +4,10 @@ html, body {
 }
 
 #c {
-   width: 100%;
+   width:  100%;
    height: 100%;
-   display: block;
+   /* display: block; */
+   position: absolute;
 }
 
 #draw-shapes{
@@ -18,10 +19,10 @@ html, body {
   top: 0px;
 }
 
-#save {
+/* #save {
   left: 1vmin;
   top: 1vmin;
-}
+} */
 
 #Fluent{
   position: absolute;

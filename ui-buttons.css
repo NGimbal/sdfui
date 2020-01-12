@@ -1,52 +1,16 @@
 
-#pause{
-  left: 1vmin;
-  top: 6.5vmin;
-}
-
-#plus{
-  left: 1vmin;
-  top: 12vmin;
-}
-
-#minus{
-  left: 1vmin;
-  top: 17.5vmin;
-}
-
-#snapGrid{
-  left: 1vmin;
-  top: 23vmin;
-}
-
-#snapWorld{
-  left: 1vmin;
-  top: 28.5vmin;
-}
-
-#snapPrev{
-  left: 1vmin;
-  top: 34vmin;
-}
-
-#lineWeight{
-  left: 1vmin;
-  top: 39.5vmin;
-}
-
-#selectPt{
-  left: 1vmin;
-  top: 45vmin;
-}
-
-#circle{
-  left: 1vmin;
-  top: 50.5vmin;
-}
-
-#bezier{
-  left: 1vmin;
-  top: 56vmin;
+#uiButtons{
+  display:flex;
+  justify-content: flex-start;
+  /* align-items: center; */
+  flex-direction: column;
+  width:5%;
+  height:96%;
+  position: absolute;
+  z-index: 10;
+  top: 4%;
+  left: 0px;
+  padding: 1%;
 }
 
 .button {
@@ -54,10 +18,11 @@
 
   width: 5vmin;
   height: 5vmin;
+  margin: 1vmin;
 
   cursor: pointer;
   z-index: 10;
-  position: absolute;
+  /* position: absolute; */
 
   color: black;
   font-family: sans-serif;

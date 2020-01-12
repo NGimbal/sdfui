@@ -65,36 +65,50 @@ class GhostUI{
 
     //MODIFIERS
     // constructor(name, tag, clck, keyCut, _toggle, _factors, mv, up, dwn)
-    let snapPt = new UIModifier("snapPt", "snap", "p", snapPtClck, false, {dist:100}, snapPtMv, snapPtUp);
+    let snapPt = new UIModifier("snapPt", "snap", "p", snapPtClck, true, {dist:200}, snapPtMv, snapPtUp);
     let snapRef = new UIModifier("snapRef", "snap", "s", snapRefClck, false, {angle:45}, snapRefMv, snapRefUp);
     let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", snapGlobalClck, false, {angle:90}, snapGlobalMv, snapGlobalUp);
-    let snapGrid = new UIModifier("snapGrid", "snap", "g", snapGridClck, true, {}, snapGridMv, snapGridUp);
-    this.initUIButton(snapGrid);
+    let snapGrid = new UIModifier("snapGrid", "snap", "g", snapGridClck, false, {}, snapGridMv, snapGridUp);
+
+    let lineWeight = new UIModifier("lineWeight", "edit", "w", lineWeightClck, true, {weight:0.002}, lineWeightMv);
 
     //global modifiers get GhostUI context bound
+    let screenshot = new UIModifier("screenshot", "global", "l", screenshotClck.bind(this), true);
+    this.initButton(screenshot);
+    let pauseShader = new UIModifier("pauseShader", "global", "/", pauseShaderClck.bind(this), true);
+    this.initButton(pauseShader);
     let endPLine = new UIModifier("endPLine", "global", "Enter", endPLineClck.bind(this), true);
 
     //MODES
     //constructor(toggle, modifiers, enter, exit, mv, up, dwn){
     this.modes = [
-      new UIMode("draw", true, [snapPt, snapRef, snapGlobal, snapGrid], drawEnter, drawExit, drawMv, drawUp)
+      new UIMode("draw", true, [snapGlobal, snapRef, snapGrid, snapPt, lineWeight], drawEnter, drawExit, drawMv, drawUp)
     ]
+
+    this.initUIModeButtons();
 
     this.modes[0].enter();
 
     document.getElementById("draw-shapes").addEventListener('mouseup', this.mouseUp.bind(this));
     window.addEventListener('mousemove', this.mouseMove.bind(this));
-    window.addEventListener('keyup', this.keyUp.bind(this));
-    window.addEventListener('keydown', this.keyDown.bind(this));
 
     return this;
   }
 
-  initUIButton(uimodifier){
-    // constructor(elem, uimodifier, _keyCut)
+  initUIModeButtons(){
+    for(let m of this.modes[0].modifiers){
+      let buttonElem = document.getElementById(m.name);
+      if (!buttonElem) continue;
+      let newButton = new Button(buttonElem, m)
+      m.button = newButton;
+    }
+  }
 
-    let snapGrid = document.getElementById("snapGrid");
-    let snapGridButton = new Button(snapGrid, uimodifier, "g");
+  initButton(uiMod){
+    let buttonElem = document.getElementById(uiMod.name);
+    if (!buttonElem) return;
+    let newButton = new Button(buttonElem, uiMod);
+    uiMod.button = newButton;
   }
 
   // Helper to save a Uint8 data texture
@@ -163,17 +177,16 @@ class GhostUI{
 
   mouseMove(e) {
 
-    // let evPt = {
-    //   x: e.clientX,
-    //   y: e.clientY
-    // };
+    let evPt = {
+      x: e.clientX,
+      y: e.clientY
+    };
 
     this.fluentDoc.mPt.x = evPt.x / this.fluentDoc.elem.width;
     this.fluentDoc.mPt.y = (this.fluentDoc.elem.height - evPt.y) / this.fluentDoc.elem.height;
 
     for (let mode of this.modes){
       if(mode.toggle == true){
-        console.log(mode.name);
         this.fluentDoc = mode.mv(e, this.fluentDoc);
       }
     }
@@ -203,12 +216,21 @@ function drawExit(){
   snackHint("End Drawing!");
 }
 
+
+//okay so this is one idea that may become necessary
+// function drawUpdate(_fluentDoc){
+//   for (let m of this.modifiers){
+//     if(!m.update) continue;
+//
+//   }
+// }
+
 function drawMv(e, _fluentDoc){
-  console.log("drawMv");
   if (this.toggle == false) return null;
   let fluentDoc = Object.assign({}, _fluentDoc);
 
   for (let m of this.modifiers){
+    if(!m.mv) continue;
     let modState = m.mv(e, fluentDoc)
     if(!modState) continue;
     fluentDoc = modState;
@@ -217,7 +239,6 @@ function drawMv(e, _fluentDoc){
 }
 
 function drawUp(e, _fluentDoc){
-  console.log("drawUp");
   if (this.toggle == false) return null;
   let fluentDoc = Object.assign({}, _fluentDoc);
 
@@ -228,9 +249,9 @@ function drawUp(e, _fluentDoc){
   }
 
   for (let m of this.modifiers){
+    if(!m.up) continue;
     let modState = m.up(e, fluentDoc)
     if(!modState) continue;
-    console.log(m.name);
     fluentDoc = modState;
     addPt = fluentDoc.addPt;
     // this.fluentDoc.mPt = modState.mPt
@@ -250,6 +271,16 @@ function drawUp(e, _fluentDoc){
 }
 
 //for right now Global UI Modifiers get GhostUI bound
+function screenshotClck(_fluentDoc){
+  this.fluentDoc.screenshot = true;
+}
+
+//for right now Global UI Modifiers get GhostUI bound
+function pauseShaderClck(_fluentDoc){
+    this.fluentDoc.shaderPause = !this.fluentDoc.shaderPause;
+}
+
+//for right now Global UI Modifiers get GhostUI bound
 function endPLineClck(_fluentDoc){
     // console.log(this);
 
@@ -257,35 +288,74 @@ function endPLineClck(_fluentDoc){
     this.fluentDoc.shader = this.fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
     this.fluentDoc.shaderUpdate = true;
 
-    this.fluentDoc.currEditItem = new PolyLine(this.fluentDoc.resolution, this.editWeight, this.dataSize);
+    this.fluentDoc.currEditItem = new PolyLine(this.fluentDoc.resolution, this.fluentDoc.editWeight, this.fluentDoc.dataSize);
     this.fluentDoc.editItems.push(this.fluentDoc.currEditItem);
-    // console.log(this.polyLines);
+
     this.fluentDoc.editItemIndex++;
 }
 
-function snapPtClck(_fluentDoc){
-    this.toggle = !this.toggle;
-    // could we get this snack hint going?
-    // this.snackHint();
-}
 
-function snapRefClck(_fluentDoc){
-    this.toggle = !this.toggle;
-    // could we get this snack hint going?
-    // this.snackHint();
-}
-
-function snapGlobalClck(_fluentDoc){
-    this.toggle = !this.toggle;
-    // could we get this snack hint going?
-    // this.snackHint();
-}
-
-function snapGridClck(_fluentDoc){
+function lineWeightClck(e){
   // console.log(this);
+  if(!this.button.input){
+    let weight = this.factors.weight;
+    let uiSlider = '<input type="range" min="1" max="20" value="' + weight + '" class="slider" id="myRange">';
+    // this.elem.style.width = '15vmin';
+    this.button.elem.classList.toggle("input-slider");
+    this.button.elem.innerHTML = uiSlider;
+    this.button.input = true;
+  }
+  else if(this.button.input){
+    //evaluates false when closing slider
+    if(e.srcElement.value){
+      this.factors.weight = parseInt(event.srcElement.value) / 2500;
+      // fluentDoc.currEditItem.weight = parseInt(event.srcElement.value) / 2500;
+      // fluentDoc.editWeight = parseInt(event.srcElement.value) / 2500;
+    }
+
+    if(e.target != this.button.elem) return;
+
+    this.button.elem.classList.toggle("input-slider");
+    // this.elem.style.width = '5vmin';
+    window.setTimeout(function(){this.button.elem.innerHTML = this.button.innerHTML;}.bind(this), 900);
+    this.button.input = false;
+  }
+}
+
+
+function snapPtClck(e){
+  snackHint("Snap to a Previous Point");
   this.toggle = !this.toggle;
-  // could we get this snack hint going?
-  // this.snackHint();
+}
+
+function snapRefClck(e){
+  snackHint("Snap to Angle From Previous Line");
+  this.toggle = !this.toggle;
+}
+
+function snapGlobalClck(e){
+  snackHint("Snap to Global Angle");
+  this.toggle = !this.toggle;
+}
+
+function snapGridClck(e){
+  snackHint("Snap to Grid");
+  this.toggle = !this.toggle;
+}
+
+//not ideal behaviour because one has to move mouse
+//someday may implement the modifier update function
+function lineWeightMv(e, _fluentDoc){
+  if (this.toggle == false) return null;
+  let fluentDoc = Object.assign({}, _fluentDoc);
+  // console.log(this);
+  if (fluentDoc.editWeight != this.factors.weight){
+    fluentDoc.editWeight = this.factors.weight;
+    fluentDoc.currEditItem.weight = this.factors.weight;
+    return fluentDoc;
+  }
+
+  return null;
 }
 
 function snapPtMv(e, _fluentDoc){
@@ -360,7 +430,7 @@ function snapGlobalMv(e, _fluentDoc){
     y: e.clientY
   };
 
-  if (fluentDoc.currEditItem.pts.length > 1){
+  if (fluentDoc.currEditItem.pts.length > 0){
     let prevX = 0;
     let prevY = 0;
 
@@ -511,6 +581,9 @@ class FluentDoc{
     //uniforms might want to get moved here
     this.shader = shader;
     this.shaderUpdate = false;
+    this.shaderPause = false;
+
+    this.screenshot = false;
 
     //mouse target position
     this.mPt = new THREE.Vector3(0, 0, 1.0);
@@ -532,6 +605,7 @@ class FluentDoc{
     //List of polyline objects
     //Eventually this will become a full scene graph of some sort
     //current editItem
+    this.editWeight = 0.001;
     this.editItemIndex = 0;
     this.currEditItem = new PolyLine(this.resolution, this.editWeight, this.dataSize);
     this.editItems = [this.currEditItem];
@@ -623,6 +697,8 @@ class UIModifier{
     this.toggle = _toggle || false;
     this.factors = _factors || {factor:1.0};
 
+    this.button = null;
+
     if(mv){
       this.mv = mv.bind(this);
     }
@@ -651,7 +727,7 @@ class UIModifier{
 
 //clickable draggable button, onclick is a function
 class Button{
-  constructor(elem, uimodifier, _keyCut){
+  constructor(elem, uimodifier){
     //for offsets, could clean up these names
     this.pos1 = 0;
     this.pos2 = 0;
