@@ -8,6 +8,9 @@ import * as THREE from './libjs/three.module.js';
 class GhostUI{
   //renderer docElem necessary, others optional
   constructor(elem, shader){
+    // "Out of the box" element and shader
+    this.elem = elem;
+    this.shader = shader;
     //GLOBAL CONSTANTS
     //square datatexture
     this.dataSize = 16;
@@ -51,7 +54,9 @@ class GhostUI{
     console.log(endianNess());
 
     //DOCUMENT STATE
-    this.fluentDoc = new FluentDoc(elem, shader);
+    this.fluentDoc = new FluentDoc(this.elem, this.shader);
+
+    this.docStack = [this.fluentDoc];
 
     //array.unshift / array.shift to push and pop from array[0];
     //this is a cool idea - will implement soon
@@ -77,7 +82,8 @@ class GhostUI{
     this.initButton(screenshot);
     let pauseShader = new UIModifier("pauseShader", "global", "/", pauseShaderClck.bind(this), true);
     this.initButton(pauseShader);
-    let endPLine = new UIModifier("endPLine", "global", "Enter", endPLineClck.bind(this), true);
+    let endPLine = new UIModifier("endPLine", "global", "Enter", endPLineClck.bind(this));
+    let escPLine = new UIModifier("escPLine", "global", "Escape", escPLineClck.bind(this));
 
     //MODES
     //constructor(toggle, modifiers, enter, exit, mv, up, dwn){
@@ -91,6 +97,13 @@ class GhostUI{
 
     document.getElementById("draw-shapes").addEventListener('mouseup', this.mouseUp.bind(this));
     window.addEventListener('mousemove', this.mouseMove.bind(this));
+
+    //cntrl+z
+    this.cntlPressed = false;
+    this.zPressed = false;
+
+    window.addEventListener('keyup', this.keyUp.bind(this));
+    window.addEventListener('keydown', this.keyDown.bind(this));
 
     return this;
   }
@@ -188,6 +201,38 @@ class GhostUI{
     for (let mode of this.modes){
       if(mode.toggle == true){
         this.fluentDoc = mode.mv(e, this.fluentDoc);
+      }
+    }
+  }
+
+  //cnrl Z
+  keyUp(e){
+    let key = e.key;
+
+    if(key == "z") this.zPressed = false;
+    else if(key == "Meta") this.cntlPressed = false;
+    else if(key == "Control") this.cntlPressed = false;
+  }
+  keyDown(e){
+    let key = e.key;
+
+    if(key == "z") this.zPressed = true;
+    else if(key == "Meta") this.cntlPressed = true;
+    else if(key == "Control") this.cntlPressed = true;
+
+    if (this.zPressed && this.cntlPressed){
+      this.zPressed = false;
+      console.log("Control Z!");
+      console.log(this.docStack);
+      if (this.docStack.length > 1){
+        this.docStack.pop();
+        this.fluentDoc = this.docStack[this.docStack.length - 1];
+        this.fluentDoc.currEditItem = new PolyLine(this.fluentDoc.resolution, this.fluentDoc.editWeight);
+        this.fluentDoc.shaderUpdate = true;
+      } else {
+        this.fluentDoc = new FluentDoc(this.elem, this.shader);
+        this.docStack = [this.fluentDoc];
+        this.fluentDoc.shaderUpdate = true;
       }
     }
   }
@@ -313,6 +358,9 @@ function drawUp(e, _fluentDoc){
 
   let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
 
+  //important to keep a simple array of pts for reconstructing
+  //tree on cloneing
+  fluentDoc.pts.push(plPt);
   fluentDoc.tree.insert(plPt);
   fluentDoc.currEditItem.cTexel += 1;
 
@@ -325,14 +373,12 @@ function screenshotClck(_fluentDoc){
 }
 
 //for right now Global UI Modifiers get GhostUI bound
-function pauseShaderClck(_fluentDoc){
+function pauseShaderClck(){
     this.fluentDoc.shaderPause = !this.fluentDoc.shaderPause;
 }
 
 //for right now Global UI Modifiers get GhostUI bound
-function endPLineClck(_fluentDoc){
-    // console.log(this);
-
+function endPLineClck(){
     let shaderUpdate = this.fluentDoc.currEditItem.bakePolyLineFunction(this.fluentDoc.shader);
     this.fluentDoc.shader = this.fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
     this.fluentDoc.shaderUpdate = true;
@@ -341,6 +387,16 @@ function endPLineClck(_fluentDoc){
     this.fluentDoc.editItems.push(this.fluentDoc.currEditItem);
 
     this.fluentDoc.editItemIndex++;
+
+    this.docStack.push(this.fluentDoc);
+    console.log(this.docStack);
+}
+
+//for right now Global UI Modifiers get GhostUI bound
+function escPLineClck(){
+    this.fluentDoc.currEditItem = new PolyLine(this.fluentDoc.resolution, this.fluentDoc.editWeight, this.fluentDoc.dataSize);
+    this.docStack.push(this.fluentDoc);
+    console.log(this.docStack);
 }
 
 
@@ -450,8 +506,8 @@ function snapPtMv(e, _fluentDoc){
 }
 
 function snapRefMv(e, _fluentDoc){
-  let fluentDoc = Object.assign({}, _fluentDoc);
   if (this.toggle == false) return null;
+  let fluentDoc = Object.assign({}, _fluentDoc);
 
   let evPt = {
     x: e.clientX,
@@ -604,8 +660,8 @@ function snapRefUp(e, _fluentDoc){
 }
 
 function snapGlobalUp(e, _fluentDoc){
-  let fluentDoc = Object.assign({}, _fluentDoc);
   if (this.toggle == false) return null;
+  let fluentDoc = Object.assign({}, _fluentDoc);
 
   let addPt = {
     x: 0,
@@ -627,8 +683,8 @@ function snapGlobalUp(e, _fluentDoc){
 }
 
 function snapGridUp(e, _fluentDoc){
-  let fluentDoc = Object.assign({}, _fluentDoc);
   if (this.toggle == false) return null;
+  let fluentDoc = Object.assign({}, _fluentDoc);
 
   //would like for there to just be one point representation in js
   fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
@@ -650,7 +706,6 @@ class FluentDoc{
     this.shader = shader;
     this.shaderUpdate = false;
     this.shaderPause = false;
-
     this.screenshot = false;
 
     //mouse target position
@@ -729,6 +784,35 @@ class FluentDoc{
     //     addSVGCircle("blah", j, i, 2);
     //   }
     // }
+  }
+
+  //FAIL
+  //my attempt at a deep clone function for FluentDoc
+  //somehow this fails worse than just using  Object.assign({}, this.pts); everywhere
+  clone(){
+    let clone = new FluentDoc(this.elem, this.shader);
+    clone.resolution = this.resolution;
+    clone.shader = this.shader;
+    clone.shaderUpdate = this.shaderUpdate;
+    clone.shaderPause = this.shaderPause;
+    clone.screenshot = this.screenshot;
+    clone.mPt = this.mPt.clone();
+    clone.scale = this.scale;
+    clone.addPt.x = this.addPt.x;
+    clone.addPt.y = this.addPt.y;
+    clone.addPt.tag = this.addPt.tag;
+    clone.pts = Object.assign({}, this.pts);
+    // clone.tree = new kdTree(clone.pts, clone.pointDist, ["x", "y"]);
+    clone.tree =  Object.assign({}, this.tree);
+    clone.editWeight = this.editWeight;
+    clone.editItemIndex = this.editItemIndex;
+    clone.currEditItem =  Object.assign({}, this.currEditItem);
+    clone.editItems =  Object.assign({}, this.editItems);
+    clone.gridOffX = this.gridOffX;
+    clone.gridOffY = this.gridOffY;
+    clone.scaleX = this.scaleX;
+    clone.scaleY = this.scaleyY;
+    return clone;
   }
 }
 
@@ -1160,7 +1244,7 @@ class PolyLine extends PolyPoint {
 
     let fragShader = startShader + endShader;
 
-    console.log(fragShader);
+    // console.log(fragShader);
 
     return fragShader;
   }
