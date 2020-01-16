@@ -27,6 +27,9 @@
   height: 19%;
   max-width: 300px;
   bottom: 1%;
+
+  box-sizing: border-box;
+  padding-bottom: 2%;
 }
 
 #input-stack{
@@ -56,9 +59,11 @@
   box-shadow: 2px 2px 2px .5px rgba(136, 161, 180, 0.6); */
   border-radius: 0.25vmin;
 
+  box-sizing: border-box;
+
   position: absolute;
   display: flex;
-  padding-bottom: 1%;
+  /* padding-bottom: 1%; */
   padding-top: 1%;
 
   flex-direction: column;
@@ -157,6 +162,14 @@
 }
 
 .view {
+  background: rgba(0, 98, 174, 0.25);
+}
+
+.global:hover {
+  background: rgba(0, 98, 174, .75);
+}
+
+.global {
   background: rgba(0, 98, 174, 0.25);
 }
 

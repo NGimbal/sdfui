@@ -1,9 +1,9 @@
-
 "use strict";
 //keeps KD Tree of points to interact with
 //adds eventListeners to points
 //updates dataTexture with locations of those points
 import * as THREE from './libjs/three.module.js';
+// import {snapPtClck, snapRefClck, snapGlobalClck, snapGridClck} from './fluentSnap.js';
 
 class GhostUI{
   //renderer docElem necessary, others optional
@@ -53,15 +53,10 @@ class GhostUI{
 
     console.log(endianNess());
 
-    //DOCUMENT STATE
+    //DOCUMENT STATE ----- This needs to become a new object
     this.fluentDoc = new FluentDoc(this.elem, this.shader);
-
     //always use
     this.docStack = [this.fluentDoc];
-
-    //array.unshift / array.shift to push and pop from array[0];
-    //this is a cool idea - will implement soon
-    //this.docState = [fluentDoc];
 
     //MODE STATE
     this.editWeight = .002;
@@ -71,25 +66,24 @@ class GhostUI{
 
     //MODIFIERS
     // constructor(name, tag, clck, keyCut, _toggle, _factors, mv, up, dwn)
+    let pauseShader = new UIModifier("pauseShader", "global", "/", pauseShaderClck.bind(this), true);
+
     let snapPt = new UIModifier("snapPt", "snap", "p", snapPtClck, false, {dist:200}, snapPtMv, snapPtUp);
     let snapRef = new UIModifier("snapRef", "snap", "s", snapRefClck, false, {angle:45}, snapRefMv, snapRefUp);
     let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", snapGlobalClck, false, {angle:90}, snapGlobalMv, snapGlobalUp);
     let snapGrid = new UIModifier("snapGrid", "snap", "g", snapGridClck, false, {}, snapGridMv, snapGridUp);
 
     let lineWeight = new UIModifier("lineWeight", "edit", "w", lineWeightClck, true, {weight:0.002}, lineWeightMv);
+    let endPLine = new UIModifier("endPLine", "edit", "Enter", endPLineClck.bind(this));
+    let escPLine = new UIModifier("escPLine", "edit", "Escape", escPLineClck.bind(this));
 
-    //global modifiers get GhostUI context bound
-    let screenshot = new UIModifier("screenshot", "global", "l", screenshotClck.bind(this), true);
-    this.initButton(screenshot);
-    let pauseShader = new UIModifier("pauseShader", "global", "/", pauseShaderClck.bind(this), true);
-    this.initButton(pauseShader);
-    let endPLine = new UIModifier("endPLine", "global", "Enter", endPLineClck.bind(this));
-    let escPLine = new UIModifier("escPLine", "global", "Escape", escPLineClck.bind(this));
+    let screenshot = new UIModifier("screenshot", "export", "l", screenshotClck.bind(this), true);
 
     //MODES
     //constructor(toggle, modifiers, enter, exit, mv, up, dwn){
+    //for the short term, keyUp is called automatically
     this.modes = [
-      new UIMode("draw", true, [snapGlobal, snapRef, snapGrid, snapPt, lineWeight], drawEnter, drawExit, drawMv, drawUp)
+      new UIMode("draw", true, [pauseShader, screenshot, snapGlobal, snapRef, snapGrid, snapPt, lineWeight, endPLine, escPLine], drawEnter, drawExit, drawMv, drawUp)
     ]
 
     this.initUIModeButtons();
@@ -97,10 +91,8 @@ class GhostUI{
     this.modes[0].enter();
 
     document.getElementById("draw-shapes").addEventListener('mouseup', this.mouseUp.bind(this));
-
     //bind to docStack[];
     window.addEventListener('mousemove', this.mouseMove.bind(this));
-
     //cntrl+z
     this.cntlPressed = false;
     this.zPressed = false;
@@ -207,6 +199,7 @@ class GhostUI{
     this.fluentDoc.mPt.x = evPt.x / this.fluentDoc.elem.width;
     this.fluentDoc.mPt.y = (this.fluentDoc.elem.height - evPt.y) / this.fluentDoc.elem.height;
 
+    //this is a dumb way to do this - should use uiModeStack like document state stack
     for (let mode of this.modes){
       if(mode.toggle == true){
         this.fluentDoc = mode.mv(e, this.fluentDoc);
@@ -221,7 +214,18 @@ class GhostUI{
     if(key == "z") this.zPressed = false;
     else if(key == "Meta") this.cntlPressed = false;
     else if(key == "Control") this.cntlPressed = false;
+
+    //this is a dumb way to do this - should use uiModeStack like document state stack
+    for (let mode of this.modes){
+      if(mode.toggle == true){
+        for (let m of mode.modifiers){
+          if(m.keyCut == key) m.clck();
+        }
+      }
+    }
+
   }
+
   keyDown(e){
     let key = e.key;
 
@@ -299,18 +303,14 @@ function addButtonHint(uiMod){
   buttonHint.classList.add("enter-left");
   buttonHint.classList.add(uiMod.tag);
 
+  // might want to add a "button description or something"
   buttonHint.innerText = uiMod.keyCut + " = " + uiMod.name;
-  // buttonHint.style.backgroundColor = bgColor;
 
   buttonStack.appendChild(buttonHint);
 
   return buttonHint;
 }
 
-// function popModeSnackHint(text, _bgColor){
-//   let modeStack = document.getElementById('mode-stack');
-//   console.log(modeStack.children);
-// }
 function popModeHint(elem){
   elem.classList.remove("enter-left");
   elem.classList.add("exit-left");
@@ -337,6 +337,7 @@ function snackHint(text, _bgColor){
   setTimeout(function(){ snackbar.classList.toggle('show'); }, 2000);
 }
 
+//this fails for buttons will have to fix
 function getModeHintID(id){
   let modeHints = document.getElementById("mode-stack").children;
   for (let m of modeHints){
@@ -350,21 +351,12 @@ function drawEnter(){
   pushPopModeHint(this.name, "Begin Drawing!");
   //turns on snapping to pts by default
   //function should take some default settings at some point
-  this.modifiers[3].clck();
+  this.modifiers[5].clck();
 }
 
 function drawExit(){
   snackHint("End Drawing!");
 }
-
-
-//okay so this is one idea that may become necessary
-// function drawUpdate(_fluentDoc){
-//   for (let m of this.modifiers){
-//     if(!m.update) continue;
-//
-//   }
-// }
 
 function drawMv(e, _fluentDoc){
   if (this.toggle == false) return null;
@@ -909,7 +901,7 @@ class UIModifier{
       this.dwn = dwn.bind(this);
     }
 
-    window.addEventListener('keyup', this.keyUp.bind(this));
+    // window.addEventListener('keyup', this.keyUp.bind(this));
   }
 
   keyUp(e){
