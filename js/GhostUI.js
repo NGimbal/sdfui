@@ -118,13 +118,6 @@ class GhostUI{
     }
   }
 
-  initButton(uiMod){
-    let buttonElem = document.getElementById(uiMod.name);
-    if (!buttonElem) return;
-    let newButton = new Button(buttonElem, uiMod);
-    uiMod.button = newButton;
-  }
-
   // Helper to save a Uint8 data texture
   saveDataTUint8(pixels, name, width, height){
     // Create a 2D canvas to store the result
@@ -904,17 +897,6 @@ class UIModifier{
     // window.addEventListener('keyup', this.keyUp.bind(this));
   }
 
-  keyUp(e){
-    if(e.key == this.keyCut){
-      this.clck();
-      // console.log(e);
-      // console.log(this);
-    }
-  }
-
-  // createButton(){
-  //
-  // }
 }
 
 //clickable draggable button, onclick is a function
@@ -930,19 +912,10 @@ class Button{
 
     this.innerHTML = this.elem.innerHTML;
 
-    //bool for checking if we are dragging or clicking the button
-    this.click = true;
     //bool for checking if input method is active
     this.input = false;
-    //use for locking position of buttons
-    this.pinned = false;
 
     this.uimodifier = uimodifier;
-
-    //dbl click functions for picking
-    // if (_ondblclick){
-    //   elem.ondblclick = _ondblclick.bind(this);
-    // }
 
     //original positions
     let style = window.getComputedStyle(elem);
@@ -953,115 +926,10 @@ class Button{
 
     //what happens onclick
     elem.onclick = this.onclick;
-    elem.onmousedown = this.dragMouseDown.bind(this);
 
     //interpret type and color from html element
     let classes = elem.classList;
-    // let buttonType = "";
-
-    // for (let c of classes){
-    //   if(c.indexOf("edit") >= 0){
-    //     buttonType = "edit";
-    //     break;
-    //   }
-    //   if(c.indexOf("snap") >= 0){
-    //     buttonType = "snap";
-    //     break;
-    //   }
-    //   if(c.indexOf("view") >= 0){
-    //     buttonType = "view";
-    //     break;
-    //   }
-    //   if(c.indexOf("export") >= 0){
-    //     buttonType = "export";
-    //     break;
-    //   }
-    // }
-    //
-    // this.contents = {
-    //   name: this.name,
-    //   type: buttonType,
-    //   background: style.background,
-    //   innerHTML: this.innerHTML,
-    // }
-
   }
-
-  dragMouseDown(e) {
-    e = e || window.event;
-    if (this.input) return;
-
-    e.preventDefault();
-
-    // get the mouse cursor position at startup:
-    this.pos3 = e.clientX;
-    this.pos4 = e.clientY;
-
-    document.onmouseup = this.closeDragElement.bind(this);
-    // call a function whenever the cursor moves:
-    document.onmousemove = this.elementDrag.bind(this);
-  }
-
-  elementDrag(e) {
-    e = e || window.event;
-    e.preventDefault();
-
-    let unit = Math.min(window.innerHeight, window.innerWidth);
-    unit *= 0.05;
-
-    //Crude snapping
-    // let cliX = e.clientX - (e.clientX % unit) + 1/2 * unit;
-    // let cliY = e.clientY - (e.clientY % unit) + 1/2 * unit;
-
-    let cliX = e.clientX;
-    let cliY = e.clientY;
-
-    // calculate the new cursor position:
-    this.pos1 = this.pos3 - cliX;
-    this.pos2 = this.pos4 - cliY;
-    this.pos3 = cliX;
-    this.pos4 = cliY;
-
-    // set the element's new position:
-    this.elem.style.top = (this.elem.offsetTop - this.pos2) + "px";
-    this.elem.style.left = (this.elem.offsetLeft - this.pos1) + "px";
-  }
-
-  closeDragElement() {
-    let style = window.getComputedStyle(this.elem);
-
-    if(this.top == style.getPropertyValue('top') && this.left == style.getPropertyValue('left')){
-      this.click = true;
-    }
-    else{
-      this.click = false;
-    }
-
-    this.top = style.getPropertyValue('top');
-    this.left = style.getPropertyValue('left');
-
-    // stop moving when mouse button is released:
-    document.onmouseup = null;
-    document.onmousemove = null;
-  }
-
-  // snackHint(){
-  //   let snackbar = document.getElementById('snackbar');
-  //
-  //   if(snackbar.classList.contains('show')) return;
-  //
-  //   snackbar.innerHTML = this.contents.name;
-  //   snackbar.style.background = this.contents.background;
-  //
-  //   snackbar.classList.toggle('show');
-  //   setTimeout(function(){ snackbar.classList.toggle('show'); }, 2000);
-  // }
-
-  //experiment to add double click functionality
-  // static linearSlider(event){
-  //   console.log(event);
-  //   console.log(this);
-  // }
 
 }
 
