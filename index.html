@@ -5,7 +5,6 @@
 		<title>SDFUI</title>
 		<meta charset="utf-8">
 		<link rel="stylesheet" href="sdfui.css">
-    <link rel="stylesheet" href="ui-buttons.css">
     <link rel="stylesheet" href="ui-mode-stack.css">
 
     <!-- UIkit CSS -->
@@ -28,25 +27,14 @@
 
   <body>
 
-    <div id="uiButtons" class="leftBar">
-      <div id="screenshot" class="button button-export" type="button">Sa<div class="button-dot">s</div></div>
-      <div id="pauseShader" class="button button-view" type="button">Pa<div class="button-dot">p</div></div>
-
-      <!-- <div id="minus" class="button button-view" type="button">Zo<div class="button-dot">-</div></div> -->
-      <div id="snapGrid" class="button button-snap" type="button">Sg<div class="button-dot">g</div></div>
-      <div id="snapGlobal" class="button button-snap" type="button">Sw<div class="button-dot">sh</div></div>
-      <div id="snapRef" class="button button-snap" type="button">Sa<div class="button-dot">s</div></div>
-      <div id="snapPt" class="button button-snap" type="button">Sp<div class="button-dot">s</div></div>
-
-      <div id="lineWeight" class="button button-edit" type="button">Lw<div class="button-dot">w</div></div>
-
-      <!-- <div id="selectPt" class="button button-edit" type="button">Sp<div class="button-dot">a</div></div> -->
-      <!-- <div id="circle" class="button button-edit" type="button">Cl<div class="button-dot">c</div></div> -->
-      <!-- <div id="bezier" class="button button-edit" type="button">Bz<div class="button-dot">b</div></div> -->
+    <div id="left-pane">
+      <div id="button-stack" class="stack">
+      </div>
+      <div id="input-stack" class="stack">
+      </div>
+      <div id="mode-stack" class="stack">
+      </div>
     </div>
-    <div id="mode-stack">
-    </div>
-
 
     <canvas id="c"></canvas>
 

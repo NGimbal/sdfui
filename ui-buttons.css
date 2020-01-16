@@ -90,18 +90,34 @@
   outline: none;
 }
 
-.button-snap {
+/* .snap {
+  background: rgba(237, 55, 67, .25);
+}
+
+.snap:hover {
   background: rgba(237, 55, 67, .75);
 }
 
-.button-export {
+.export {
+  background: rgba(251, 91, 0, .25);
+}
+
+.export:hover {
   background: rgba(251, 91, 0, .75);
 }
 
-.button-view {
+.view {
+  background: rgba(0, 98, 174, .25);
+}
+
+.view:hover {
   background: rgba(0, 98, 174, .75);
 }
 
-.button-edit {
-  background: rgba(0, 111, 80, .75);
+.edit {
+  background: rgba(0, 111, 80, .25);
 }
+
+.edit:hover {
+  background: rgba(0, 111, 80, .75);
+} */

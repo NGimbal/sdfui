@@ -56,6 +56,7 @@ class GhostUI{
     //DOCUMENT STATE
     this.fluentDoc = new FluentDoc(this.elem, this.shader);
 
+    //always use
     this.docStack = [this.fluentDoc];
 
     //array.unshift / array.shift to push and pop from array[0];
@@ -96,6 +97,8 @@ class GhostUI{
     this.modes[0].enter();
 
     document.getElementById("draw-shapes").addEventListener('mouseup', this.mouseUp.bind(this));
+
+    //bind to docStack[];
     window.addEventListener('mousemove', this.mouseMove.bind(this));
 
     //cntrl+z
@@ -109,11 +112,17 @@ class GhostUI{
   }
 
   initUIModeButtons(){
+    let tags = [];
     for(let m of this.modes[0].modifiers){
-      let buttonElem = document.getElementById(m.name);
-      if (!buttonElem) continue;
-      let newButton = new Button(buttonElem, m)
+      if (!tags.includes(m.tag)){
+        tags.push(m.tag);
+        addButtonHeading(m);
+      }
+      // let buttonElem = document.getElementById(m.name);
+      // if (!buttonElem) continue;
+      let newButton = new Button(addButtonHint(m), m)
       m.button = newButton;
+      // m.button = newButton;
     }
   }
 
@@ -245,7 +254,7 @@ function pushModeHint(id, text, _bgColor){
   let modeSnack = document.createElement("div");
   modeSnack.id = id;
 
-  modeSnack.classList.add("mode-snack");
+  modeSnack.classList.add("mode-hint");
   modeSnack.classList.add("enter-left");
 
   let bgColor = _bgColor || "rgba(237, 55, 67, .75)";
@@ -258,6 +267,44 @@ function pushModeHint(id, text, _bgColor){
     modeStack.appendChild(modeSnack);
   }
   return modeSnack;
+}
+
+function addButtonHeading(uiMod){
+  let buttonStack = document.getElementById('button-stack');
+  let stack = buttonStack.children;
+
+  let buttonHint = document.createElement("div");
+  buttonHint.id = uiMod.name + "-tag";
+
+  buttonHint.classList.add("button-hint");
+  buttonHint.classList.add("enter-left");
+
+  let bgColor = "rgba(172, 172, 180, 0.00)";
+  buttonHint.innerText = uiMod.tag.charAt(0).toUpperCase() + uiMod.tag.substring(1);
+  buttonHint.style.backgroundColor = bgColor;
+
+  buttonStack.appendChild(buttonHint);
+
+  return buttonHint;
+}
+
+function addButtonHint(uiMod){
+  let buttonStack = document.getElementById('button-stack');
+  let stack = buttonStack.children;
+
+  let buttonHint = document.createElement("div");
+  buttonHint.id = uiMod.name;
+
+  buttonHint.classList.add("button-hint");
+  buttonHint.classList.add("enter-left");
+  buttonHint.classList.add(uiMod.tag);
+
+  buttonHint.innerText = uiMod.keyCut + " = " + uiMod.name;
+  // buttonHint.style.backgroundColor = bgColor;
+
+  buttonStack.appendChild(buttonHint);
+
+  return buttonHint;
 }
 
 // function popModeSnackHint(text, _bgColor){
@@ -685,6 +732,7 @@ function snapGlobalUp(e, _fluentDoc){
 function snapGridUp(e, _fluentDoc){
   if (this.toggle == false) return null;
   let fluentDoc = Object.assign({}, _fluentDoc);
+  // let fluentDoc = {..._fluentDoc};
 
   //would like for there to just be one point representation in js
   fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
@@ -917,41 +965,34 @@ class Button{
 
     //interpret type and color from html element
     let classes = elem.classList;
-    let buttonType = "";
+    // let buttonType = "";
 
-    for (let c of classes){
-      if(c.indexOf("edit") >= 0){
-        buttonType = "edit";
-        break;
-      }
-      if(c.indexOf("snap") >= 0){
-        buttonType = "snap";
-        break;
-      }
-      if(c.indexOf("view") >= 0){
-        buttonType = "view";
-        break;
-      }
-      if(c.indexOf("export") >= 0){
-        buttonType = "export";
-        break;
-      }
-    }
+    // for (let c of classes){
+    //   if(c.indexOf("edit") >= 0){
+    //     buttonType = "edit";
+    //     break;
+    //   }
+    //   if(c.indexOf("snap") >= 0){
+    //     buttonType = "snap";
+    //     break;
+    //   }
+    //   if(c.indexOf("view") >= 0){
+    //     buttonType = "view";
+    //     break;
+    //   }
+    //   if(c.indexOf("export") >= 0){
+    //     buttonType = "export";
+    //     break;
+    //   }
+    // }
+    //
+    // this.contents = {
+    //   name: this.name,
+    //   type: buttonType,
+    //   background: style.background,
+    //   innerHTML: this.innerHTML,
+    // }
 
-    // too finicky
-    // let keyCutIndex = this.innerHTML.indexOf('button-dot') + 'button-dot'.length;
-    // let _keyCut = this.innerHTML.slice(keyCutIndex);
-    // keyCutIndex = _keyCut.indexOf('>') + 1;
-    // this.keyCut = _keyCut.slice(keyCutIndex, keyCutIndex + 1);
-
-    this.contents = {
-      name: this.name,
-      type: buttonType,
-      background: style.background,
-      innerHTML: this.innerHTML,
-    }
-
-    // console.log(this.contents);
   }
 
   dragMouseDown(e) {
@@ -1012,17 +1053,17 @@ class Button{
     document.onmousemove = null;
   }
 
-  snackHint(){
-    let snackbar = document.getElementById('snackbar');
-
-    if(snackbar.classList.contains('show')) return;
-
-    snackbar.innerHTML = this.contents.name;
-    snackbar.style.background = this.contents.background;
-
-    snackbar.classList.toggle('show');
-    setTimeout(function(){ snackbar.classList.toggle('show'); }, 2000);
-  }
+  // snackHint(){
+  //   let snackbar = document.getElementById('snackbar');
+  //
+  //   if(snackbar.classList.contains('show')) return;
+  //
+  //   snackbar.innerHTML = this.contents.name;
+  //   snackbar.style.background = this.contents.background;
+  //
+  //   snackbar.classList.toggle('show');
+  //   setTimeout(function(){ snackbar.classList.toggle('show'); }, 2000);
+  // }
 
   //experiment to add double click functionality
   // static linearSlider(event){
@@ -1244,7 +1285,7 @@ class PolyLine extends PolyPoint {
 
     let fragShader = startShader + endShader;
 
-    // console.log(fragShader);
+    console.log(fragShader);
 
     return fragShader;
   }
