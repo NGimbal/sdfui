@@ -75,7 +75,7 @@ class GhostUI{
 
     let lineWeight = new UIModifier("lineWeight", "edit", "w", lineWeightClck, true, {weight:0.002}, lineWeightMv);
     let endPLine = new UIModifier("endPLine", "edit", "Enter", endPLineClck.bind(this));
-    let escPLine = new UIModifier("escPLine", "edit", "Escape", escPLineClck.bind(this));
+    let escPLine = new UIModifier("escPLine", "edit", "Escape", escPLineClck);
 
     let screenshot = new UIModifier("screenshot", "export", "l", screenshotClck.bind(this), true);
 
@@ -203,7 +203,7 @@ class GhostUI{
   //cnrl Z
   keyUp(e){
     let key = e.key;
-
+    console.log(this);
     if(key == "z") this.zPressed = false;
     else if(key == "Meta") this.cntlPressed = false;
     else if(key == "Control") this.cntlPressed = false;
@@ -212,7 +212,7 @@ class GhostUI{
     for (let mode of this.modes){
       if(mode.toggle == true){
         for (let m of mode.modifiers){
-          if(m.keyCut == key) m.clck();
+          if(m.keyCut == key) m.clck(this);
         }
       }
     }
@@ -410,25 +410,31 @@ function pauseShaderClck(){
 }
 
 //for right now Global UI Modifiers get GhostUI bound
-function endPLineClck(){
-    let shaderUpdate = this.fluentDoc.currEditItem.bakePolyLineFunction(this.fluentDoc.shader);
-    this.fluentDoc.shader = this.fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
-    this.fluentDoc.shaderUpdate = true;
+function endPLineClck(ghostUI){
+    let shaderUpdate = ghostUI.fluentDoc.currEditItem.bakePolyLineFunction(ghostUI.fluentDoc.shader);
+    ghostUI.fluentDoc.shader = ghostUI.fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
+    ghostUI.fluentDoc.shaderUpdate = true;
 
-    this.fluentDoc.currEditItem = new PolyLine(this.fluentDoc.resolution, this.fluentDoc.editWeight, this.fluentDoc.dataSize);
-    this.fluentDoc.editItems.push(this.fluentDoc.currEditItem);
+    ghostUI.fluentDoc.currEditItem = new PolyLine(ghostUI.fluentDoc.resolution, ghostUI.fluentDoc.editWeight, ghostUI.fluentDoc.dataSize);
+    ghostUI.fluentDoc.editItems.push(ghostUI.fluentDoc.currEditItem);
 
-    this.fluentDoc.editItemIndex++;
+    ghostUI.fluentDoc.editItemIndex++;
 
-    this.docStack.push(this.fluentDoc);
-    console.log(this.docStack);
+    ghostUI.docStack.push(ghostUI.fluentDoc);
+    console.log(ghostUI.docStack);
+
+    this.button.elem.classList.toggle("edit-active");
+    window.setTimeout(function(){this.button.elem.classList.toggle("edit-active");}.bind(this), 100);
 }
 
-//for right now Global UI Modifiers get GhostUI bound
-function escPLineClck(){
-    this.fluentDoc.currEditItem = new PolyLine(this.fluentDoc.resolution, this.fluentDoc.editWeight, this.fluentDoc.dataSize);
-    this.docStack.push(this.fluentDoc);
-    console.log(this.docStack);
+//this is a pretty cool way to do this
+//this will be documentStack at some point
+function escPLineClck(ghostUI){
+    ghostUI.fluentDoc.currEditItem = new PolyLine(ghostUI.fluentDoc.resolution, ghostUI.fluentDoc.editWeight, ghostUI.fluentDoc.dataSize);
+    //ghostUI.docStack.push(this.fluentDoc);
+
+    this.button.elem.classList.toggle("edit-active");
+    window.setTimeout(function(){this.button.elem.classList.toggle("edit-active");}.bind(this), 100);
 }
 
 
@@ -454,49 +460,53 @@ function lineWeightClck(e){
 
     this.button.elem.classList.toggle("input-slider");
     // this.elem.style.width = '5vmin';
-    window.setTimeout(function(){this.button.elem.innerHTML = this.button.innerHTML;}.bind(this), 900);
+    window.setTimeout(function(){this.button.elem.innerHTML = this.button.innerHTML;}.bind(this), 100);
     this.button.input = false;
   }
 }
 
 function snapPtClck(e){
   this.toggle = !this.toggle;
+  this.button.elem.classList.toggle("snap-active");
 
-  if(this.toggle){
-    pushModeHint(this.name, "Snap to a Point");
-  } else {
-    popModeHint(getModeHintID(this.name));
-  }
+  // if(this.toggle){
+  //   pushModeHint(this.name, "Snap to a Point");
+  // } else {
+  //   popModeHint(getModeHintID(this.name));
+  // }
 }
 
 function snapRefClck(e){
   this.toggle = !this.toggle;
+  this.button.elem.classList.toggle("snap-active");
 
-  if(this.toggle){
-    pushModeHint(this.name, "Snap to Relative Angle");
-  } else {
-    popModeHint(getModeHintID(this.name));
-  }
+  // if(this.toggle){
+  //   pushModeHint(this.name, "Snap to Relative Angle");
+  // } else {
+  //   popModeHint(getModeHintID(this.name));
+  // }
 }
 
 function snapGlobalClck(e){
   this.toggle = !this.toggle;
+  this.button.elem.classList.toggle("snap-active");
 
-  if(this.toggle){
-    pushModeHint(this.name, "Snap to Global Angle");
-  } else {
-    popModeHint(getModeHintID(this.name));
-  }
+  // if(this.toggle){
+  //   pushModeHint(this.name, "Snap to Global Angle");
+  // } else {
+  //   popModeHint(getModeHintID(this.name));
+  // }
 }
 
 function snapGridClck(e){
   this.toggle = !this.toggle;
+  this.button.elem.classList.toggle("snap-active");
 
-  if(this.toggle){
-    pushModeHint(this.name, "Snap to Grid");
-  } else {
-    popModeHint(getModeHintID(this.name));
-  }
+  // if(this.toggle){
+  //   pushModeHint(this.name, "Snap to Grid");
+  // } else {
+  //   popModeHint(getModeHintID(this.name));
+  // }
 }
 
 //not ideal behaviour because one has to move mouse

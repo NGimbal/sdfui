@@ -91,7 +91,7 @@
   font: 1.5vmin Helvetica;
   font-weight: bold;
   margin-top: 1%;
-  background-color: rgba(0, 111, 80, .75);
+
 }
 
 .button-hint {
@@ -111,6 +111,9 @@
   font: 1.75vmin Helvetica;
   font-weight: bold;
   margin-top: 1%;
+
+  -webkit-transition: background-color 100ms ease-in; /* Safari prior 6.1 */
+  transition: background-color 100ms ease-in;
 }
 
 .enter-left{
@@ -146,41 +149,61 @@
 
 /* could custom properties be good for this? */
 .snap {
-  background: rgba(237, 55, 67, 0.25);
+  background-color: rgba(237, 55, 67, 0.25);
 }
 
 .snap:hover {
-  background: rgba(237, 55, 67, .75);
+  background-color: rgba(237, 55, 67, .75);
+}
+
+.snap-active {
+  background-color: rgba(237, 55, 67, .75);
 }
 
 .export {
-  background: rgba(251, 91, 0, 0.25);
+  background-color: rgba(251, 91, 0, 0.25);
 }
 
 .export:hover {
-  background: rgba(251, 91, 0, .75);
+  background-color: rgba(251, 91, 0, .75);
+}
+
+.export-active {
+  background-color: rgba(251, 91, 0, .75);
 }
 
 .view {
-  background: rgba(0, 98, 174, 0.25);
-}
-
-.global:hover {
-  background: rgba(0, 98, 174, .75);
-}
-
-.global {
-  background: rgba(0, 98, 174, 0.25);
+  background-color: rgba(0, 98, 174, 0.25);
 }
 
 .view:hover {
-  background: rgba(0, 98, 174, .75);
+  background-color: rgba(0, 98, 174, 0.75);
+}
+
+.view-active {
+  background-color: rgba(0, 98, 174, 0.75);
+}
+
+.global {
+  background-color: rgba(0, 98, 174, 0.25);
+}
+
+.global:hover {
+  background-color: rgba(0, 98, 174, .75);
+}
+
+.global-active {
+  background-color: rgba(0, 98, 174, .75);
 }
 
 .edit {
-  background: rgba(0, 111, 80, 0.25);
+  background-color: rgba(0, 111, 80, 0.25);
 }
 
 .edit:hover {
-  background: rgba(0, 111, 80, .75);
+  background-color: rgba(0, 111, 80, .75);
+}
+
+.edit-active {
+  background-color: rgba(0, 111, 80, .75);
 }
