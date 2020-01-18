@@ -1,12 +1,15 @@
 "use strict";
-//keeps KD Tree of points to interact with
-//adds eventListeners to points
-//updates dataTexture with locations of those points
-import * as THREE from './libjs/three.module.js';
-// import {snapPtClck, snapRefClck, snapGlobalClck, snapGridClck} from './fluentSnap.js';
 
+import * as THREE from './libjs/three.module.js';
+import * as SNAP from './fluentSnap.js';
+import * as HINT from './fluentHints.js';
+
+//GhostUI coordinates all UI functions, keeps FluentDocStack, and UI State
+//Implements UIMode and UIModifiers
+//UIMode is a collection of UIModifiers along with enter & exit functions
+//UIModifier is a collection of functions that are fired by events within uiModes
 class GhostUI{
-  //renderer docElem necessary, others optional
+
   constructor(elem, shader){
     // "Out of the box" element and shader
     this.elem = elem;
@@ -53,10 +56,10 @@ class GhostUI{
 
     console.log(endianNess());
 
-    //DOCUMENT STATE ----- This needs to become a new object
-    this.fluentDoc = new FluentDoc(this.elem, this.shader);
+    //DOCUMENT STATE
+    let fluentDoc = new FluentDoc(this.elem, this.shader);
     //always use
-    this.docStack = [this.fluentDoc];
+    this.fluentStack = new StateStack(fluentDoc, 10);
 
     //MODE STATE
     this.editWeight = .002;
@@ -68,13 +71,13 @@ class GhostUI{
     // constructor(name, tag, clck, keyCut, _toggle, _factors, mv, up, dwn)
     let pauseShader = new UIModifier("pauseShader", "global", "/", pauseShaderClck.bind(this), true);
 
-    let snapPt = new UIModifier("snapPt", "snap", "p", snapPtClck, false, {dist:200}, snapPtMv, snapPtUp);
-    let snapRef = new UIModifier("snapRef", "snap", "s", snapRefClck, false, {angle:45}, snapRefMv, snapRefUp);
-    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", snapGlobalClck, false, {angle:90}, snapGlobalMv, snapGlobalUp);
-    let snapGrid = new UIModifier("snapGrid", "snap", "g", snapGridClck, false, {}, snapGridMv, snapGridUp);
+    let snapPt = new UIModifier("snapPt", "snap", "p", SNAP.snapPtClck, false, {dist:200}, SNAP.snapPtMv, SNAP.snapPtUp);
+    let snapRef = new UIModifier("snapRef", "snap", "s", SNAP.snapRefClck, false, {angle:45}, SNAP.snapRefMv, SNAP.snapRefUp);
+    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", SNAP.snapGlobalClck, false, {angle:90}, SNAP.snapGlobalMv, SNAP.snapGlobalUp);
+    let snapGrid = new UIModifier("snapGrid", "snap", "g", SNAP.snapGridClck, false, {}, SNAP.snapGridMv, SNAP.snapGridUp);
 
     let lineWeight = new UIModifier("lineWeight", "edit", "w", lineWeightClck, true, {weight:0.002}, lineWeightMv);
-    let endPLine = new UIModifier("endPLine", "edit", "Enter", endPLineClck.bind(this));
+    let endPLine = new UIModifier("endPLine", "edit", "Enter", endPLineClck);
     let escPLine = new UIModifier("escPLine", "edit", "Escape", escPLineClck);
 
     let screenshot = new UIModifier("screenshot", "export", "l", screenshotClck.bind(this), true);
@@ -82,8 +85,9 @@ class GhostUI{
     //MODES
     //constructor(toggle, modifiers, enter, exit, mv, up, dwn){
     //for the short term, keyUp is called automatically
+    let drawMods = [pauseShader, screenshot, snapGlobal, snapRef, snapGrid, snapPt, lineWeight, endPLine, escPLine];
     this.modes = [
-      new UIMode("draw", true, [pauseShader, screenshot, snapGlobal, snapRef, snapGrid, snapPt, lineWeight, endPLine, escPLine], drawEnter, drawExit, drawMv, drawUp)
+      new UIMode("draw", true, drawMods, drawEnter, drawExit, drawMv, drawUp)
     ]
 
     this.initUIModeButtons();
@@ -108,11 +112,11 @@ class GhostUI{
     for(let m of this.modes[0].modifiers){
       if (!tags.includes(m.tag)){
         tags.push(m.tag);
-        addButtonHeading(m);
+        HINT.addButtonHeading(m);
       }
       // let buttonElem = document.getElementById(m.name);
       // if (!buttonElem) continue;
-      let newButton = new Button(addButtonHint(m), m)
+      let newButton = new Button(HINT.addButtonHint(m), m)
       m.button = newButton;
       // m.button = newButton;
     }
@@ -173,11 +177,15 @@ class GhostUI{
     //   x: e.clientX,
     //   y: e.clientY
     // };
+    let fluentDoc = this.fluentStack.curr();
 
     for (let mode of this.modes){
       if(mode.toggle == true){
-        console.log(mode.name);
-        this.fluentDoc = mode.up(e, this.fluentDoc);
+        // console.log(mode.name);
+        let newDoc = mode.up(e, fluentDoc);
+        // console.log(newDoc);
+        // if (newDoc) this.fluentStack.push(newDoc);
+        if (newDoc) fluentDoc = newDoc;
       }
     }
   }
@@ -189,13 +197,16 @@ class GhostUI{
       y: e.clientY
     };
 
-    this.fluentDoc.mPt.x = evPt.x / this.fluentDoc.elem.width;
-    this.fluentDoc.mPt.y = (this.fluentDoc.elem.height - evPt.y) / this.fluentDoc.elem.height;
+    let fluentDoc = this.fluentStack.curr();
+
+
+    fluentDoc.mPt.x = evPt.x / fluentDoc.elem.width;
+    fluentDoc.mPt.y = (fluentDoc.elem.height - evPt.y) / fluentDoc.elem.height;
 
     //this is a dumb way to do this - should use uiModeStack like document state stack
     for (let mode of this.modes){
       if(mode.toggle == true){
-        this.fluentDoc = mode.mv(e, this.fluentDoc);
+        fluentDoc = mode.mv(e, fluentDoc);
       }
     }
   }
@@ -203,12 +214,12 @@ class GhostUI{
   //cnrl Z
   keyUp(e){
     let key = e.key;
-    console.log(this);
+    // console.log(this);
     if(key == "z") this.zPressed = false;
     else if(key == "Meta") this.cntlPressed = false;
     else if(key == "Control") this.cntlPressed = false;
 
-    //this is a dumb way to do this - should use uiModeStack like document state stack
+    //should use uiModeStack like document state stack
     for (let mode of this.modes){
       if(mode.toggle == true){
         for (let m of mode.modifiers){
@@ -216,7 +227,6 @@ class GhostUI{
         }
       }
     }
-
   }
 
   keyDown(e){
@@ -229,144 +239,49 @@ class GhostUI{
     if (this.zPressed && this.cntlPressed){
       this.zPressed = false;
       console.log("Control Z!");
-      console.log(this.docStack);
-      if (this.docStack.length > 1){
-        this.docStack.pop();
-        this.fluentDoc = this.docStack[this.docStack.length - 1];
-        this.fluentDoc.currEditItem = new PolyLine(this.fluentDoc.resolution, this.fluentDoc.editWeight);
-        this.fluentDoc.shaderUpdate = true;
-      } else {
-        this.fluentDoc = new FluentDoc(this.elem, this.shader);
-        this.docStack = [this.fluentDoc];
-        this.fluentDoc.shaderUpdate = true;
-      }
+      // console.log(this.fluentStack);
+      // if (this.fluentStack.index > 0){
+        let fluentDoc = this.fluentStack.undo();
+        // fluentDoc = this.docStack[this.docStack.length - 1];
+        // fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight);
+        fluentDoc.shaderUpdate = true;
+      // } else {
+        // fluentDoc = new FluentDoc(this.elem, this.shader);
+        // this.docStack = [fluentDoc];
+        // fluentDoc.shaderUpdate = true;
+      // }
     }
   }
 }
 
-function pushModeHint(id, text, _bgColor){
-  let modeStack = document.getElementById('mode-stack');
-  let stack = modeStack.children;
-
-  let modeSnack = document.createElement("div");
-  modeSnack.id = id;
-
-  modeSnack.classList.add("mode-hint");
-  modeSnack.classList.add("enter-left");
-
-  let bgColor = _bgColor || "rgba(237, 55, 67, .75)";
-  modeSnack.innerText = text;
-  modeSnack.style.backgroundColor = bgColor;
-
-  if(stack.length>0){
-    modeStack.insertBefore(modeSnack, stack[0]);
-  } else {
-    modeStack.appendChild(modeSnack);
-  }
-  return modeSnack;
-}
-
-function addButtonHeading(uiMod){
-  let buttonStack = document.getElementById('button-stack');
-  let stack = buttonStack.children;
-
-  let buttonHint = document.createElement("div");
-  buttonHint.id = uiMod.name + "-tag";
-
-  buttonHint.classList.add("button-hint");
-  buttonHint.classList.add("enter-left");
-
-  let bgColor = "rgba(172, 172, 180, 0.00)";
-  buttonHint.innerText = uiMod.tag.charAt(0).toUpperCase() + uiMod.tag.substring(1);
-  buttonHint.style.backgroundColor = bgColor;
-
-  buttonStack.appendChild(buttonHint);
-
-  return buttonHint;
-}
-
-function addButtonHint(uiMod){
-  let buttonStack = document.getElementById('button-stack');
-  let stack = buttonStack.children;
-
-  let buttonHint = document.createElement("div");
-  buttonHint.id = uiMod.name;
-
-  buttonHint.classList.add("button-hint");
-  buttonHint.classList.add("enter-left");
-  buttonHint.classList.add(uiMod.tag);
-
-  // might want to add a "button description or something"
-  buttonHint.innerText = uiMod.keyCut + " = " + uiMod.name;
-
-  buttonStack.appendChild(buttonHint);
-
-  return buttonHint;
-}
-
-function popModeHint(elem){
-  elem.classList.remove("enter-left");
-  elem.classList.add("exit-left");
-
-  setTimeout(function(){this.remove();}.bind(elem), 1000);
-}
-
-function pushPopModeHint(id, text, _bgColor){
-  let modeHint = pushModeHint(id, text, _bgColor);
-  setTimeout(function(){popModeHint(this);}.bind(modeHint), 3000);
-}
-
-function snackHint(text, _bgColor){
-  let snackbar = document.getElementById('snackbar');
-
-  if(snackbar.classList.contains('show')) return;
-
-  let bgColor = _bgColor || "rgba(237, 55, 67, .75)";
-
-  snackbar.innerHTML = text;
-  snackbar.style.background = bgColor;
-
-  snackbar.classList.toggle('show');
-  setTimeout(function(){ snackbar.classList.toggle('show'); }, 2000);
-}
-
-//this fails for buttons will have to fix
-function getModeHintID(id){
-  let modeHints = document.getElementById("mode-stack").children;
-  for (let m of modeHints){
-    if(m.id === id) return m;
-  }
-  //if no mode hint exists
-  return null;
-}
-
 function drawEnter(){
-  pushPopModeHint(this.name, "Begin Drawing!");
+  // pushPopModeHint(this.name, "Begin Drawing!");
+  HINT.pushModeHint(this.name, "Begin Drawing!");
   //turns on snapping to pts by default
   //function should take some default settings at some point
   this.modifiers[5].clck();
 }
 
 function drawExit(){
-  snackHint("End Drawing!");
+  HINT.snackHint("End Drawing!");
 }
 
-function drawMv(e, _fluentDoc){
+function drawMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  let fluentDoc = Object.assign({}, _fluentDoc);
+  // let fluentDoc = Object.assign({}, _fluentDoc);
 
   for (let m of this.modifiers){
     if(!m.mv) continue;
-    let modState = m.mv(e, fluentDoc)
+    let modState = m.mv(e, fluentDoc);
     if(!modState) continue;
     fluentDoc = modState;
   }
   return fluentDoc;
 }
 
-function drawUp(e, _fluentDoc){
+function drawUp(e, fluentDoc){
   if (this.toggle == false) return null;
-  let fluentDoc = Object.assign({}, _fluentDoc);
+  // let fluentDoc = Object.assign({}, _fluentDoc);
 
   let addPt = {
     x: 0,
@@ -400,41 +315,46 @@ function drawUp(e, _fluentDoc){
 }
 
 //for right now Global UI Modifiers get GhostUI bound
-function screenshotClck(_fluentDoc){
-  this.fluentDoc.screenshot = true;
+function screenshotClck(fluentDoc){
+  fluentDoc.screenshot = true;
 }
 
 //for right now Global UI Modifiers get GhostUI bound
-function pauseShaderClck(){
-    this.fluentDoc.shaderPause = !this.fluentDoc.shaderPause;
+function pauseShaderClck(fluentDoc){
+    fluentDoc.shaderPause = !fluentDoc.shaderPause;
 }
 
 //for right now Global UI Modifiers get GhostUI bound
 function endPLineClck(ghostUI){
-    let shaderUpdate = ghostUI.fluentDoc.currEditItem.bakePolyLineFunction(ghostUI.fluentDoc.shader);
-    ghostUI.fluentDoc.shader = ghostUI.fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
-    ghostUI.fluentDoc.shaderUpdate = true;
+    let fluentDoc = ghostUI.fluentStack.curr();
 
-    ghostUI.fluentDoc.currEditItem = new PolyLine(ghostUI.fluentDoc.resolution, ghostUI.fluentDoc.editWeight, ghostUI.fluentDoc.dataSize);
-    ghostUI.fluentDoc.editItems.push(ghostUI.fluentDoc.currEditItem);
+    let shaderUpdate = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc.shader);
+    fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
+    fluentDoc.shaderUpdate = true;
 
-    ghostUI.fluentDoc.editItemIndex++;
+    fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+    fluentDoc.editItems.push(fluentDoc.currEditItem);
 
-    ghostUI.docStack.push(ghostUI.fluentDoc);
-    console.log(ghostUI.docStack);
+    fluentDoc.editItemIndex++;
 
-    this.button.elem.classList.toggle("edit-active");
-    window.setTimeout(function(){this.button.elem.classList.toggle("edit-active");}.bind(this), 100);
+    // console.log(ghostUI.fluentStack);
+
+    HINT.pulseActive(this);
+    // this.button.elem.classList.toggle("edit-active");
+    // window.setTimeout(function(){this.button.elem.classList.toggle("edit-active");}.bind(this), 250);
 }
 
 //this is a pretty cool way to do this
 //this will be documentStack at some point
 function escPLineClck(ghostUI){
-    ghostUI.fluentDoc.currEditItem = new PolyLine(ghostUI.fluentDoc.resolution, ghostUI.fluentDoc.editWeight, ghostUI.fluentDoc.dataSize);
+    let fluentDoc = ghostUI.fluentStack.curr();
+    fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
     //ghostUI.docStack.push(this.fluentDoc);
 
-    this.button.elem.classList.toggle("edit-active");
-    window.setTimeout(function(){this.button.elem.classList.toggle("edit-active");}.bind(this), 100);
+    HINT.pulseActive(this);
+
+    // this.button.elem.classList.toggle("edit-active");
+    // window.setTimeout(function(){this.button.elem.classList.toggle("edit-active");}.bind(this), 100);
 }
 
 
@@ -465,55 +385,11 @@ function lineWeightClck(e){
   }
 }
 
-function snapPtClck(e){
-  this.toggle = !this.toggle;
-  this.button.elem.classList.toggle("snap-active");
-
-  // if(this.toggle){
-  //   pushModeHint(this.name, "Snap to a Point");
-  // } else {
-  //   popModeHint(getModeHintID(this.name));
-  // }
-}
-
-function snapRefClck(e){
-  this.toggle = !this.toggle;
-  this.button.elem.classList.toggle("snap-active");
-
-  // if(this.toggle){
-  //   pushModeHint(this.name, "Snap to Relative Angle");
-  // } else {
-  //   popModeHint(getModeHintID(this.name));
-  // }
-}
-
-function snapGlobalClck(e){
-  this.toggle = !this.toggle;
-  this.button.elem.classList.toggle("snap-active");
-
-  // if(this.toggle){
-  //   pushModeHint(this.name, "Snap to Global Angle");
-  // } else {
-  //   popModeHint(getModeHintID(this.name));
-  // }
-}
-
-function snapGridClck(e){
-  this.toggle = !this.toggle;
-  this.button.elem.classList.toggle("snap-active");
-
-  // if(this.toggle){
-  //   pushModeHint(this.name, "Snap to Grid");
-  // } else {
-  //   popModeHint(getModeHintID(this.name));
-  // }
-}
-
 //not ideal behaviour because one has to move mouse
 //someday may implement the modifier update function
-function lineWeightMv(e, _fluentDoc){
+function lineWeightMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  let fluentDoc = Object.assign({}, _fluentDoc);
+  // let fluentDoc = Object.assign({}, _fluentDoc);
   // console.log(this);
   if (fluentDoc.editWeight != this.factors.weight){
     fluentDoc.editWeight = this.factors.weight;
@@ -524,219 +400,61 @@ function lineWeightMv(e, _fluentDoc){
   return null;
 }
 
-function snapPtMv(e, _fluentDoc){
-  if (this.toggle == false) return null;
-  let fluentDoc = Object.assign({}, _fluentDoc);
-
-  let evPt = {
-    x: e.clientX,
-    y: e.clientY
-  };
-
-  let ptNear = fluentDoc.tree.nearest(evPt, 1);
-
-  if (ptNear.length > 0 && ptNear[0][1] < this.factors.dist){
-    ptNear = ptNear[0][0];
-    fluentDoc.mPt.x = ptNear.x / fluentDoc.resolution.x;
-    fluentDoc.mPt.y = (fluentDoc.resolution.y - ptNear.y) / fluentDoc.resolution.y;
-
-    return fluentDoc;
-  }
-  else{
-    return null;
-  }
-}
-
-function snapRefMv(e, _fluentDoc){
-  if (this.toggle == false) return null;
-  let fluentDoc = Object.assign({}, _fluentDoc);
-
-  let evPt = {
-    x: e.clientX,
-    y: e.clientY
-  };
-
-  if (fluentDoc.currEditItem.pts.length > 1){
-    let ptPrevEnd = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 1];
-    let ptPrevBeg = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 2];
-
-    //previous line, syntax?
-    let lnPrev = new THREE.Vector2().subVectors(ptPrevEnd, ptPrevBeg);
-    let lnCurr = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
-    let lnCurrN = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
-
-    let dot = lnPrev.normalize().dot(lnCurrN.normalize());
-    let det = lnPrev.x * lnCurrN.y - lnPrev.y * lnCurrN.x
-
-    let angle = Math.atan2(det, dot) * (180 / Math.PI);
-
-    let snapA = (Math.round(angle / this.factors.angle) * this.factors.angle);
-
-    snapA = (snapA * (Math.PI / 180) + lnPrev.angle());
-
-    let snapX = ptPrevEnd.x - lnCurr.length() * Math.cos(snapA);
-    let snapY = ptPrevEnd.y - lnCurr.length() * Math.sin(snapA);
-
-    fluentDoc.mPt.x = snapX / fluentDoc.elem.width;
-    fluentDoc.mPt.y = (fluentDoc.elem.height - snapY) / fluentDoc.elem.height;
-
-    return fluentDoc;
-  }
-  else{
-    return null;
-  }
-}
-
-function snapGlobalMv(e, _fluentDoc){
-  if (this.toggle == false) return null;
-  let fluentDoc = Object.assign({}, _fluentDoc);
-
-  let evPt = {
-    x: e.clientX,
-    y: e.clientY
-  };
-
-  if (fluentDoc.currEditItem.pts.length > 0){
-    let prevX = 0;
-    let prevY = 0;
-
-    if (fluentDoc.currEditItem.pts.length >= 1){
-      prevX = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 1].x;
-      prevY = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 1].y;
+//Ring buffer of states
+class StateStack{
+  constructor(state, MAX){
+    this.MAX = MAX || 10;
+    this.index = 0;
+    this.stack = [];
+    this.stack[0] = state;
+    for (let i = 1; i < this.MAX; i++){
+      this.stack.push(null);
     }
-
-    let prevPt = {
-      x: prevX,
-      y: prevY
-    };
-
-    //previous line
-    let lnCurr = new THREE.Vector2().subVectors(prevPt, evPt);
-
-    let angle = lnCurr.angle()* (180 / Math.PI);
-
-    //global angle
-    let gAngle = 90;
-
-    let snapA = (Math.round(angle / gAngle) * gAngle);
-    snapA = (snapA * (Math.PI / 180));
-
-    let snapX = prevPt.x - lnCurr.length() * Math.cos(snapA);
-    let snapY = prevPt.y - lnCurr.length() * Math.sin(snapA);
-
-    fluentDoc.mPt.x = snapX / fluentDoc.elem.width;
-    fluentDoc.mPt.y = (fluentDoc.elem.height - snapY) / fluentDoc.elem.height;
-
-    return fluentDoc;
   }
-  else{
-    return null;
+
+  curr(){
+    return this.stack[this.index];
   }
-}
 
-function snapGridMv(e, _fluentDoc){
-  if (this.toggle == false) return null;
-  let fluentDoc = Object.assign({}, _fluentDoc);
+  pop(){
 
-  let evPt = {
-    x: e.clientX,
-    y: e.clientY
-  };
-
-  //offset and scale deteremined in drawGrid()
-  //current position, divided by grid.scaleX, round, times scaleX
-  let x = Math.round((evPt.x - 0.5 * fluentDoc.gridScaleX) / fluentDoc.gridScaleX) * fluentDoc.gridScaleX + fluentDoc.gridOffX;
-  let y = Math.round((evPt.y - 0.5 * fluentDoc.gridScaleY) / fluentDoc.gridScaleY) * fluentDoc.gridScaleY + fluentDoc.gridOffY;
-
-  fluentDoc.mPt.x = x / fluentDoc.elem.width;
-  fluentDoc.mPt.y = (fluentDoc.elem.height - y) / fluentDoc.elem.height;
-
-  return fluentDoc;
-}
-
-function snapPtUp(e, _fluentDoc){
-  if (this.toggle == false) return null;
-  let fluentDoc = Object.assign({}, _fluentDoc);
-
-  let evPt = {
-    x: e.clientX,
-    y: e.clientY
-  };
-
-  let ptNear = fluentDoc.tree.nearest({x: evPt.x, y: evPt.y}, 1);
-
-  if (ptNear.length > 0 && ptNear[0][1] < 100){
-    let pt = ptNear[0][0];
-    fluentDoc.addPt.x = pt.x;
-    fluentDoc.addPt.y = pt.y;
-    fluentDoc.addPt.tag = "plPoint";
-
-    return fluentDoc;
   }
-  else{
-    return null;
+
+  push(_state){
+    let state = _state.clone();
+
+    this.incrementIndex();
+
+    this.stack[this.index] = state;
+
+    console.log(this);
+  }
+
+  undo(){
+    this.decrementIndex();
+    console.log(this);
+    return this.curr();
+  }
+
+  redo(){
+    this.incrementIndex();
+    return this.curr();
+  }
+
+  incrementIndex(){
+    this.index++;
+    this.index = (this.index % this.MAX);
+  }
+
+  decrementIndex(){
+    this.index -= 1;
+    if(this.index < 0){
+      this.index = 9;
+    }
   }
 }
 
-function snapRefUp(e, _fluentDoc){
-  let fluentDoc = Object.assign({}, _fluentDoc);
-  if (this.toggle == false) return null;
-
-  let addPt = {
-    x: 0,
-    y: 0,
-    tag: ""
-  }
-
-  if (fluentDoc.currEditItem.pts.length > 1){
-    //would like for there to just be one point representation in js
-    fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
-    fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
-    fluentDoc.addPt.tag = "plPoint";
-
-    return fluentDoc;
-  }
-  else{
-    return null;
-  }
-}
-
-function snapGlobalUp(e, _fluentDoc){
-  if (this.toggle == false) return null;
-  let fluentDoc = Object.assign({}, _fluentDoc);
-
-  let addPt = {
-    x: 0,
-    y: 0,
-    tag: ""
-  }
-
-  if (fluentDoc.currEditItem.pts.length > 1){
-    //would like for there to just be one point representation in js
-    fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
-    fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
-    fluentDoc.addPt.tag = "plPoint";
-
-    return fluentDoc;
-  }
-  else{
-    return null;
-  }
-}
-
-function snapGridUp(e, _fluentDoc){
-  if (this.toggle == false) return null;
-  let fluentDoc = Object.assign({}, _fluentDoc);
-  // let fluentDoc = {..._fluentDoc};
-
-  //would like for there to just be one point representation in js
-  fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
-  fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
-  fluentDoc.addPt.tag = "plPoint";
-
-  return fluentDoc;
-}
-
+//FluentDoc State
 class FluentDoc{
   // new fluent doc from elem
   // should move shader logic in here
@@ -794,7 +512,6 @@ class FluentDoc{
   //Establishes grid aligned with the shader
   //Will be useful for document units
   drawGrid(){
-    // so scaleX and scaleY are the same, set scale to 1 for explanation
     let scaleX = (this.resolution.x / this.scale) * (this.resolution.y / this.resolution.x);
     let scaleY = this.resolution.y / this.scale;
 
@@ -828,34 +545,30 @@ class FluentDoc{
     //   }
     // }
   }
-
-  //FAIL
-  //my attempt at a deep clone function for FluentDoc
-  //somehow this fails worse than just using  Object.assign({}, this.pts); everywhere
+  //
   clone(){
-    let clone = new FluentDoc(this.elem, this.shader);
-    clone.resolution = this.resolution;
-    clone.shader = this.shader;
-    clone.shaderUpdate = this.shaderUpdate;
-    clone.shaderPause = this.shaderPause;
-    clone.screenshot = this.screenshot;
-    clone.mPt = this.mPt.clone();
-    clone.scale = this.scale;
-    clone.addPt.x = this.addPt.x;
-    clone.addPt.y = this.addPt.y;
-    clone.addPt.tag = this.addPt.tag;
-    clone.pts = Object.assign({}, this.pts);
-    // clone.tree = new kdTree(clone.pts, clone.pointDist, ["x", "y"]);
-    clone.tree =  Object.assign({}, this.tree);
-    clone.editWeight = this.editWeight;
-    clone.editItemIndex = this.editItemIndex;
-    clone.currEditItem =  Object.assign({}, this.currEditItem);
-    clone.editItems =  Object.assign({}, this.editItems);
-    clone.gridOffX = this.gridOffX;
-    clone.gridOffY = this.gridOffY;
-    clone.scaleX = this.scaleX;
-    clone.scaleY = this.scaleyY;
-    return clone;
+    //elem is probably the only thing we want to retain a reference to
+    // let elem = Object.assign({}, this.elem);
+
+    var shader = (' ' + this.shader).slice(1);
+
+    let newDoc = new FluentDoc(this.elem, shader);
+
+    let pts = [];
+    for (let p of this.pts){ pts.push(Object.assign({}, p)); };
+
+    newDoc.tree = new kdTree(pts, newDoc.pointDist, ["x", "y"]);
+
+    let currEditItem = this.currEditItem;
+    let editItems = this.editItems;
+
+    newDoc.editWeight = this.editWeight;
+    newDoc.editItemIndex = this.editItemIndex;
+
+    newDoc.currEditItem = currEditItem;
+    newDoc.editItems = editItems;
+
+    return newDoc;
   }
 }
 
@@ -909,7 +622,6 @@ class UIModifier{
 
 }
 
-//clickable draggable button, onclick is a function
 class Button{
   constructor(elem, uimodifier){
     //for offsets, could clean up these names
@@ -1155,7 +867,7 @@ class PolyLine extends PolyPoint {
 
     let fragShader = startShader + endShader;
 
-    console.log(fragShader);
+    // console.log(fragShader);
 
     return fragShader;
   }

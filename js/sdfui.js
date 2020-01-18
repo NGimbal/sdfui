@@ -44,26 +44,26 @@ function main() {
   resizeRendererToDisplaySize(renderer);
 
   ui = new GhostUI(canvas, sdfLines);
-
+  let fluentDoc = ui.fluentStack.curr();
 // linearSlider
   uniforms = {
     iTime: { value: 0 },
     iResolution:  { value: new THREE.Vector3(canvas.width, canvas.height, 1) },
     iFrame: { value: 0 },
-    posTex: { value: ui.fluentDoc.currEditItem.ptsTex},
+    posTex: { value: fluentDoc.currEditItem.ptsTex},
     posTexRes: {value: new THREE.Vector2(16.0, 16.0)},
-    mousePt: {value: ui.fluentDoc.mPt},
-    editWeight : {value: ui.fluentDoc.editWeight},
-    editOpacity : {value: ui.fluentDoc.editOpacity},
+    mousePt: {value: fluentDoc.mPt},
+    editWeight : {value: fluentDoc.editWeight},
+    editOpacity : {value: fluentDoc.editOpacity},
     //this should be coming from GhostUI
-    scale: {value: ui.fluentDoc.scale},
+    scale: {value: fluentDoc.scale},
     hiDPR: {value: window.devicePixelRatio}
   };
 
   scene = new THREE.Scene();
   plane = new THREE.PlaneBufferGeometry(2, 2);
 
-  let fragmentShader = ui.fluentDoc.shader;
+  let fragmentShader = fluentDoc.shader;
   let vertexShader = sdfPrimVert;
 
   material = new THREE.ShaderMaterial({
@@ -98,17 +98,17 @@ function render() {
   resizeRendererToDisplaySize(renderer);
 
   const canvas = renderer.domElement;
-
+  let fluentDoc = ui.fluentStack.curr();
   //Why does this have to happen every frame?
   screenMesh.material.uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
-  screenMesh.material.uniforms.editWeight.value = ui.fluentDoc.editWeight;
-  screenMesh.material.uniforms.editOpacity.value = ui.fluentDoc.editOpacity;
+  screenMesh.material.uniforms.editWeight.value = fluentDoc.editWeight;
+  screenMesh.material.uniforms.editOpacity.value = fluentDoc.editOpacity;
 
-  if (ui.fluentDoc.shaderUpdate){
+  if (fluentDoc.shaderUpdate){
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
 
     let vertexShader = sdfPrimVert;
-    let fragmentShader = ui.fluentDoc.shader;
+    let fragmentShader = fluentDoc.shader;
 
     material = new THREE.ShaderMaterial({
       uniforms,
@@ -122,23 +122,24 @@ function render() {
   renderer.render(scene, camera);
 
   //is this a workaround?
-  if(ui.fluentDoc.screenshot){
+  if(fluentDoc.screenshot){
     canvas.toBlob((blob) => {
       saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
     });
-    ui.fluentDoc.screenshot = false;
+    fluentDoc.screenshot = false;
   }
 }
 
 function animate(time){
   state.time = time * 0.001; //convert to seconds
+  let fluentDoc = ui.fluentStack.curr();
 
-  if(!ui.fluentDoc.shaderPause){ render(); }
+  if(!fluentDoc.shaderPause){ render(); }
 
   //proper way to update uniforms!
-  screenMesh.material.uniforms.posTex.value = ui.fluentDoc.currEditItem.ptsTex;
+  screenMesh.material.uniforms.posTex.value = fluentDoc.currEditItem.ptsTex;
 
-  screenMesh.material.uniforms.mousePt.value = ui.fluentDoc.mPt;
+  screenMesh.material.uniforms.mousePt.value = fluentDoc.mPt;
   screenMesh.material.uniforms.needsUpdate = true;
 
   requestAnimationFrame(animate);

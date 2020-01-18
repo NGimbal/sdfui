@@ -112,8 +112,8 @@
   font-weight: bold;
   margin-top: 1%;
 
-  -webkit-transition: background-color 100ms ease-in; /* Safari prior 6.1 */
-  transition: background-color 100ms ease-in;
+  -webkit-transition: background-color 100ms ease-out; /* Safari prior 6.1 */
+  transition: background-color 100ms ease-out;
 }
 
 .enter-left{

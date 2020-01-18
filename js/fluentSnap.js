@@ -1,77 +1,270 @@
+"use strict";
+//fluentSnap.js
+import * as THREE from './libjs/three.module.js';
+import * as HINT from './fluentHints.js';
 
+//Implements all snapping logic
+//needs standardization, these functions should either take event or FluentDoc
+//can take both?
 function snapPtClck(e){
   this.toggle = !this.toggle;
+  this.button.elem.classList.toggle("snap-active");
 
-  if(this.toggle){
-    pushModeHint(this.name, "Snap to a Point");
-  } else {
-    popModeHint(getModeHintID(this.name));
-  }
+  // if(this.toggle){
+  //   pushModeHint(this.name, "Snap to a Point");
+  // } else {
+  //   popModeHint(getModeHintID(this.name));
+  // }
 }
 
 function snapRefClck(e){
   this.toggle = !this.toggle;
+  this.button.elem.classList.toggle("snap-active");
 
-  if(this.toggle){
-    pushModeHint(this.name, "Snap to Relative Angle");
-  } else {
-    popModeHint(getModeHintID(this.name));
-  }
+  // if(this.toggle){
+  //   pushModeHint(this.name, "Snap to Relative Angle");
+  // } else {
+  //   popModeHint(getModeHintID(this.name));
+  // }
 }
 
 function snapGlobalClck(e){
   this.toggle = !this.toggle;
+  this.button.elem.classList.toggle("snap-active");
 
-  if(this.toggle){
-    pushModeHint(this.name, "Snap to Global Angle");
-  } else {
-    popModeHint(getModeHintID(this.name));
-  }
+  // if(this.toggle){
+  //   pushModeHint(this.name, "Snap to Global Angle");
+  // } else {
+  //   popModeHint(getModeHintID(this.name));
+  // }
 }
 
 function snapGridClck(e){
   this.toggle = !this.toggle;
+  this.button.elem.classList.toggle("snap-active");
 
-  if(this.toggle){
-    pushModeHint(this.name, "Snap to Grid");
-  } else {
-    popModeHint(getModeHintID(this.name));
+  // if(this.toggle){
+  //   pushModeHint(this.name, "Snap to Grid");
+  // } else {
+  //   popModeHint(getModeHintID(this.name));
+  // }
+}
+
+
+function snapPtMv(e, _fluentDoc){
+  if (this.toggle == false) return null;
+  // console.log(_fluentDoc);
+  let fluentDoc = _fluentDoc.clone();
+
+  let evPt = {
+    x: e.clientX,
+    y: e.clientY
+  };
+
+  let ptNear = fluentDoc.tree.nearest(evPt, 1);
+
+  if (ptNear.length > 0 && ptNear[0][1] < this.factors.dist){
+    ptNear = ptNear[0][0];
+    fluentDoc.mPt.x = ptNear.x / fluentDoc.resolution.x;
+    fluentDoc.mPt.y = (fluentDoc.resolution.y - ptNear.y) / fluentDoc.resolution.y;
+
+    return fluentDoc;
+  }
+  else{
+    return null;
   }
 }
 
-//--These are defined twice which is not ideal
-function pushModeHint(id, text, _bgColor){
-  let modeStack = document.getElementById('mode-stack');
-  let stack = modeStack.children;
+function snapRefMv(e, _fluentDoc){
+  if (this.toggle == false) return null;
+  let fluentDoc = _fluentDoc.clone();
 
-  let modeSnack = document.createElement("div");
-  modeSnack.id = id;
+  let evPt = {
+    x: e.clientX,
+    y: e.clientY
+  };
 
-  modeSnack.classList.add("mode-hint");
-  modeSnack.classList.add("enter-left");
+  if (fluentDoc.currEditItem.pts.length > 1){
+    let ptPrevEnd = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 1];
+    let ptPrevBeg = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 2];
 
-  let bgColor = _bgColor || "rgba(237, 55, 67, .75)";
-  modeSnack.innerText = text;
-  modeSnack.style.backgroundColor = bgColor;
+    //previous line, syntax?
+    let lnPrev = new THREE.Vector2().subVectors(ptPrevEnd, ptPrevBeg);
+    let lnCurr = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
+    let lnCurrN = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
 
-  if(stack.length>0){
-    modeStack.insertBefore(modeSnack, stack[0]);
-  } else {
-    modeStack.appendChild(modeSnack);
+    let dot = lnPrev.normalize().dot(lnCurrN.normalize());
+    let det = lnPrev.x * lnCurrN.y - lnPrev.y * lnCurrN.x
+
+    let angle = Math.atan2(det, dot) * (180 / Math.PI);
+
+    let snapA = (Math.round(angle / this.factors.angle) * this.factors.angle);
+
+    snapA = (snapA * (Math.PI / 180) + lnPrev.angle());
+
+    let snapX = ptPrevEnd.x - lnCurr.length() * Math.cos(snapA);
+    let snapY = ptPrevEnd.y - lnCurr.length() * Math.sin(snapA);
+
+    fluentDoc.mPt.x = snapX / fluentDoc.elem.width;
+    fluentDoc.mPt.y = (fluentDoc.elem.height - snapY) / fluentDoc.elem.height;
+
+    return fluentDoc;
   }
-  return modeSnack;
+  else{
+    return null;
+  }
 }
 
-function popModeHint(elem){
-  elem.classList.remove("enter-left");
-  elem.classList.add("exit-left");
+function snapGlobalMv(e, _fluentDoc){
+  if (this.toggle == false) return null;
+  let fluentDoc = _fluentDoc.clone();
 
-  setTimeout(function(){this.remove();}.bind(elem), 1000);
+  let evPt = {
+    x: e.clientX,
+    y: e.clientY
+  };
+
+  if (fluentDoc.currEditItem.pts.length > 0){
+    let prevX = 0;
+    let prevY = 0;
+
+    if (fluentDoc.currEditItem.pts.length >= 1){
+      prevX = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 1].x;
+      prevY = fluentDoc.currEditItem.pts[fluentDoc.currEditItem.pts.length - 1].y;
+    }
+
+    let prevPt = {
+      x: prevX,
+      y: prevY
+    };
+
+    //previous line
+    let lnCurr = new THREE.Vector2().subVectors(prevPt, evPt);
+
+    let angle = lnCurr.angle()* (180 / Math.PI);
+
+    //global angle
+    let gAngle = 90;
+
+    let snapA = (Math.round(angle / gAngle) * gAngle);
+    snapA = (snapA * (Math.PI / 180));
+
+    let snapX = prevPt.x - lnCurr.length() * Math.cos(snapA);
+    let snapY = prevPt.y - lnCurr.length() * Math.sin(snapA);
+
+    fluentDoc.mPt.x = snapX / fluentDoc.elem.width;
+    fluentDoc.mPt.y = (fluentDoc.elem.height - snapY) / fluentDoc.elem.height;
+
+    return fluentDoc;
+  }
+  else{
+    return null;
+  }
 }
 
-function pushPopModeHint(id, text, _bgColor){
-  let modeHint = pushModeHint(id, text, _bgColor);
-  setTimeout(function(){popModeHint(this);}.bind(modeHint), 3000);
+function snapGridMv(e, _fluentDoc){
+  if (this.toggle == false) return null;
+  let fluentDoc = _fluentDoc.clone();
+
+  let evPt = {
+    x: e.clientX,
+    y: e.clientY
+  };
+
+  //offset and scale deteremined in drawGrid()
+  //current position, divided by grid.scaleX, round, times scaleX
+  let x = Math.round((evPt.x - 0.5 * fluentDoc.gridScaleX) / fluentDoc.gridScaleX) * fluentDoc.gridScaleX + fluentDoc.gridOffX;
+  let y = Math.round((evPt.y - 0.5 * fluentDoc.gridScaleY) / fluentDoc.gridScaleY) * fluentDoc.gridScaleY + fluentDoc.gridOffY;
+
+  fluentDoc.mPt.x = x / fluentDoc.elem.width;
+  fluentDoc.mPt.y = (fluentDoc.elem.height - y) / fluentDoc.elem.height;
+
+  return fluentDoc;
 }
 
-export {snapPtClck, snapRefClck, snapGlobalClck, snapGridClck};
+function snapPtUp(e, _fluentDoc){
+  if (this.toggle == false) return null;
+  let fluentDoc = _fluentDoc.clone();
+
+  let evPt = {
+    x: e.clientX,
+    y: e.clientY
+  };
+
+  let ptNear = fluentDoc.tree.nearest({x: evPt.x, y: evPt.y}, 1);
+
+  if (ptNear.length > 0 && ptNear[0][1] < 100){
+    let pt = ptNear[0][0];
+    fluentDoc.addPt.x = pt.x;
+    fluentDoc.addPt.y = pt.y;
+    fluentDoc.addPt.tag = "plPoint";
+
+    return fluentDoc;
+  }
+  else{
+    return null;
+  }
+}
+
+function snapRefUp(e, _fluentDoc){
+  let fluentDoc = _fluentDoc.clone();
+  if (this.toggle == false) return null;
+
+  let addPt = {
+    x: 0,
+    y: 0,
+    tag: ""
+  }
+
+  if (fluentDoc.currEditItem.pts.length > 1){
+    //would like for there to just be one point representation in js
+    fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
+    fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+    fluentDoc.addPt.tag = "plPoint";
+
+    return fluentDoc;
+  }
+  else{
+    return null;
+  }
+}
+
+function snapGlobalUp(e, _fluentDoc){
+  if (this.toggle == false) return null;
+  let fluentDoc = _fluentDoc.clone();
+
+  let addPt = {
+    x: 0,
+    y: 0,
+    tag: ""
+  }
+
+  if (fluentDoc.currEditItem.pts.length > 1){
+    //would like for there to just be one point representation in js
+    fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
+    fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+    fluentDoc.addPt.tag = "plPoint";
+
+    return fluentDoc;
+  }
+  else{
+    return null;
+  }
+}
+
+function snapGridUp(e, _fluentDoc){
+  if (this.toggle == false) return null;
+  let fluentDoc = _fluentDoc.clone();
+  // let fluentDoc = {..._fluentDoc};
+
+  //would like for there to just be one point representation in js
+  fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
+  fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+  fluentDoc.addPt.tag = "plPoint";
+
+  return fluentDoc;
+}
+
+export {snapPtClck, snapRefClck, snapGlobalClck, snapGridClck, snapPtMv,
+        snapRefMv, snapGlobalMv, snapGridMv, snapPtUp, snapRefUp,
+        snapGlobalUp, snapGridUp};
