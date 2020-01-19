@@ -1,60 +1,34 @@
 "use strict";
-//fluentSnap.js
 import * as THREE from './libjs/three.module.js';
 import * as HINT from './fluentHints.js';
 
+//fluentSnap.js
 //Implements all snapping logic
-//needs standardization, these functions should either take event or FluentDoc
-//can take both?
+
 function snapPtClck(e){
   this.toggle = !this.toggle;
   this.button.elem.classList.toggle("snap-active");
-
-  // if(this.toggle){
-  //   pushModeHint(this.name, "Snap to a Point");
-  // } else {
-  //   popModeHint(getModeHintID(this.name));
-  // }
 }
 
 function snapRefClck(e){
   this.toggle = !this.toggle;
   this.button.elem.classList.toggle("snap-active");
-
-  // if(this.toggle){
-  //   pushModeHint(this.name, "Snap to Relative Angle");
-  // } else {
-  //   popModeHint(getModeHintID(this.name));
-  // }
 }
 
 function snapGlobalClck(e){
   this.toggle = !this.toggle;
   this.button.elem.classList.toggle("snap-active");
-
-  // if(this.toggle){
-  //   pushModeHint(this.name, "Snap to Global Angle");
-  // } else {
-  //   popModeHint(getModeHintID(this.name));
-  // }
 }
 
 function snapGridClck(e){
   this.toggle = !this.toggle;
   this.button.elem.classList.toggle("snap-active");
-
-  // if(this.toggle){
-  //   pushModeHint(this.name, "Snap to Grid");
-  // } else {
-  //   popModeHint(getModeHintID(this.name));
-  // }
 }
 
-
-function snapPtMv(e, _fluentDoc){
+//Returns cloned modified fluentDoc or null
+function snapPtMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  // console.log(_fluentDoc);
-  let fluentDoc = _fluentDoc.clone();
+  // let fluentDoc = _fluentDoc.clone();
 
   let evPt = {
     x: e.clientX,
@@ -75,9 +49,10 @@ function snapPtMv(e, _fluentDoc){
   }
 }
 
-function snapRefMv(e, _fluentDoc){
+//Returns cloned modified fluentDoc or null
+function snapRefMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  let fluentDoc = _fluentDoc.clone();
+  // let fluentDoc = _fluentDoc.clone();
 
   let evPt = {
     x: e.clientX,
@@ -115,9 +90,10 @@ function snapRefMv(e, _fluentDoc){
   }
 }
 
-function snapGlobalMv(e, _fluentDoc){
+//Returns cloned modified fluentDoc or null
+function snapGlobalMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  let fluentDoc = _fluentDoc.clone();
+  // let fluentDoc = _fluentDoc.clone();
 
   let evPt = {
     x: e.clientX,
@@ -162,9 +138,10 @@ function snapGlobalMv(e, _fluentDoc){
   }
 }
 
-function snapGridMv(e, _fluentDoc){
+//Returns cloned modified fluentDoc or null
+function snapGridMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  let fluentDoc = _fluentDoc.clone();
+  // let fluentDoc = _fluentDoc.clone();
 
   let evPt = {
     x: e.clientX,
@@ -182,6 +159,7 @@ function snapGridMv(e, _fluentDoc){
   return fluentDoc;
 }
 
+//Returns cloned modified fluentDoc or null
 function snapPtUp(e, _fluentDoc){
   if (this.toggle == false) return null;
   let fluentDoc = _fluentDoc.clone();
@@ -206,6 +184,7 @@ function snapPtUp(e, _fluentDoc){
   }
 }
 
+//Returns cloned modified fluentDoc or null
 function snapRefUp(e, _fluentDoc){
   let fluentDoc = _fluentDoc.clone();
   if (this.toggle == false) return null;
@@ -229,6 +208,7 @@ function snapRefUp(e, _fluentDoc){
   }
 }
 
+//Returns cloned modified fluentDoc or null
 function snapGlobalUp(e, _fluentDoc){
   if (this.toggle == false) return null;
   let fluentDoc = _fluentDoc.clone();
@@ -252,10 +232,10 @@ function snapGlobalUp(e, _fluentDoc){
   }
 }
 
+//Returns cloned modified fluentDoc or null
 function snapGridUp(e, _fluentDoc){
   if (this.toggle == false) return null;
   let fluentDoc = _fluentDoc.clone();
-  // let fluentDoc = {..._fluentDoc};
 
   //would like for there to just be one point representation in js
   fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;

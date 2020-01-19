@@ -173,21 +173,16 @@ class GhostUI{
 
   mouseUp( e ) {
 
-    // let evPt = {
-    //   x: e.clientX,
-    //   y: e.clientY
-    // };
-    let fluentDoc = this.fluentStack.curr();
+    let fluentDoc = this.fluentStack.curr().clone();
 
     for (let mode of this.modes){
       if(mode.toggle == true){
         // console.log(mode.name);
         let newDoc = mode.up(e, fluentDoc);
-        // console.log(newDoc);
-        // if (newDoc) this.fluentStack.push(newDoc);
         if (newDoc) fluentDoc = newDoc;
       }
     }
+    this.fluentStack.modCurr(fluentDoc);
   }
 
   mouseMove(e) {
@@ -197,8 +192,7 @@ class GhostUI{
       y: e.clientY
     };
 
-    let fluentDoc = this.fluentStack.curr();
-
+    let fluentDoc = this.fluentStack.curr().clone();
 
     fluentDoc.mPt.x = evPt.x / fluentDoc.elem.width;
     fluentDoc.mPt.y = (fluentDoc.elem.height - evPt.y) / fluentDoc.elem.height;
@@ -206,9 +200,11 @@ class GhostUI{
     //this is a dumb way to do this - should use uiModeStack like document state stack
     for (let mode of this.modes){
       if(mode.toggle == true){
-        fluentDoc = mode.mv(e, fluentDoc);
+        let newDoc = mode.mv(e, fluentDoc);
+        if (newDoc) fluentDoc = newDoc;
       }
     }
+    this.fluentStack.modCurr(fluentDoc);
   }
 
   //cnrl Z
@@ -268,13 +264,13 @@ function drawExit(){
 
 function drawMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  // let fluentDoc = Object.assign({}, _fluentDoc);
 
   for (let m of this.modifiers){
     if(!m.mv) continue;
+    if(!m.toggle) continue;
     let modState = m.mv(e, fluentDoc);
     if(!modState) continue;
-    fluentDoc = modState;
+    else fluentDoc = modState;
   }
   return fluentDoc;
 }
@@ -412,8 +408,13 @@ class StateStack{
     }
   }
 
+  //should the object be cloned here?
   curr(){
     return this.stack[this.index];
+  }
+
+  modCurr(newState){
+    this.stack[this.index] = newState;
   }
 
   pop(){
@@ -553,12 +554,14 @@ class FluentDoc{
     var shader = (' ' + this.shader).slice(1);
 
     let newDoc = new FluentDoc(this.elem, shader);
-
+    newDoc.mPt = this.mPt.clone();
     let pts = [];
-    for (let p of this.pts){ pts.push(Object.assign({}, p)); };
+    for (let p of this.pts){ pts.push(p.clone()) };
 
     newDoc.tree = new kdTree(pts, newDoc.pointDist, ["x", "y"]);
 
+    newDoc.pts = pts;
+    
     let currEditItem = this.currEditItem;
     let editItems = this.editItems;
 
@@ -589,7 +592,7 @@ class UIMode{
   }
 }
 
-//let's say it returns a new fluentDoc
+//Modifier functions return null or a cloned modified FluentDoc
 //we can also include a list of what's changed
 //or we could check that it is a valid state for the program
 //I think there are ways of handling problems that might arise later
@@ -675,11 +678,26 @@ class Point{
 
     this.id = (+new Date).toString(36).slice(-8);
   }
+  clone(){
+    let x = this.x;
+    let y = this.y;
+    let texRef = this.texRef;
+    let texData = [];
+    let shapeID = this.shapeID;
+    let tag = this.tag;
+    let id = this.id;
+
+    for (let t of this.texData) texData.push(t);
+
+    let newPt = new Point(x, y, texRef, texData, shapeID, tag);
+    newPt.id = id;
+
+    return newPt;
+  }
 }
 
 //PolyPoint is an array of points, a texture representation and properties
 //Another class e.g. PolyLine extends PolyPoint to manipulate and bake
-//These classes are the sdfui primitives
 class PolyPoint {
 
   //creates empty PolyPoint object
@@ -704,6 +722,12 @@ class PolyPoint {
     this.ptsTex.minFilter = THREE.NearestFilter;
 
     this.id = (+new Date).toString(36).slice(-8);
+  }
+
+  clone(){
+    // let newPolyPoint = new PolyPoint(this.resolution, this.weight, this.dataSize);
+    // let pts = [];
+    // for (let p of this.pts){ pts.push(Object.assign({}, p))}
   }
 
   //takes x, y, and tag
