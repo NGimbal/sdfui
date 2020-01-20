@@ -97,12 +97,17 @@ function render() {
 
   resizeRendererToDisplaySize(renderer);
 
+  //global update to run functions that have been cued by a button press
+  //takes care of functions that need to run before mousemv
+  ui.update();
+
   const canvas = renderer.domElement;
   let fluentDoc = ui.fluentStack.curr();
   //Why does this have to happen every frame?
   screenMesh.material.uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
   screenMesh.material.uniforms.editWeight.value = fluentDoc.editWeight;
   screenMesh.material.uniforms.editOpacity.value = fluentDoc.editOpacity;
+
 
   if (fluentDoc.shaderUpdate){
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
@@ -133,7 +138,6 @@ function render() {
 function animate(time){
   state.time = time * 0.001; //convert to seconds
   let fluentDoc = ui.fluentStack.curr();
-
   if(!fluentDoc.shaderPause){ render(); }
 
   //proper way to update uniforms!

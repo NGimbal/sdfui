@@ -67,24 +67,30 @@ class GhostUI{
     this.editPolyLn = false;
 
     //MODIFIERS
-    // constructor(name, tag, clck, keyCut, _toggle, _factors, mv, up, dwn)
-    let pauseShader = new UIModifier("pauseShader", "global", "/", pauseShaderClck.bind(this), true);
+    //Eventually will implement a UIMode update function
+    //right now some things rely on their move functions to update which stinks
+    //only because the function takes effect after moving the mouse
+    let pauseShader = new UIModifier("pauseShader", "view", "/", true, pauseShaderClck, false, {}, pauseShaderUpdate);
+    let hideGrid = new UIModifier("hideGrid", "view", ".", true, hideGridClck, false, {grid:true}, hideGridUpdate);
 
-    let snapPt = new UIModifier("snapPt", "snap", "p", SNAP.snapPtClck, false, {dist:200}, SNAP.snapPtMv, SNAP.snapPtUp);
-    let snapRef = new UIModifier("snapRef", "snap", "s", SNAP.snapRefClck, false, {angle:45}, SNAP.snapRefMv, SNAP.snapRefUp);
-    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", SNAP.snapGlobalClck, false, {angle:90}, SNAP.snapGlobalMv, SNAP.snapGlobalUp);
-    let snapGrid = new UIModifier("snapGrid", "snap", "g", SNAP.snapGridClck, false, {}, SNAP.snapGridMv, SNAP.snapGridUp);
+    let snapPt = new UIModifier("snapPt", "snap", "p", false, SNAP.snapPtClck, false, {dist:200}, SNAP.snapPtMv, SNAP.snapPtUp);
+    let snapRef = new UIModifier("snapRef", "snap", "s", false, SNAP.snapRefClck, false, {angle:45}, SNAP.snapRefMv, SNAP.snapRefUp);
+    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", false, SNAP.snapGlobalClck, false, {angle:90}, SNAP.snapGlobalMv, SNAP.snapGlobalUp);
+    let snapGrid = new UIModifier("snapGrid", "snap", "g", false, SNAP.snapGridClck, false, {}, SNAP.snapGridMv, SNAP.snapGridUp);
 
-    let lineWeight = new UIModifier("lineWeight", "edit", "w", lineWeightClck, true, {weight:0.002}, lineWeightMv);
-    let endPLine = new UIModifier("endPLine", "edit", "Enter", endPLineClck);
-    let escPLine = new UIModifier("escPLine", "edit", "Escape", escPLineClck);
+    let drawPLine = new UIModifier("drawPLine", "edit", "Space", true, drawPLineClck, false, {}, drawPLineMv);
+    let lineWeight = new UIModifier("lineWeight", "edit", "w", true, lineWeightClck, true, {weight:0.002}, lineWeightMv);
+    let endPLine = new UIModifier("endPLine", "edit", "Enter", true, endPLineClck, false, {}, endPLineUpdate);
+    let escPLine = new UIModifier("escPLine", "edit", "Escape", true, escPLineClck, false, {}, escPLineUpdate);
 
-    let screenshot = new UIModifier("screenshot", "export", "l", screenshotClck.bind(this), true);
+    let screenshot = new UIModifier("screenshot", "export", "l", true, screenshotClck, false, {}, screenshotUpdate);
 
     //MODES
     //constructor(toggle, modifiers, enter, exit, mv, up, dwn){
     //for the short term, keyUp is called automatically
-    let drawMods = [pauseShader, screenshot, snapGlobal, snapRef, snapGrid, snapPt, lineWeight, endPLine, escPLine];
+    let globalMods = [pauseShader, hideGrid, screenshot];
+    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, lineWeight, endPLine, escPLine];
+    drawMods = globalMods.concat(drawMods);
     this.modes = [
       new UIMode("draw", true, drawMods, drawEnter, drawExit, drawMv, drawUp)
     ]
@@ -167,6 +173,25 @@ class GhostUI{
     dlAnchorElem.click();
   }
 
+  //global update to run functions that have been cued by a button press
+  //takes care of functions that need to run before mousemv
+  update(){
+    let fluentDoc = this.fluentStack.curr().clone();
+
+    for (let mode of this.modes){
+      if(mode.toggle){
+        for(let m of mode.modifiers){
+          if(m.toggle && m.onUpdate){
+            // console.log(mode.name);
+            let newDoc = m.mv(null, fluentDoc);
+            if (newDoc) fluentDoc = newDoc;
+          }
+        }
+      }
+    }
+    this.fluentStack.modCurr(fluentDoc);
+  }
+
   mouseUp( e ) {
 
     let fluentDoc = this.fluentStack.curr().clone();
@@ -218,7 +243,10 @@ class GhostUI{
     for (let mode of this.modes){
       if(mode.toggle == true){
         for (let m of mode.modifiers){
-          if(m.keyCut == key) m.clck(fluentDoc);
+          if(m.keyCut == key){
+            let newDoc = m.clck(fluentDoc);
+            if (newDoc) fluentDoc = newDoc;
+          }
         }
       }
     }
@@ -254,7 +282,9 @@ function drawEnter(){
   HINT.pushModeHint(this.name, "Begin Drawing!");
   //turns on snapping to pts by default
   //function should take some default settings at some point
-  this.modifiers[5].clck();
+  var index = this.modifiers.findIndex(i => i.name === "snapPt");
+
+  this.modifiers[index].clck();
 }
 
 function drawExit(){
@@ -309,41 +339,38 @@ function drawUp(e, fluentDoc){
   return fluentDoc;
 }
 
-//for right now Global UI Modifiers get GhostUI bound
-function screenshotClck(fluentDoc){
-  fluentDoc.screenshot = true;
-}
-
-//for right now Global UI Modifiers get GhostUI bound
-function pauseShaderClck(fluentDoc){
-  fluentDoc.shaderPause = !fluentDoc.shaderPause;
-}
-
-//for right now Global UI Modifiers get GhostUI bound
-function endPLineClck(fluentDoc){
-  let shaderUpdate = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc.shader);
-  fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
-  fluentDoc.shaderUpdate = true;
-
-  fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
-  fluentDoc.editItems.push(fluentDoc.currEditItem);
-
-  fluentDoc.editItemIndex++;
-
+function screenshotClck(e){
+  this.toggle = !this.toggle;
   HINT.pulseActive(this);
+}
+
+function hideGridClck(fluentDoc){
+  this.toggle = !this.toggle;
+  HINT.pulseActive(this);
+}
+
+function pauseShaderClck(e){
+  this.toggle = !this.toggle;
+  HINT.pulseActive(this);
+}
+
+function endPLineClck(fluentDoc){
+  this.toggle = !this.toggle;
+  HINT.pulseActive(this);
+}
+
+function drawPLineClck(fluentDoc){
+  return null;
+}
+
+function drawPLineMv(fluentDoc){
+  return null;
 }
 
 function escPLineClck(fluentDoc){
-  for (let p of fluentDoc.currEditItem.pts){
-    fluentDoc.tree.remove(p);
-  }
-
-  fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
-
+  this.toggle = !this.toggle;
   HINT.pulseActive(this);
-  return fluentDoc;
 }
-
 
 function lineWeightClck(e){
   // console.log(this);
@@ -371,8 +398,79 @@ function lineWeightClck(e){
   }
 }
 
+function pauseShaderUpdate(e, fluentDoc){
+  fluentDoc.shaderPause = !fluentDoc.shaderPause;
+
+  this.toggle = !this.toggle;
+  return fluentDoc;
+}
+
+function hideGridUpdate(e, fluentDoc){
+  let toggleString = "0\n";
+
+  if (!this.factors.grid){
+    toggleString = "1\n";
+  }
+
+  let shader = fluentDoc.shader;
+  //change #define
+  let insString = "#define BG_GRID ";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex+2);
+
+  startShader += toggleString;
+  shader = startShader + endShader;
+  fluentDoc.shader = shader;
+  fluentDoc.shaderUpdate = true;
+
+  this.factors.grid = !this.factors.grid;
+
+  this.toggle = !this.toggle;
+  return fluentDoc;
+}
+
+function endPLineUpdate(e, fluentDoc){
+
+  let shaderUpdate = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc.shader);
+  fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
+  fluentDoc.shaderUpdate = true;
+
+  fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+  fluentDoc.editItems.push(fluentDoc.currEditItem);
+
+  fluentDoc.editItemIndex++;
+
+  this.toggle = !this.toggle;
+  return fluentDoc;
+}
+
+function escPLineUpdate(e, fluentDoc){
+  //remove all points from curr edit item before ending this polyline
+  for (let p of fluentDoc.currEditItem.pts){
+    var index = fluentDoc.pts.findIndex(i => i.id === p.id);
+
+    fluentDoc.pts.splice(index, 1);
+    fluentDoc.tree.remove(p);
+  }
+
+  fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+
+  this.toggle = !this.toggle;
+  return fluentDoc;
+}
+
+function screenshotUpdate(e, fluentDoc){
+  fluentDoc.screenshot = true;
+  this.toggle = !this.toggle;
+  return fluentDoc;
+}
+
+
 //not ideal behaviour because one has to move mouse
-//someday may implement the modifier update function
+//someday may implement a modifier update function
 function lineWeightMv(e, fluentDoc){
   if (this.toggle == false) return null;
 
@@ -552,6 +650,11 @@ class FluentDoc{
     var shader = (' ' + this.shader).slice(1);
 
     let newDoc = new FluentDoc(this.elem, shader);
+
+    newDoc.shaderPause = this.shaderPause;
+    newDoc.shaderUpdate = this.shaderUpdate;
+    newDoc.screenshot = this.screenshot;
+
     newDoc.mPt = this.mPt.clone();
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone()) };
@@ -598,10 +701,13 @@ class UIMode{
 //I think there are ways of handling problems that might arise later
 class UIModifier{
   //clck
-  constructor(name, tag, keyCut, clck, _toggle, _factors, mv, up, dwn){
+  constructor(name, tag, keyCut, onUpdate, clck, _toggle, _factors, mv, up, dwn){
     this.name = name;
     this.tag = tag;
     this.keyCut = keyCut;
+
+    //whether this modifiers move function should be called on move or onUpdate
+    this.onUpdate = onUpdate;
 
     //tag is either snap, edit, view, export
     this.clck = clck.bind(this);

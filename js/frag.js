@@ -1,4 +1,10 @@
 const sdfLines =`
+//0 = Nothing
+//1 = PolyLine
+#define EDIT_SHAPE 1
+#define EDIT_VERTS 1
+#define BG_GRID 1
+
 // https://www.shadertoy.com/view/4tc3DX
 uniform vec3      iResolution;           // viewport resolution (in pixels)
 uniform float     iTime;                 // shader playback time (in seconds)
@@ -211,33 +217,27 @@ void main(){
 
     finalColor = mix(finalColor, vec3(1.0), editOpacity);
 
+    #if EDIT_SHAPE == 1
     // this is for polyLine being edited
     // https://threejs.org/examples/?q=webgl2#webgl2_materials_texture2darray
     for (float i = 0.; i < 16.; i++ ){
       float yIndex = (i / 16.) + texelOffset;
 
       for (float j = 0.; j < 16.; j++ ){
-
         float xIndex = j / 16.;
-
         vec2 vIndex = vec2(xIndex + texelOffset, yIndex);
 
-        // vec2 pos = texture( pLinesTex, vec3( vIndex, k )).xy;
-
         vec2 pos = texture2D(posTex, vIndex).xy;
-
-        // vec2 pos = texture2D(pLinesTex, vIndex).xy;
-
         if (pos == vec2(0.)){ break; }
 
         vec2 pUv = screenPt(pos);
 
-        // DrawPoint(uv, pUv, finalColor);
+        #if EDIT_VERTS == 1
+        DrawPoint(uv, pUv, finalColor);
+        #endif
 
         if (oldPos != vec2(0.)){
           finalColor = min(finalColor, FillLine(uv, oldPos, pUv, vec2(editWeight, editWeight), editWeight));
-          // finalColor *= smoothstep(0.0, 0.01, sdBezier(vec2 pos, vec2 A, vec2 B, vec2 C));
-
         }
 
         // float modNum = mod(j, 3.);
@@ -267,12 +267,15 @@ void main(){
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
       finalColor *= FillLineDash(uv, oldPos, screenPt(mPt), vec2(editWeight, editWeight), 1.0);
     }
-
+    #endif
+    //current Mouse Position
     DrawPoint(uv, screenPt(mPt), finalColor);
 
+    #if BG_GRID == 1
     // Blue grid lines
     finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.x) - 0.92)*4.0;
     finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.y) - 0.92)*4.0;
+    #endif
 
     pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0);
 }
