@@ -58,7 +58,6 @@ class GhostUI{
 
     //DOCUMENT STATE
     let fluentDoc = new FluentDoc(this.elem, this.shader);
-    //always use
     this.fluentStack = new StateStack(fluentDoc, 10);
 
     //MODE STATE
@@ -114,11 +113,8 @@ class GhostUI{
         tags.push(m.tag);
         HINT.addButtonHeading(m);
       }
-      // let buttonElem = document.getElementById(m.name);
-      // if (!buttonElem) continue;
       let newButton = new Button(HINT.addButtonHint(m), m)
       m.button = newButton;
-      // m.button = newButton;
     }
   }
 
@@ -183,6 +179,7 @@ class GhostUI{
       }
     }
     this.fluentStack.modCurr(fluentDoc);
+    this.fluentStack.push(fluentDoc);
   }
 
   mouseMove(e) {
@@ -197,7 +194,7 @@ class GhostUI{
     fluentDoc.mPt.x = evPt.x / fluentDoc.elem.width;
     fluentDoc.mPt.y = (fluentDoc.elem.height - evPt.y) / fluentDoc.elem.height;
 
-    //this is a dumb way to do this - should use uiModeStack like document state stack
+    //should use uiModeStack like document state stack
     for (let mode of this.modes){
       if(mode.toggle == true){
         let newDoc = mode.mv(e, fluentDoc);
@@ -210,19 +207,22 @@ class GhostUI{
   //cnrl Z
   keyUp(e){
     let key = e.key;
-    // console.log(this);
+
     if(key == "z") this.zPressed = false;
     else if(key == "Meta") this.cntlPressed = false;
     else if(key == "Control") this.cntlPressed = false;
+
+    let fluentDoc = this.fluentStack.curr().clone();
 
     //should use uiModeStack like document state stack
     for (let mode of this.modes){
       if(mode.toggle == true){
         for (let m of mode.modifiers){
-          if(m.keyCut == key) m.clck(this);
+          if(m.keyCut == key) m.clck(fluentDoc);
         }
       }
     }
+    this.fluentStack.modCurr(fluentDoc);
   }
 
   keyDown(e){
@@ -238,14 +238,13 @@ class GhostUI{
       // console.log(this.fluentStack);
       // if (this.fluentStack.index > 0){
         let fluentDoc = this.fluentStack.undo();
-        // fluentDoc = this.docStack[this.docStack.length - 1];
-        // fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight);
-        fluentDoc.shaderUpdate = true;
-      // } else {
-        // fluentDoc = new FluentDoc(this.elem, this.shader);
-        // this.docStack = [fluentDoc];
-        // fluentDoc.shaderUpdate = true;
-      // }
+        if (!fluentDoc) {
+          let newDoc = new FluentDoc(this.elem, this.shader);
+          this.fluentStack.modCurr(newDoc);
+        }
+        else {
+          fluentDoc.shaderUpdate = true;
+        }
     }
   }
 }
@@ -317,40 +316,32 @@ function screenshotClck(fluentDoc){
 
 //for right now Global UI Modifiers get GhostUI bound
 function pauseShaderClck(fluentDoc){
-    fluentDoc.shaderPause = !fluentDoc.shaderPause;
+  fluentDoc.shaderPause = !fluentDoc.shaderPause;
 }
 
 //for right now Global UI Modifiers get GhostUI bound
-function endPLineClck(ghostUI){
-    let fluentDoc = ghostUI.fluentStack.curr();
+function endPLineClck(fluentDoc){
+  let shaderUpdate = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc.shader);
+  fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
+  fluentDoc.shaderUpdate = true;
 
-    let shaderUpdate = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc.shader);
-    fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
-    fluentDoc.shaderUpdate = true;
+  fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+  fluentDoc.editItems.push(fluentDoc.currEditItem);
 
-    fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
-    fluentDoc.editItems.push(fluentDoc.currEditItem);
+  fluentDoc.editItemIndex++;
 
-    fluentDoc.editItemIndex++;
-
-    // console.log(ghostUI.fluentStack);
-
-    HINT.pulseActive(this);
-    // this.button.elem.classList.toggle("edit-active");
-    // window.setTimeout(function(){this.button.elem.classList.toggle("edit-active");}.bind(this), 250);
+  HINT.pulseActive(this);
 }
 
-//this is a pretty cool way to do this
-//this will be documentStack at some point
-function escPLineClck(ghostUI){
-    let fluentDoc = ghostUI.fluentStack.curr();
-    fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
-    //ghostUI.docStack.push(this.fluentDoc);
+function escPLineClck(fluentDoc){
+  for (let p of fluentDoc.currEditItem.pts){
+    fluentDoc.tree.remove(p);
+  }
 
-    HINT.pulseActive(this);
+  fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
 
-    // this.button.elem.classList.toggle("edit-active");
-    // window.setTimeout(function(){this.button.elem.classList.toggle("edit-active");}.bind(this), 100);
+  HINT.pulseActive(this);
+  return fluentDoc;
 }
 
 
@@ -375,7 +366,6 @@ function lineWeightClck(e){
     if(e.target != this.button.elem) return;
 
     this.button.elem.classList.toggle("input-slider");
-    // this.elem.style.width = '5vmin';
     window.setTimeout(function(){this.button.elem.innerHTML = this.button.innerHTML;}.bind(this), 100);
     this.button.input = false;
   }
@@ -385,8 +375,7 @@ function lineWeightClck(e){
 //someday may implement the modifier update function
 function lineWeightMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  // let fluentDoc = Object.assign({}, _fluentDoc);
-  // console.log(this);
+
   if (fluentDoc.editWeight != this.factors.weight){
     fluentDoc.editWeight = this.factors.weight;
     fluentDoc.currEditItem.weight = this.factors.weight;
@@ -403,6 +392,8 @@ class StateStack{
     this.index = 0;
     this.stack = [];
     this.stack[0] = state;
+    this.firstIndex = 0;
+
     for (let i = 1; i < this.MAX; i++){
       this.stack.push(null);
     }
@@ -432,8 +423,10 @@ class StateStack{
   }
 
   undo(){
+    if (this.index == this.firstIndex){
+      return this.curr();
+    }
     this.decrementIndex();
-    console.log(this);
     return this.curr();
   }
 
@@ -445,6 +438,11 @@ class StateStack{
   incrementIndex(){
     this.index++;
     this.index = (this.index % this.MAX);
+
+    if (this.index == this.firstIndex){
+      this.firstIndex++;
+      this.firstIndex = (this.firstIndex % this.MAX);
+    }
   }
 
   decrementIndex(){
@@ -561,12 +559,14 @@ class FluentDoc{
     newDoc.tree = new kdTree(pts, newDoc.pointDist, ["x", "y"]);
 
     newDoc.pts = pts;
-    
-    let currEditItem = this.currEditItem;
-    let editItems = this.editItems;
 
     newDoc.editWeight = this.editWeight;
     newDoc.editItemIndex = this.editItemIndex;
+
+    let currEditItem = this.currEditItem.clone();
+    let editItems = [];
+    for (let item of this.editItems){editItems.push(item.clone());}
+    newDoc.editItems = editItems;
 
     newDoc.currEditItem = currEditItem;
     newDoc.editItems = editItems;
@@ -725,9 +725,29 @@ class PolyPoint {
   }
 
   clone(){
-    // let newPolyPoint = new PolyPoint(this.resolution, this.weight, this.dataSize);
-    // let pts = [];
-    // for (let p of this.pts){ pts.push(Object.assign({}, p))}
+    let resolution = this.resolution.clone();
+    let weight = this.weight;
+    let dataSize = this.dataSize;
+
+    let newPolyPoint = new PolyPoint(resolution, weight, dataSize);
+
+    let pts = [];
+    for (let p of this.pts){ pts.push(p.clone());};
+    let cTexel = this.cTexel;
+
+    newPolyPoint.pts = pts;
+    newPolyPoint.cTexel = cTexel;
+
+    let data = new Uint16Array(this.data);
+    let ptsTex = new THREE.DataTexture(data, dataSize, dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
+
+    newPolyPoint.data = data;
+    newPolyPoint.ptsTex = ptsTex;
+
+    let id = this.id;
+    newPolyPoint.id = id;
+
+    return newPolyPoint;
   }
 
   //takes x, y, and tag
@@ -785,6 +805,36 @@ class PolyLine extends PolyPoint {
 
     this.fragFunction = "";
 
+  }
+
+  clone(){
+    let resolution = this.resolution.clone();
+    let weight = this.weight;
+    let dataSize = this.dataSize;
+
+    let newPolyLine = new PolyLine(resolution, weight, dataSize);
+
+    let pts = [];
+    for (let p of this.pts){ pts.push(p.clone());};
+    let cTexel = this.cTexel;
+
+    newPolyLine.pts = pts;
+    newPolyLine.cTexel = cTexel;
+
+    let data = new Uint16Array(this.data);
+    let ptsTex = new THREE.DataTexture(data, dataSize, dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
+
+    newPolyLine.data = data;
+    newPolyLine.ptsTex = ptsTex;
+
+    let id = this.id;
+    newPolyLine.id = id;
+
+    var fragFunction = (' ' + this.fragFunction).slice(1);
+
+    newPolyLine.fragFunction = fragFunction;
+
+    return newPolyLine;
   }
 
   //takes shader as argument, modifies string, returns modified shader
