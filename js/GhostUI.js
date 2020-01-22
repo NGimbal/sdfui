@@ -67,45 +67,75 @@ class GhostUI{
     this.editPolyLn = false;
 
     //MODIFIERS
-    //Eventually will implement a UIMode update function
-    //right now some things rely on their move functions to update which stinks
-    //only because the function takes effect after moving the mouse
+    //Clck could be a built in function - looks like it will generally be a simple toggle
+    // constructor(name, tag, keyCut, onUpdate, clck, _toggle, _factors, mv, up, dwn){
+    // should revise this constructor to be:
+    // constructor(name, tag, keyCut, _toggle, {factors}, {onUpdate:snapPtUpdate, onMv:snapPtMv ...});
     let pauseShader = new UIModifier("pauseShader", "view", "/", true, pauseShaderClck, false, {}, pauseShaderUpdate);
     let hideGrid = new UIModifier("hideGrid", "view", ".", true, hideGridClck, false, {grid:true}, hideGridUpdate);
+    let screenshot = new UIModifier("screenshot", "export", "l", true, screenshotClck, false, {}, screenshotUpdate);
 
     let snapPt = new UIModifier("snapPt", "snap", "p", false, SNAP.snapPtClck, false, {dist:200}, SNAP.snapPtMv, SNAP.snapPtUp);
     let snapRef = new UIModifier("snapRef", "snap", "s", false, SNAP.snapRefClck, false, {angle:45}, SNAP.snapRefMv, SNAP.snapRefUp);
     let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", false, SNAP.snapGlobalClck, false, {angle:90}, SNAP.snapGlobalMv, SNAP.snapGlobalUp);
     let snapGrid = new UIModifier("snapGrid", "snap", "g", false, SNAP.snapGridClck, false, {}, SNAP.snapGridMv, SNAP.snapGridUp);
 
-    let drawPLine = new UIModifier("drawPLine", "edit", "Space", true, drawPLineClck, false, {}, drawPLineMv);
     let lineWeight = new UIModifier("lineWeight", "edit", "w", true, lineWeightClck, true, {weight:0.002}, lineWeightMv);
     let endPLine = new UIModifier("endPLine", "edit", "Enter", true, endPLineClck, false, {}, endPLineUpdate);
     let escPLine = new UIModifier("escPLine", "edit", "Escape", true, escPLineClck, false, {}, escPLineUpdate);
 
-    let screenshot = new UIModifier("screenshot", "export", "l", true, screenshotClck, false, {}, screenshotUpdate);
+    //so of course the different "edit tools" should be modifiers
+    //Right now we draw by default
+    //ending the current drawing tool should put the user in
+    //selection mode unless they select another drawing tool
+    let drawPLine = new UIModifier("drawPLine", "edit", "a", true, drawPLineClck, false, {}, drawPLineUpdate);
 
     //MODES
     //constructor(toggle, modifiers, enter, exit, mv, up, dwn){
     //for the short term, keyUp is called automatically
     let globalMods = [pauseShader, hideGrid, screenshot];
-    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, lineWeight, endPLine, escPLine];
+    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, drawPLine, lineWeight, endPLine, escPLine];
     drawMods = globalMods.concat(drawMods);
-    this.modes = [
-      new UIMode("draw", true, drawMods, drawEnter, drawExit, drawMv, drawUp)
-    ]
 
+    let selMods = [pauseShader, hideGrid, screenshot];
+
+    //should revise this:
+    //constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
+    //to be this:
+    //constructor(name, modifiers, enter, exit, update, {mv:drawMV, up:drawUp, dwn:drawDwn});
+    //update will be an important function for these modes
+    //need to check if we will exit the mode
+    //other way to exit the mode would be to call drawExit() from a function
+    //but I think that it's going to be a conditional thing:
+    //if no drawing tools are selected, drawExit();
+    let draw = new UIMode("draw", true, drawMods, drawEnter, drawExit, drawMv, drawUp);
+    let select = new UIMode("select", false, selMods, selEnter, selExit, selMv);
+    // let edit = new UIMode("select", false, edit)
+
+    this.modes = [
+      draw,
+      select
+    ];
+
+    //can we try a UIModeStack?
+    this.modeStack = new StateStack(select, 5);
+    this.modeStack.push(draw);
+
+    //should this be within drawEnter?
+    //where would we bind GhostUI?
     this.initUIModeButtons();
 
-    this.modes[0].enter();
+    //default mode
+    // this.modes[0].enter();
+    this.modeStack.curr().enter();
 
+    //should this be bound to docStack[] or this?
     document.getElementById("draw-shapes").addEventListener('mouseup', this.mouseUp.bind(this));
-    //bind to docStack[];
     window.addEventListener('mousemove', this.mouseMove.bind(this));
+
     //cntrl+z
     this.cntlPressed = false;
     this.zPressed = false;
-
     window.addEventListener('keyup', this.keyUp.bind(this));
     window.addEventListener('keydown', this.keyDown.bind(this));
 
@@ -114,7 +144,8 @@ class GhostUI{
 
   initUIModeButtons(){
     let tags = [];
-    for(let m of this.modes[0].modifiers){
+    // for(let m of this.modes[0].modifiers){
+    for (let m of this.modeStack.curr().modifiers){
       if (!tags.includes(m.tag)){
         tags.push(m.tag);
         HINT.addButtonHeading(m);
@@ -174,35 +205,34 @@ class GhostUI{
   }
 
   //global update to run functions that have been cued by a button press
-  //takes care of functions that need to run before mousemv
+  //most basic update pattern that will also be used in event handlers
   update(){
     let fluentDoc = this.fluentStack.curr().clone();
-
-    for (let mode of this.modes){
-      if(mode.toggle){
-        for(let m of mode.modifiers){
-          if(m.toggle && m.onUpdate){
-            // console.log(mode.name);
-            let newDoc = m.mv(null, fluentDoc);
-            if (newDoc) fluentDoc = newDoc;
-          }
+    // for (let mode of this.modes){
+    // if(mode.toggle){
+    let mode = this.modeStack.curr();
+    for(let m of mode.modifiers){
+        if(m.toggle && m.onUpdate){
+          //null is hack to make move functions also work here
+          let newDoc = m.mv(null, fluentDoc);
+          if (newDoc) fluentDoc = newDoc;
         }
       }
-    }
+      // }
+    // }
     this.fluentStack.modCurr(fluentDoc);
   }
 
-  mouseUp( e ) {
-
+  mouseUp(e) {
     let fluentDoc = this.fluentStack.curr().clone();
-
-    for (let mode of this.modes){
-      if(mode.toggle == true){
+    // for (let mode of this.modes){
+      // if(mode.toggle == true){
+    let mode = this.modeStack.curr();
         // console.log(mode.name);
-        let newDoc = mode.up(e, fluentDoc);
-        if (newDoc) fluentDoc = newDoc;
-      }
-    }
+    let newDoc = mode.up(e, fluentDoc);
+    if (newDoc) fluentDoc = newDoc;
+      // }
+    // }
     this.fluentStack.modCurr(fluentDoc);
     this.fluentStack.push(fluentDoc);
   }
@@ -216,16 +246,18 @@ class GhostUI{
 
     let fluentDoc = this.fluentStack.curr().clone();
 
+    //default action to show mouse target point
     fluentDoc.mPt.x = evPt.x / fluentDoc.elem.width;
     fluentDoc.mPt.y = (fluentDoc.elem.height - evPt.y) / fluentDoc.elem.height;
 
     //should use uiModeStack like document state stack
-    for (let mode of this.modes){
-      if(mode.toggle == true){
+    // for (let mode of this.modes){
+      // if(mode.toggle == true){
+        let mode = this.modeStack.curr();
         let newDoc = mode.mv(e, fluentDoc);
         if (newDoc) fluentDoc = newDoc;
-      }
-    }
+      // }
+    // }
     this.fluentStack.modCurr(fluentDoc);
   }
 
@@ -240,18 +272,20 @@ class GhostUI{
     let fluentDoc = this.fluentStack.curr().clone();
 
     //should use uiModeStack like document state stack
-    for (let mode of this.modes){
-      if(mode.toggle == true){
-        for (let m of mode.modifiers){
-          if(m.keyCut == key){
-            let newDoc = m.clck(fluentDoc);
-            if (newDoc) fluentDoc = newDoc;
-          }
+    // for (let mode of this.modes){
+      // if(mode.toggle == true){
+      let mode = this.modeStack.curr();
+      for (let m of mode.modifiers){
+        if(m.keyCut == key){
+          let newDoc = m.clck(fluentDoc);
+          if (newDoc) fluentDoc = newDoc;
         }
       }
-    }
+      // }
+    // }
     this.fluentStack.modCurr(fluentDoc);
   }
+
 
   keyDown(e){
     let key = e.key;
@@ -262,19 +296,28 @@ class GhostUI{
 
     if (this.zPressed && this.cntlPressed){
       this.zPressed = false;
-      console.log("Control Z!");
-      // console.log(this.fluentStack);
-      // if (this.fluentStack.index > 0){
-        let fluentDoc = this.fluentStack.undo();
-        if (!fluentDoc) {
-          let newDoc = new FluentDoc(this.elem, this.shader);
-          this.fluentStack.modCurr(newDoc);
-        }
-        else {
-          fluentDoc.shaderUpdate = true;
-        }
+      // console.log("Control Z!");
+      let fluentDoc = this.fluentStack.undo();
+      if (!fluentDoc) {
+        let newDoc = new FluentDoc(this.elem, this.shader);
+        this.fluentStack.modCurr(newDoc);
+      } else {
+        fluentDoc.shaderUpdate = true;
+      }
     }
   }
+}
+
+function selEnter(){
+  console.log(this);
+}
+
+function selExit(){
+  console.log(this);
+}
+
+function selMv(){
+  console.log(this);
 }
 
 function drawEnter(){
@@ -283,7 +326,6 @@ function drawEnter(){
   //turns on snapping to pts by default
   //function should take some default settings at some point
   var index = this.modifiers.findIndex(i => i.name === "snapPt");
-
   this.modifiers[index].clck();
 }
 
@@ -297,6 +339,7 @@ function drawMv(e, fluentDoc){
   for (let m of this.modifiers){
     if(!m.mv) continue;
     if(!m.toggle) continue;
+    if(m.onUpdate) continue;
     let modState = m.mv(e, fluentDoc);
     if(!modState) continue;
     else fluentDoc = modState;
@@ -304,6 +347,7 @@ function drawMv(e, fluentDoc){
   return fluentDoc;
 }
 
+//a lot of this code needs to be moved moved to the drawPLine function
 function drawUp(e, fluentDoc){
   if (this.toggle == false) return null;
   // let fluentDoc = Object.assign({}, _fluentDoc);
@@ -360,11 +404,32 @@ function endPLineClck(fluentDoc){
 }
 
 function drawPLineClck(fluentDoc){
-  return null;
+  this.toggle = !this.toggle;
+  HINT.toggleActive(this);
 }
 
-function drawPLineMv(fluentDoc){
-  return null;
+function drawPLineUpdate(e, fluentDoc){
+  let valString = "0";
+
+  // similar to endPLineUpdate
+  if(this.toggle){
+    if(fluentDoc.currEditItem.pts.length > 0){
+      let shaderUpdate = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc.shader);
+      fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
+      fluentDoc.currEditItem = new Point(fluentDoc.mPt.x, fluentDoc.mPt.y);
+    }
+  }else{
+    valString = "1";
+    fluentDoc.editItemIndex++;
+    fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+    fluentDoc.editItems.push(fluentDoc.currEditItem);
+  }
+
+  fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", valString);
+  fluentDoc.shaderUpdate = true;
+
+  this.toggle = !this.toggle;
+  return fluentDoc;
 }
 
 function escPLineClck(fluentDoc){
@@ -406,28 +471,14 @@ function pauseShaderUpdate(e, fluentDoc){
 }
 
 function hideGridUpdate(e, fluentDoc){
-  let toggleString = "0\n";
+  let valString = "0";
 
-  if (!this.factors.grid){
-    toggleString = "1\n";
-  }
+  if (!this.factors.grid) valString = "1";
 
-  let shader = fluentDoc.shader;
-  //change #define
-  let insString = "#define BG_GRID ";
-  let insIndex = shader.indexOf(insString);
-  insIndex += insString.length;
-
-  let startShader = shader.slice(0, insIndex);
-  let endShader = shader.slice(insIndex+2);
-
-  startShader += toggleString;
-  shader = startShader + endShader;
-  fluentDoc.shader = shader;
+  fluentDoc.shader = modifyDefine(fluentDoc.shader, "BG_GRID", valString);
   fluentDoc.shaderUpdate = true;
 
   this.factors.grid = !this.factors.grid;
-
   this.toggle = !this.toggle;
   return fluentDoc;
 }
@@ -483,6 +534,21 @@ function lineWeightMv(e, fluentDoc){
   return null;
 }
 
+function modifyDefine(shader, define, val){
+  //change #define
+  let insString = "#define " + define + " ";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex+2);
+
+  startShader += val + "\n";
+  shader = startShader + endShader;
+
+  return shader;
+}
+
 //Ring buffer of states
 class StateStack{
   constructor(state, MAX){
@@ -511,13 +577,22 @@ class StateStack{
   }
 
   push(_state){
-    let state = _state.clone();
+    //this is hacky, need to figure out what to do
+    //1. we don't need to clone the state (unlikely in the case of fluentDoc)
+    //2. we clone the state before push
+    //3. implement clone for UIMode
+    let state;
+    if(_state.clone) {
+      state = _state.clone();
+    } else {
+      state = _state;
+    }
 
     this.incrementIndex();
 
     this.stack[this.index] = state;
 
-    console.log(this);
+    //console.log(this);
   }
 
   undo(){
@@ -645,8 +720,7 @@ class FluentDoc{
   //
   clone(){
     //elem is probably the only thing we want to retain a reference to
-    // let elem = Object.assign({}, this.elem);
-
+    //also elem probably doesn't have to be a property of fluentDoc
     var shader = (' ' + this.shader).slice(1);
 
     let newDoc = new FluentDoc(this.elem, shader);
@@ -767,11 +841,11 @@ class Button{
 //Simple point class (for insertion into kdTree)
 //Holds information for kdTree / UI and for fragment shader
 class Point{
-  constructor(x, y, texRef, _texData, _shapeID, _tag){
+  constructor(x, y, _texRef, _texData, _shapeID, _tag){
     this.x = x;
     this.y = y;
     //texture coordinates can be reconstructed from this and dataSize
-    this.texRef = texRef;
+    this.texRef = _texRef || 0;
 
     //half float data will be stored here for future use in bake function
     this.texData = _texData || [];

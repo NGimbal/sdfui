@@ -63,6 +63,11 @@ function addButtonHint(uiMod){
   return buttonHint;
 }
 
+function toggleActive(uiMod){
+  let classAct = uiMod.tag + "-active";
+  uiMod.button.elem.classList.toggle(classAct);
+}
+
 function pulseActive(uiMod){
   let classAct = uiMod.tag + "-active";
   uiMod.button.elem.classList.toggle(classAct);
