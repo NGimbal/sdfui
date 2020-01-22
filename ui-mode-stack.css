@@ -207,3 +207,15 @@
 .edit-active {
   background-color: rgba(0, 111, 80, .75);
 }
+
+.primitives {
+  background-color: rgba(0, 111, 80, 0.25);
+}
+
+.primitives:hover {
+  background-color: rgba(0, 111, 80, .75);
+}
+
+.primitives-active {
+  background-color: rgba(0, 111, 80, .75);
+}

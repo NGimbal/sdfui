@@ -88,7 +88,7 @@ class GhostUI{
     //Right now we draw by default
     //ending the current drawing tool should put the user in
     //selection mode unless they select another drawing tool
-    let drawPLine = new UIModifier("drawPLine", "edit", "a", true, drawPLineClck, false, {}, drawPLineUpdate);
+    let drawPLine = new UIModifier("drawPLine", "primitives", "a", true, drawPLineClck, false, {}, drawPLineUpdate);
 
     //MODES
     //constructor(toggle, modifiers, enter, exit, mv, up, dwn){
@@ -108,25 +108,15 @@ class GhostUI{
     //other way to exit the mode would be to call drawExit() from a function
     //but I think that it's going to be a conditional thing:
     //if no drawing tools are selected, drawExit();
-    let draw = new UIMode("draw", true, drawMods, drawEnter, drawExit, drawMv, drawUp);
-    let select = new UIMode("select", false, selMods, selEnter, selExit, selMv);
+    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp});
+    let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
     // let edit = new UIMode("select", false, edit)
-
-    this.modes = [
-      draw,
-      select
-    ];
 
     //can we try a UIModeStack?
     this.modeStack = new StateStack(select, 5);
     this.modeStack.push(draw);
 
-    //should this be within drawEnter?
-    //where would we bind GhostUI?
-    this.initUIModeButtons();
-
     //default mode
-    // this.modes[0].enter();
     this.modeStack.curr().enter();
 
     //should this be bound to docStack[] or this?
@@ -140,19 +130,6 @@ class GhostUI{
     window.addEventListener('keydown', this.keyDown.bind(this));
 
     return this;
-  }
-
-  initUIModeButtons(){
-    let tags = [];
-    // for(let m of this.modes[0].modifiers){
-    for (let m of this.modeStack.curr().modifiers){
-      if (!tags.includes(m.tag)){
-        tags.push(m.tag);
-        HINT.addButtonHeading(m);
-      }
-      let newButton = new Button(HINT.addButtonHint(m), m)
-      m.button = newButton;
-    }
   }
 
   // Helper to save a Uint8 data texture
@@ -208,9 +185,8 @@ class GhostUI{
   //most basic update pattern that will also be used in event handlers
   update(){
     let fluentDoc = this.fluentStack.curr().clone();
-    // for (let mode of this.modes){
-    // if(mode.toggle){
     let mode = this.modeStack.curr();
+
     for(let m of mode.modifiers){
         if(m.toggle && m.onUpdate){
           //null is hack to make move functions also work here
@@ -218,21 +194,16 @@ class GhostUI{
           if (newDoc) fluentDoc = newDoc;
         }
       }
-      // }
-    // }
     this.fluentStack.modCurr(fluentDoc);
   }
 
   mouseUp(e) {
     let fluentDoc = this.fluentStack.curr().clone();
-    // for (let mode of this.modes){
-      // if(mode.toggle == true){
     let mode = this.modeStack.curr();
-        // console.log(mode.name);
+
     let newDoc = mode.up(e, fluentDoc);
     if (newDoc) fluentDoc = newDoc;
-      // }
-    // }
+
     this.fluentStack.modCurr(fluentDoc);
     this.fluentStack.push(fluentDoc);
   }
@@ -250,14 +221,10 @@ class GhostUI{
     fluentDoc.mPt.x = evPt.x / fluentDoc.elem.width;
     fluentDoc.mPt.y = (fluentDoc.elem.height - evPt.y) / fluentDoc.elem.height;
 
-    //should use uiModeStack like document state stack
-    // for (let mode of this.modes){
-      // if(mode.toggle == true){
-        let mode = this.modeStack.curr();
-        let newDoc = mode.mv(e, fluentDoc);
-        if (newDoc) fluentDoc = newDoc;
-      // }
-    // }
+    let mode = this.modeStack.curr();
+    let newDoc = mode.mv(e, fluentDoc);
+    if (newDoc) fluentDoc = newDoc;
+
     this.fluentStack.modCurr(fluentDoc);
   }
 
@@ -271,18 +238,15 @@ class GhostUI{
 
     let fluentDoc = this.fluentStack.curr().clone();
 
-    //should use uiModeStack like document state stack
-    // for (let mode of this.modes){
-      // if(mode.toggle == true){
-      let mode = this.modeStack.curr();
-      for (let m of mode.modifiers){
-        if(m.keyCut == key){
-          let newDoc = m.clck(fluentDoc);
-          if (newDoc) fluentDoc = newDoc;
-        }
+    let mode = this.modeStack.curr();
+
+    for (let m of mode.modifiers){
+      if(m.keyCut == key){
+        let newDoc = m.clck(fluentDoc);
+        if (newDoc) fluentDoc = newDoc;
       }
-      // }
-    // }
+    }
+
     this.fluentStack.modCurr(fluentDoc);
   }
 
@@ -308,21 +272,31 @@ class GhostUI{
   }
 }
 
+//---SELECT---------------------------
 function selEnter(){
+  HINT.pushModeHint(this.name, "Begin Drawing!");
   console.log(this);
+  this.initUIModeButtons();
 }
 
 function selExit(){
   console.log(this);
 }
 
-function selMv(){
+function selUpdate(){
   console.log(this);
 }
 
+function selMv(){
+  console.log(this);
+}
+//---SELECT---------------------------
+
+//---DRAW-----------------------------
 function drawEnter(){
   // pushPopModeHint(this.name, "Begin Drawing!");
   HINT.pushModeHint(this.name, "Begin Drawing!");
+  this.initUIModeButtons();
   //turns on snapping to pts by default
   //function should take some default settings at some point
   var index = this.modifiers.findIndex(i => i.name === "snapPt");
@@ -331,6 +305,10 @@ function drawEnter(){
 
 function drawExit(){
   HINT.snackHint("End Drawing!");
+}
+
+function drawUpdate(){
+  // HINT.snackHint("End Drawing!");
 }
 
 function drawMv(e, fluentDoc){
@@ -383,6 +361,8 @@ function drawUp(e, fluentDoc){
   return fluentDoc;
 }
 
+//---DRAW-----------------------------
+
 function screenshotClck(e){
   this.toggle = !this.toggle;
   HINT.pulseActive(this);
@@ -404,10 +384,12 @@ function endPLineClck(fluentDoc){
 }
 
 function drawPLineClck(fluentDoc){
+  console.log(this);
   this.toggle = !this.toggle;
-  HINT.toggleActive(this);
+  // HINT.toggleActive(this);
 }
 
+//so this sort of ends the pLine and quits adding new lines
 function drawPLineUpdate(e, fluentDoc){
   let valString = "0";
 
@@ -416,7 +398,7 @@ function drawPLineUpdate(e, fluentDoc){
     if(fluentDoc.currEditItem.pts.length > 0){
       let shaderUpdate = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc.shader);
       fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
-      fluentDoc.currEditItem = new Point(fluentDoc.mPt.x, fluentDoc.mPt.y);
+      fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
     }
   }else{
     valString = "1";
@@ -756,16 +738,32 @@ class FluentDoc{
 //modes are going to be collections of UIModifiers
 class UIMode{
   //bool, [], functions
-  constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
+  // constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
+  constructor(name, modifiers, enter, exit, update, _events){
     this.name = name;
-    this.toggle = toggle;
+    // this.toggle = toggle;
     this.modifiers = modifiers;
     this.enter = enter;
     this.exit = exit;
+    this.update = update;
     //these should basically all be defined for every mode
-    if(mv) this.mv = mv;
-    if(up) this.up = up;
-    if(dwn) this.dwn = dwn;
+    if(_events.mv) this.mv = _events.mv;
+    if(_events.up) this.up = _events.up;
+    if(_events.dwn) this.dwn = _events.dwn;
+    if(_events.scrll) this.scrll = _events.scrll;
+  }
+
+  initUIModeButtons(){
+    let tags = [];
+
+    for (let m of this.modifiers){
+      if (!tags.includes(m.tag)){
+        tags.push(m.tag);
+        HINT.addButtonHeading(m);
+      }
+      let newButton = new Button(HINT.addButtonHint(m), m)
+      m.button = newButton;
+    }
   }
 }
 
@@ -802,7 +800,6 @@ class UIModifier{
 
     // window.addEventListener('keyup', this.keyUp.bind(this));
   }
-
 }
 
 class Button{
