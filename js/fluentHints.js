@@ -111,4 +111,4 @@ function getModeHintID(id){
 }
 
 export {pushModeHint, addButtonHeading, addButtonHint, popModeHint,
-        pushPopModeHint, snackHint, getModeHintID, pulseActive};
+        pushPopModeHint, snackHint, getModeHintID, pulseActive, toggleActive};

@@ -88,6 +88,12 @@ function resizeRendererToDisplaySize(renderer) {
 
   if (needResize) {
     renderer.setSize(width, height, false);
+    // if(ui){
+      //this seems unecessar / ineffective
+      // ui.fluentStack.curr().drawGrid();
+      // the below doesn't fix the resize problem
+      // ui.fluentStack.curr().resolution = new THREE.Vector2(width, height);
+    // }
   }
 
   return needResize;
@@ -103,11 +109,9 @@ function render() {
 
   const canvas = renderer.domElement;
   let fluentDoc = ui.fluentStack.curr();
-  //Why does this have to happen every frame?
-  screenMesh.material.uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
+
   screenMesh.material.uniforms.editWeight.value = fluentDoc.editWeight;
   screenMesh.material.uniforms.editOpacity.value = fluentDoc.editOpacity;
-
 
   if (fluentDoc.shaderUpdate){
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
@@ -127,6 +131,7 @@ function render() {
   renderer.render(scene, camera);
 
   //is this a workaround?
+  //could actually do this in screenshotUpdate
   if(fluentDoc.screenshot){
     canvas.toBlob((blob) => {
       saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
