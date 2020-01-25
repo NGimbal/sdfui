@@ -289,54 +289,8 @@ void main(){
     #endif
     //Polyline-------
 
-    //Circle-------
-    #if EDIT_SHAPE == 2
-    for (float i = 0.; i < 16.; i++ ){
-      float yIndex = (i / 16.) + texelOffset;
-
-      for (float j = 0.; j < 16.; j++ ){
-        float xIndex = j / 16.;
-        vec2 vIndex = vec2(xIndex + texelOffset, yIndex);
-
-        vec2 pos = texture2D(posTex, vIndex).xy;
-        if (pos == vec2(0.)){ break; }
-
-        vec2 pUv = screenPt(pos);
-
-        #if EDIT_VERTS == 1
-        DrawPoint(uv, pUv, finalColor);
-        #endif
-
-        // float d = sdCircle(uv, pUv, 0.125);
-        // finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(sdCircle(uv, pUv, 0.125))) );
-        float d = sdCircle(uv, pUv, 0.125);
-        //d = min(d, oldDist);
-        // d = opSmoothUnion(d, oldDist, 0.05);
-        vec3 cCol = vec3(0.0, 0.384, 0.682);
-        finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight,abs(d)) );
-
-        // Something about this isn't working
-        // finalColor = minColor(oldDist, d, finalColor, vec3(0.0, 0.384, 0.682));
-
-        oldDist = d;
-        oldPos = pUv;
-      }
-    }
-
-    float d = sdCircle(uv, screenPt(mPt), 0.125);
-    // if (oldPos != vec2(0.) && mousePt.z != -1.0){
-    finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(d)) );
-    // }
-    d = opSmoothUnion(d, oldDist, 0.05);
-
-    vec3 cCol = vec3(0.929, 0.215, 0.262);
-    finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight + 0.01,abs(d)) );
-
-    #endif
-    //Circle----------
-
     //MetaBall-------
-    #if EDIT_SHAPE == 3
+    #if EDIT_SHAPE == 2
     for (float i = 0.; i < 16.; i++ ){
       float yIndex = (i / 16.) + texelOffset;
 
