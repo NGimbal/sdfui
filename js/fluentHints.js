@@ -56,7 +56,7 @@ function addButtonHint(uiMod){
   buttonHint.classList.add(uiMod.tag);
 
   // might want to add a "button description or something"
-  buttonHint.innerText = uiMod.keyCut + " = " + uiMod.name;
+  buttonHint.innerText = uiMod.keyCut + " : " + uiMod.name;
 
   buttonStack.appendChild(buttonHint);
 

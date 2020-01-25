@@ -80,6 +80,7 @@ class GhostUI{
 
     //so of course the different "edit tools" should be modifiers
     let drawPLine = new UIModifier("drawPLine", "primitives", "a", false, {clck:drawPLineClck, update:drawPLineUpdate, up:drawPLineUp}, {update:false});
+    let drawCircle = new UIModifier("drawCircle", "primitives", "c", false, {clck:drawCircleClck, update:drawCircleUpdate, up:drawCircleUp}, {update:false});
 
     //lineweight modifier is broken
     let lineWeight = new UIModifier("lineWeight", "edit", "w", false, {clck:lineWeightClck, update:lineWeightUpdate}, {weight:0.002});
@@ -88,7 +89,7 @@ class GhostUI{
 
     //MODES
     let globalMods = [pauseShader, hideGrid, screenshot];
-    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, drawPLine, lineWeight, endPLine, escPLine];
+    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, drawPLine, drawCircle, lineWeight, endPLine, escPLine];
     drawMods = globalMods.concat(drawMods);
 
     let selMods = [pauseShader, hideGrid, screenshot];
@@ -181,7 +182,7 @@ class GhostUI{
     // for(let m of mode.modifiers){
     //   //can't check for m.toggle because this is often necessary
     //   //just after a toggle has been switched off
-    //   //each update will deal with m.toggle on an individual basis
+    //   //eachupdate will deal with m.toggle on an individual basis
     //   if(m.update){
     //     //null is hack to make move functions also work here
     //     let newDoc = m.update(fluentDoc);
@@ -362,31 +363,81 @@ function endPLineClck(){
   HINT.pulseActive(this);
 }
 
-function drawPLineClck(){
+function drawCircleClck(){
   this.toggle = !this.toggle;
   this.factors.update = true;
   console.log(this);
   HINT.toggleActive(this);
 }
 
-//toggles whether we're drawing a polyline
-function drawPLineUpdate(fluentDoc){
+function drawCircleUpdate(fluentDoc){
   if(!this.toggle && this.factors.update){
     let valString = "0";
     // need to end current PLine
     //then stop drawing PLine
     if(fluentDoc.currEditItem.pts.length > 0){
-      let shaderUpdate = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc.shader);
-      fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
+      // let shaderUpdate = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc.shader);
+      // fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
+      fluentDoc.currEditItem = new PolyCircle(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+
+      fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", valString);
+      fluentDoc.shaderUpdate = true;
+
+
+    }
+
+    this.factors.update = false;
+    return fluentDoc;
+
+  } else if(this.toggle && this.factors.update) {
+    //restart drawing PLine
+    let valString = "2";
+    fluentDoc.editItemIndex++;
+    fluentDoc.currEditItem = new PolyCircle(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+    fluentDoc.editItems.push(fluentDoc.currEditItem);
+
+    fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", valString);
+    fluentDoc.shaderUpdate = true;
+
+    this.factors.update = false;
+
+    return fluentDoc;
+  }
+  else return null;
+}
+
+function drawCircleUp(){
+
+}
+
+
+function drawPLineClck(){
+  this.toggle = !this.toggle;
+  this.factors.update = true;
+  HINT.toggleActive(this);
+}
+
+//toggles whether we're drawing a polyline
+function drawPLineUpdate(fluentDoc){
+  if(!fluentDoc.currEditItem instanceof PolyLine) return;
+
+  if(!this.toggle && this.factors.update){
+    let valString = "0";
+    // need to end current PLine
+    //then stop drawing PLine
+    if(fluentDoc.currEditItem.pts.length > 0){
+      fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc);
+      fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(fluentDoc);
       fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
 
       fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", valString);
       fluentDoc.shaderUpdate = true;
 
-      this.factors.update = false;
-
-      return fluentDoc;
     }
+
+    this.factors.update = false;
+    return fluentDoc;
+
   } else if(this.toggle && this.factors.update) {
     //restart drawing PLine
     let valString = "1";
@@ -484,8 +535,8 @@ function hideGridUpdate(fluentDoc){
 function endPLineUpdate(fluentDoc){
   if(!this.toggle) return null;
 
-  let shaderUpdate = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc.shader);
-  fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
+  fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc);
+  fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(fluentDoc);
   fluentDoc.shaderUpdate = true;
 
   fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
@@ -668,6 +719,9 @@ class FluentDoc{
     this.currEditItem = new PolyLine(this.resolution, this.editWeight, this.dataSize);
     this.editItems = [this.currEditItem];
 
+    //document registry of paramters
+    this.parameters = new PolyPoint(this.resolution, this.editWeight, 32);
+
     //establishes grid offsets
     //actually don't think this instantiation is necessary
     this.gridOffX = 0.0;
@@ -746,6 +800,8 @@ class FluentDoc{
     let editItems = [];
     for (let item of this.editItems){editItems.push(item.clone());}
     newDoc.editItems = editItems;
+
+    newDoc.parameters = this.parameters.clone();
 
     newDoc.currEditItem = currEditItem;
     newDoc.editItems = editItems;
@@ -1041,8 +1097,8 @@ class PolyLine extends PolyPoint {
   //takes shader as argument, modifies string, returns modified shader
   //this will be rewritten to bake each shape as a function and a function call
   //the inputs to these functions e.g. position will be parameterized
-  bakePolyLineFunction(_fragShader){
-    let shader = _fragShader;
+  bakePolyLineFunction(fluentDoc){
+    let shader = fluentDoc.shader;
 
     //insert new function
     let insString = "//$INSERT FUNCTION$------";
@@ -1150,8 +1206,8 @@ class PolyLine extends PolyPoint {
   //takes shader as argument, modifies string, returns modified shader
   //creates function calls that calls function already created
   //the inputs to these functions e.g. position will be parameterized
-  bakePolyLineCall(_fragShader){
-    let shader = _fragShader;
+  bakePolyLineCall(fluentDoc){
+    let shader = fluentDoc.shader;
     let insString = "//$INSERT CALL$------";
     let insIndex = shader.indexOf(insString);
     insIndex += insString.length;
@@ -1181,6 +1237,52 @@ class PolyLine extends PolyPoint {
   }
 }
 
+class PolyCircle extends PolyPoint {
+
+  constructor(resolution, _weight, _dataSize){
+    //super is how PolyPoint class is constructed
+    //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
+    super(resolution, _weight, _dataSize);
+
+    this.fragFunction = "";
+
+  }
+
+  // clone(){}
+  // bakePolyCircleFunction(){
+
+  // }
+  bakePolyCircleCall(_fragShader){
+    let shader = _fragShader;
+    let insString = "//$INSERT CALL$------";
+    let insIndex = shader.indexOf(insString);
+    insIndex += insString.length;
+
+    let startShader = shader.slice(0, insIndex);
+    let endShader = shader.slice(insIndex);
+
+    let buffer = new ArrayBuffer(10);
+    let view = new DataView(buffer);
+
+    let oldPosX = 0;
+    let oldPosY = 0;
+
+    //create function
+    let posString = '\n';
+
+    // p here vec2(0.0,0.0) is a translation for polygon
+    // eventually this will be a reference to another data texture
+    posString += '\t' + this.id + '(uv, vec2(0.0,0.0), finalColor);\n';
+    startShader += posString;
+
+    let fragShader = startShader + endShader;
+
+    // console.log(fragShader);
+
+    return fragShader;
+  }
+
+}
 // good for debugging and for reference
 //returns svg element
 //id as string; x & y as pixel coords; opacity as 0 -1, fill & stroke as colors

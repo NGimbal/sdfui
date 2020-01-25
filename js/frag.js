@@ -1,6 +1,7 @@
 const sdfLines =`
 //0 = Nothing
 //1 = PolyLine
+//2 = PolyCircle
 #define EDIT_SHAPE 1
 #define EDIT_VERTS 1
 #define BG_GRID 1
@@ -176,6 +177,12 @@ void DrawPoint(vec2 uv, vec2 p, inout vec3 col) {
     col = mix(col, vec3(1.0, 0.25, 0.25), saturate(abs(dFdy(uv).y)*8.0/distance(uv, p)-2.0));
 }
 
+float sdCircle( vec2 uv, vec2 p, float r )
+{
+  uv = uv - p;
+  return length(uv) - r;
+}
+
 // Eventually factor this out by transforming point in javascript
 // Transform screen space pt to shader space
 vec2 screenPt(vec2 p) {
@@ -188,6 +195,27 @@ vec2 screenPt(vec2 p) {
   pos.x = (pos.x * iResolution.x) / (iResolution.x / (hiDPR * 1.));
   pos.y = (pos.y * iResolution.y) / (iResolution.y / (hiDPR * 1.));
   return pos;
+}
+
+//this is not quite right...
+vec3 minColor(float d1, float d2, vec3 col1, vec3 col2){
+  float mm = min(d1, d2) + 0.001;
+  float mx = max(d1, d2) - 0.001;
+
+  //1 if d1 is min
+  // float d1mm = abs(1.0 - step(mm, d1));
+  // float d2mm = abs(1.0 - step(mm, d2));
+  //0 if d1 is max
+  float d1mx = abs(1.0 - step(mx, d1));
+  float d2mx = abs(1.0 - step(mx, d2));
+
+  return (col1 * d1mx) + (col2*d2mx);
+}
+
+//https://iquilezles.org/www/articles/distfunctions/distfunctions.htm
+float opSmoothUnion( float d1, float d2, float k ) {
+    float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1.0 );
+    return mix( d2, d1, h ) - k*h*(1.0-h);
 }
 
 //$INSERT FUNCTION$------
@@ -206,6 +234,7 @@ void main(){
 
     float texelOffset = 0.5 * (1. / (16. * 16.));
     vec2 oldPos = vec2(0.);
+    float oldDist = 1000.0;
 
     vec2 mPt = vec2(mousePt.x, mousePt.y);
 
@@ -217,9 +246,8 @@ void main(){
 
     finalColor = mix(finalColor, vec3(1.0), editOpacity);
 
+    //Polyline-------
     #if EDIT_SHAPE == 1
-    // this is for polyLine being edited
-    // https://threejs.org/examples/?q=webgl2#webgl2_materials_texture2darray
     for (float i = 0.; i < 16.; i++ ){
       float yIndex = (i / 16.) + texelOffset;
 
@@ -240,26 +268,6 @@ void main(){
           finalColor = min(finalColor, FillLine(uv, oldPos, pUv, vec2(editWeight, editWeight), editWeight));
         }
 
-        // float modNum = mod(j, 3.);
-
-        //playing with bezier curves
-        // if (j != 0. && modNum == 0.){
-        //   float a = (j - 3.) / 16. + texelOffset;
-        //   float b = (j - 2.) / 16. + texelOffset;
-        //   float c = (j - 1.) / 16. + texelOffset;
-        //   float d = j / 16. + texelOffset;
-        //
-        //   vec2 posA = screenPt(texture2D(posTex, vec2(a, yIndex)).xy);
-        //   vec2 posB = screenPt(texture2D(posTex, vec2(b, yIndex)).xy);
-        //   vec2 posC = screenPt(texture2D(posTex, vec2(c, yIndex)).xy);
-        //   vec2 posD = screenPt(texture2D(posTex, vec2(d, yIndex)).xy);
-        //
-        //   float dBz = udBezier(posA, posB, posC, posD, uv).x;
-        //   finalColor *= vec3(smoothstep(0.002, 0.009, dBz));
-          // would be good to do better antialiasing using mix?
-          // finalColor *= mix(vec3(0.0), vec3(1.0), smoothstep(0.003, 0.0035, d));
-        // }
-
         oldPos = pUv;
       }
     }
@@ -268,6 +276,55 @@ void main(){
       finalColor *= FillLineDash(uv, oldPos, screenPt(mPt), vec2(editWeight, editWeight), 1.0);
     }
     #endif
+    //Polyline-------
+
+    //Circle-------
+    #if EDIT_SHAPE == 2
+    for (float i = 0.; i < 16.; i++ ){
+      float yIndex = (i / 16.) + texelOffset;
+
+      for (float j = 0.; j < 16.; j++ ){
+        float xIndex = j / 16.;
+        vec2 vIndex = vec2(xIndex + texelOffset, yIndex);
+
+        vec2 pos = texture2D(posTex, vIndex).xy;
+        if (pos == vec2(0.)){ break; }
+
+        vec2 pUv = screenPt(pos);
+
+        #if EDIT_VERTS == 1
+        DrawPoint(uv, pUv, finalColor);
+        #endif
+
+        // float d = sdCircle(uv, pUv, 0.125);
+        // finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(sdCircle(uv, pUv, 0.125))) );
+        float d = sdCircle(uv, pUv, 0.125);
+        //d = min(d, oldDist);
+        d = opSmoothUnion(d, oldDist, 0.05);
+        vec3 cCol = vec3(0.0, 0.384, 0.682);
+        finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight,abs(d)) );
+
+        // Something about this isn't working
+        // finalColor = minColor(oldDist, d, finalColor, vec3(0.0, 0.384, 0.682));
+
+        oldDist = d;
+        oldPos = pUv;
+      }
+    }
+
+    float d = sdCircle(uv, screenPt(mPt), 0.125);
+    // if (oldPos != vec2(0.) && mousePt.z != -1.0){
+    finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(d)) );
+    // }
+    d = opSmoothUnion(d, oldDist, 0.05);
+
+    vec3 cCol = vec3(0.929, 0.215, 0.262);
+    finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight + 0.01,abs(d)) );
+
+    #endif
+    //Circle----------
+    
+
     //current Mouse Position
     DrawPoint(uv, screenPt(mPt), finalColor);
 
