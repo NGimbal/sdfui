@@ -714,7 +714,7 @@ class FluentDoc{
     //List of polyline objects
     //Eventually this will become a full scene graph of some sort
     //current editItem
-    this.editWeight = 0.001;
+    this.editWeight = 0.003;
     this.editItemIndex = 0;
     this.currEditItem = new PolyLine(this.resolution, this.editWeight, this.dataSize);
     this.editItems = [this.currEditItem];

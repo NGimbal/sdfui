@@ -95,10 +95,6 @@ float sdPoly( in vec2[256] v, in vec2 p )
 }
 
 //https://www.shadertoy.com/view/4tc3DX
-// signed distance to line
-// takes UVs, line end points, line thickness (x is along the line and y is perpendicular),
-// rounded: 0.0 is rectangular, rounded = thick.y will be circular
-// dashOn is just 1.0 or 0.0 to turn on the dashed lines.
 float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
     // Don't let it get more round than circular.
     rounded = min(thick.y, rounded);
@@ -170,6 +166,12 @@ float FillLineDash(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded) {
 float DrawOutline(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float outlineThick) {
     float df = LineDistField(uv, pA, pB, vec2(thick), rounded, 0.0);
     return saturate((abs(df + outlineThick) - outlineThick) / abs(dFdy(uv).y));
+}
+
+float drawLine(vec2 uv, vec2 pA, vec2 pB, float weight, float dash){
+  float line = LineDistField(uv, pA, pB, vec2(weight), weight, dash);
+  line = 1.0 - smoothstep(0.0, editWeight, line);
+  return line;
 }
 
 // This just draws a point for debugging using a different technique that is less glorious.
@@ -265,7 +267,12 @@ void main(){
         #endif
 
         if (oldPos != vec2(0.)){
-          finalColor = min(finalColor, FillLine(uv, oldPos, pUv, vec2(editWeight, editWeight), editWeight));
+          // finalColor = min(finalColor, FillLine(uv, oldPos, pUv, vec2(editWeight, editWeight), editWeight));
+          // float line = LineDistField(uv, oldPos, pUv, vec2(editWeight), editWeight, 0.0);
+          vec3 cCol = vec3(0.98, 0.215, 0.262);
+          // line = 1.0 - smoothstep(0.0, editWeight, line);
+          float line = drawLine(uv, oldPos, pUv, editWeight, 0.0);
+          finalColor = mix(finalColor, cCol, line);
         }
 
         oldPos = pUv;
@@ -273,13 +280,63 @@ void main(){
     }
 
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
-      finalColor *= FillLineDash(uv, oldPos, screenPt(mPt), vec2(editWeight, editWeight), 1.0);
+      // finalColor *= FillLineDash(uv, oldPos, screenPt(mPt), vec2(editWeight, editWeight), 1.0);
+      vec3 cCol = vec3(0.98, 0.215, 0.262);
+      // line = 1.0 - smoothstep(0.0, editWeight, line);
+      float line = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
+      finalColor = mix(finalColor, cCol, line);
     }
     #endif
     //Polyline-------
 
     //Circle-------
     #if EDIT_SHAPE == 2
+    for (float i = 0.; i < 16.; i++ ){
+      float yIndex = (i / 16.) + texelOffset;
+
+      for (float j = 0.; j < 16.; j++ ){
+        float xIndex = j / 16.;
+        vec2 vIndex = vec2(xIndex + texelOffset, yIndex);
+
+        vec2 pos = texture2D(posTex, vIndex).xy;
+        if (pos == vec2(0.)){ break; }
+
+        vec2 pUv = screenPt(pos);
+
+        #if EDIT_VERTS == 1
+        DrawPoint(uv, pUv, finalColor);
+        #endif
+
+        // float d = sdCircle(uv, pUv, 0.125);
+        // finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(sdCircle(uv, pUv, 0.125))) );
+        float d = sdCircle(uv, pUv, 0.125);
+        //d = min(d, oldDist);
+        // d = opSmoothUnion(d, oldDist, 0.05);
+        vec3 cCol = vec3(0.0, 0.384, 0.682);
+        finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight,abs(d)) );
+
+        // Something about this isn't working
+        // finalColor = minColor(oldDist, d, finalColor, vec3(0.0, 0.384, 0.682));
+
+        oldDist = d;
+        oldPos = pUv;
+      }
+    }
+
+    float d = sdCircle(uv, screenPt(mPt), 0.125);
+    // if (oldPos != vec2(0.) && mousePt.z != -1.0){
+    finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(d)) );
+    // }
+    d = opSmoothUnion(d, oldDist, 0.05);
+
+    vec3 cCol = vec3(0.929, 0.215, 0.262);
+    finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight + 0.01,abs(d)) );
+
+    #endif
+    //Circle----------
+
+    //MetaBall-------
+    #if EDIT_SHAPE == 3
     for (float i = 0.; i < 16.; i++ ){
       float yIndex = (i / 16.) + texelOffset;
 
@@ -322,8 +379,8 @@ void main(){
     finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight + 0.01,abs(d)) );
 
     #endif
-    //Circle----------
-    
+    //MetaBall----------
+
 
     //current Mouse Position
     DrawPoint(uv, screenPt(mPt), finalColor);
