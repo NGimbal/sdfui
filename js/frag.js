@@ -3,7 +3,7 @@ const sdfLines =`
 //1 = PolyLine
 //2 = PolyCircle
 #define EDIT_SHAPE 1
-#define EDIT_VERTS 1
+#define EDIT_VERTS 0
 #define BG_GRID 1
 
 // https://www.shadertoy.com/view/4tc3DX
