@@ -174,21 +174,17 @@ class GhostUI{
   //most basic update pattern that will also be used in event handlers
   update(){
     let fluentDoc = this.fluentStack.curr().clone();
+
     let mode = this.modeStack.curr();
+
+    if (mode.toggle == false){
+      mode = this.modeStack.undo();
+      mode.enter();
+    }
 
     let newDoc = mode.update(fluentDoc);
     if (newDoc) fluentDoc = newDoc;
 
-    // for(let m of mode.modifiers){
-    //   //can't check for m.toggle because this is often necessary
-    //   //just after a toggle has been switched off
-    //   //eachupdate will deal with m.toggle on an individual basis
-    //   if(m.update){
-    //     //null is hack to make move functions also work here
-    //     let newDoc = m.update(fluentDoc);
-    //     if (newDoc) fluentDoc = newDoc;
-    //   }
-    // }
     this.fluentStack.modCurr(fluentDoc);
   }
 
@@ -269,9 +265,10 @@ class GhostUI{
 
 //---SELECT---------------------------
 function selEnter(){
-  HINT.pushModeHint(this.name, "Begin Drawing!");
-  console.log(this);
-  this.initUIModeButtons();
+  HINT.pushModeHint(this.name, "Select Mode!");
+  // console.log(this);
+  HINT.modButtonStack();
+  // this.initUIModeButtons();
 }
 
 function selExit(){
@@ -303,11 +300,27 @@ function drawEnter(){
 
 function drawExit(){
   HINT.snackHint("End Drawing!");
+  console.log(this);
+  // this.toggle = false;
 }
 
 function drawUpdate(fluentDoc){
+  //exit draw condition
+  //no primitive tool active
+  let tool = null;
+  for (let m of this.modifiers){
+    if(m.tag == "primitives" && m.toggle){
+      tool = m;
+    }
+  }
+
+  if (tool == null){
+    this.toggle = false;
+    return;
+  }
+
   for(let m of this.modifiers){
-    //can't check for m.toggle
+
     //each update will deal with m.toggle on an individual basis
     if(m.update){
       let newDoc = m.update(fluentDoc);
@@ -819,9 +832,12 @@ class UIMode{
     this.name = name;
     // this.toggle = toggle;
     this.modifiers = modifiers;
-    this.enter = enter;
-    this.exit = exit;
-    this.update = update;
+    this.enter = enter.bind(this);
+    this.exit = exit.bind(this);
+    this.update = update.bind(this);
+
+    this.toggle = true;
+
     //these should basically all be defined for every mode
     if(_events.mv) this.mv = _events.mv;
     if(_events.up) this.up = _events.up;
@@ -912,7 +928,6 @@ class Button{
     //interpret type and color from html element
     let classes = elem.classList;
   }
-
 }
 
 //Simple point class (for insertion into kdTree)

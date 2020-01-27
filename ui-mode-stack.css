@@ -116,6 +116,28 @@
   transition: background-color 100ms ease-out;
 }
 
+.button-header {
+  min-width: 200px; /* Set a default minimum width */
+  color: black; /* White text color */
+
+  box-sizing: border-box;
+  padding-left: 5%;
+
+  display: flex;
+  justify-content: left;
+  align-items: center;
+
+  border-radius: 0.25vmin;
+  width: 96%;
+  height: 2.75vh;
+  font: 1.9vmin Helvetica;
+  font-weight: bold;
+  margin-top: 1%;
+
+  -webkit-transition: background-color 100ms ease-out; /* Safari prior 6.1 */
+  transition: background-color 100ms ease-out;
+}
+
 .enter-left{
   -webkit-animation: enterleft 1s;
   animation: enterleft 1s;

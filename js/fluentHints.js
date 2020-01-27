@@ -30,9 +30,9 @@ function addButtonHeading(uiMod){
   let stack = buttonStack.children;
 
   let buttonHint = document.createElement("div");
-  buttonHint.id = uiMod.name + "-tag";
+  buttonHint.id = uiMod.tag;// + "-header";
 
-  buttonHint.classList.add("button-hint");
+  buttonHint.classList.add("button-header");
   buttonHint.classList.add("enter-left");
 
   let bgColor = "rgba(172, 172, 180, 0.00)";
@@ -62,6 +62,51 @@ function addButtonHint(uiMod){
 
   return buttonHint;
 }
+
+function modButtonStack(uiMode){
+  let buttonStack = document.getElementById('button-stack');
+  let stack = buttonStack.children;
+
+  //if a modifier is in the button stack don't do anything
+  //if a modifier isn't in the button stack add it under the correct heading
+  //if a stack element isn't in the mode's list of modifiers, remove it
+
+  //for each element in the stack
+  //is it one of the mode's modifiers?
+  //if no, remove
+  //if yes, do nothing
+
+  //for each modifier
+  //is it on the stack?
+  //if no, add it in the correct place
+
+
+  // for (let m of uiMode.modifiers){
+  //   for (let e of stack){
+  //     if(m.tag == e.id){
+  //       let buttonHint = document.createElement("div");
+  //       buttonHint.id = uiMod.name;
+  //
+  //       buttonHint.classList.add("button-hint");
+  //       buttonHint.classList.add("enter-left");
+  //       buttonHint.classList.add(uiMod.tag);
+  //
+  //       // might want to add a "button description or something"
+  //       buttonHint.innerText = uiMod.keyCut + " : " + uiMod.name;
+  //
+  //       buttonStack.insertAfter(buttonHint, e);
+  //       continue;
+  //     }
+  //     addButtonHeading(m);
+  //     addButtonHint(m);
+  //   }
+  // }
+}
+
+function insertAfter(el, referenceNode) {
+  referenceNode.parentNode.insertBefore(el, referenceNode.nextSibling);
+}
+
 
 function toggleActive(uiMod){
   let classAct = uiMod.tag + "-active";
@@ -111,4 +156,5 @@ function getModeHintID(id){
 }
 
 export {pushModeHint, addButtonHeading, addButtonHint, popModeHint,
-        pushPopModeHint, snackHint, getModeHintID, pulseActive, toggleActive};
+        pushPopModeHint, snackHint, getModeHintID, pulseActive, toggleActive,
+      modButtonStack};
