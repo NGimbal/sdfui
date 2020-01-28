@@ -41,21 +41,24 @@ function main() {
   );
 
   //gotta do this otherwise GhostUI doesn't get the proper dimensions
-  resizeRendererToDisplaySize(renderer);
 
   ui = new GhostUI(canvas, sdfLines);
   let fluentDoc = ui.fluentStack.curr();
+
+  resizeRendererToDisplaySize(renderer);
+
 // linearSlider
   uniforms = {
     iTime: { value: 0 },
     iResolution:  { value: new THREE.Vector3(canvas.width, canvas.height, 1) },
     iFrame: { value: 0 },
+    //this should really be editTex or something
     posTex: { value: fluentDoc.currEditItem.ptsTex},
+    parametersTex: {value: fluentDoc.parameters},
     posTexRes: {value: new THREE.Vector2(16.0, 16.0)},
     mousePt: {value: fluentDoc.mPt},
     editWeight : {value: fluentDoc.editWeight},
     editOpacity : {value: fluentDoc.editOpacity},
-    //this should be coming from GhostUI
     scale: {value: fluentDoc.scale},
     hiDPR: {value: window.devicePixelRatio}
   };
@@ -88,12 +91,8 @@ function resizeRendererToDisplaySize(renderer) {
 
   if (needResize) {
     renderer.setSize(width, height, false);
-    // if(ui){
-      //this seems unecessar / ineffective
-      // ui.fluentStack.curr().drawGrid();
-      // the below doesn't fix the resize problem
-      // ui.fluentStack.curr().resolution = new THREE.Vector2(width, height);
-    // }
+
+    ui.fluentStack.curr().shaderUpdate = true;
   }
 
   return needResize;
@@ -115,6 +114,11 @@ function render() {
 
   if (fluentDoc.shaderUpdate){
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
+    //annoying that this is set in so many places
+    //may be a hazard of this approach
+    let fluentDoc = ui.fluentStack.curr();
+    fluentDoc.resolution = new THREE.Vector2(canvas.width, canvas.height);
+    fluentDoc.currEditItem.resolution = fluentDoc.resolution;
 
     let vertexShader = sdfPrimVert;
     let fragmentShader = fluentDoc.shader;

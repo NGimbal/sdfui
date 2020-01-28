@@ -80,7 +80,6 @@ function modButtonStack(uiMode){
   //is it on the stack?
   //if no, add it in the correct place
 
-
   // for (let m of uiMode.modifiers){
   //   for (let e of stack){
   //     if(m.tag == e.id){
