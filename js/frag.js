@@ -16,6 +16,8 @@ uniform sampler2D  posTex;
 uniform sampler2D  pLinesTex;
 uniform vec2       posTexRes;
 
+uniform sampler2D parameters;
+
 //current mouse position
 uniform vec3       mousePt;
 
@@ -251,11 +253,11 @@ void main(){
     //Polyline-------
     #if EDIT_SHAPE == 1
     for (float i = 0.; i < 16.; i++ ){
-      float yIndex = (i / 16.) + texelOffset;
+      float yIndex = i / 16. + texelOffset;
 
       for (float j = 0.; j < 16.; j++ ){
-        float xIndex = j / 16.;
-        vec2 vIndex = vec2(xIndex + texelOffset, yIndex);
+        float xIndex = j / 16.  + texelOffset;
+        vec2 vIndex = vec2(xIndex, yIndex);
 
         vec2 pos = texture2D(posTex, vIndex).xy;
         if (pos == vec2(0.)){ break; }

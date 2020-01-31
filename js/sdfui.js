@@ -54,7 +54,8 @@ function main() {
     iFrame: { value: 0 },
     //this should really be editTex or something
     posTex: { value: fluentDoc.currEditItem.ptsTex},
-    parametersTex: {value: fluentDoc.parameters},
+    parameters: {value: fluentDoc.parameters.ptsTex},
+
     posTexRes: {value: new THREE.Vector2(16.0, 16.0)},
     mousePt: {value: fluentDoc.mPt},
     editWeight : {value: fluentDoc.editWeight},
@@ -113,12 +114,17 @@ function render() {
   screenMesh.material.uniforms.editOpacity.value = fluentDoc.editOpacity;
 
   if (fluentDoc.shaderUpdate){
+    console.log("shader update!")
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
+    uniforms.parameters.value = fluentDoc.parameters.ptsTex;
+
     //annoying that this is set in so many places
     //may be a hazard of this approach
-    let fluentDoc = ui.fluentStack.curr();
     fluentDoc.resolution = new THREE.Vector2(canvas.width, canvas.height);
     fluentDoc.currEditItem.resolution = fluentDoc.resolution;
+    fluentDoc.parameters.resolution = fluentDoc.resolution;
+    // screenMesh.material.uniforms.parameters.value = fluentDoc.parameters;
+    // console.log(fluentDoc.parameters);
 
     let vertexShader = sdfPrimVert;
     let fragmentShader = fluentDoc.shader;
@@ -130,6 +136,8 @@ function render() {
     });
 
     screenMesh.material = material;
+
+    fluentDoc.shaderUpdate = false;
   }
 
   renderer.render(scene, camera);
@@ -151,8 +159,12 @@ function animate(time){
 
   //proper way to update uniforms!
   screenMesh.material.uniforms.posTex.value = fluentDoc.currEditItem.ptsTex;
+  screenMesh.material.uniforms.parameters.value = fluentDoc.parameters.ptsTex;
 
   screenMesh.material.uniforms.mousePt.value = fluentDoc.mPt;
+
+  // console.log(fluentDoc.parameters);
+
   screenMesh.material.uniforms.needsUpdate = true;
 
   requestAnimationFrame(animate);
