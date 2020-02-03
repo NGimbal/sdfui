@@ -234,6 +234,8 @@ void main(){
     uv.x *= iResolution.x / iResolution.y;
 
     // Clear to white.
+    //this should defintely be parameterized
+    //also vingette
     vec3 finalColor = vec3(1.0);
 
     float texelOffset = 0.5 * (1. / (16. * 16.));
@@ -248,7 +250,15 @@ void main(){
 
     //$ENDINSERT CALL$---
 
-    finalColor = mix(finalColor, vec3(1.0), editOpacity);
+    //global opacity
+    // finalColor = mix(finalColor, vec3(1.0), editOpacity);
+
+    //background grid
+    #if BG_GRID == 1
+    // Blue grid lines
+    finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.x) - 0.92)*4.0;
+    finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.y) - 0.92)*4.0;
+    #endif
 
     //Polyline-------
     #if EDIT_SHAPE == 1
@@ -262,10 +272,8 @@ void main(){
         vec2 pos = texture2D(posTex, vIndex).xy;
         if (pos == vec2(0.)){ break; }
 
-        vec2 pUv = screenPt(pos);
-
         #if EDIT_VERTS == 1
-        DrawPoint(uv, pUv, finalColor);
+        DrawPoint(uv, pos, finalColor);
         #endif
 
         if (oldPos != vec2(0.)){
@@ -273,11 +281,11 @@ void main(){
           // float line = LineDistField(uv, oldPos, pUv, vec2(editWeight), editWeight, 0.0);
           vec3 cCol = vec3(0.98, 0.215, 0.262);
           // line = 1.0 - smoothstep(0.0, editWeight, line);
-          float line = drawLine(uv, oldPos, pUv, editWeight, 0.0);
+          float line = drawLine(uv, oldPos, pos, editWeight, 0.0);
           finalColor = mix(finalColor, cCol, line);
         }
 
-        oldPos = pUv;
+        oldPos = pos;
       }
     }
 
@@ -303,25 +311,19 @@ void main(){
         vec2 pos = texture2D(posTex, vIndex).xy;
         if (pos == vec2(0.)){ break; }
 
-        vec2 pUv = screenPt(pos);
-
         #if EDIT_VERTS == 1
-        DrawPoint(uv, pUv, finalColor);
+        DrawPoint(uv, pos, finalColor);
         #endif
 
         // float d = sdCircle(uv, pUv, 0.125);
         // finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(sdCircle(uv, pUv, 0.125))) );
-        float d = sdCircle(uv, pUv, 0.125);
+        float d = sdCircle(uv, pos, 0.125);
         //d = min(d, oldDist);
         d = opSmoothUnion(d, oldDist, 0.05);
-        vec3 cCol = vec3(0.0, 0.384, 0.682);
-        finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight,abs(d)) );
-
-        // Something about this isn't working
-        // finalColor = minColor(oldDist, d, finalColor, vec3(0.0, 0.384, 0.682));
+        // vec3 cCol = vec3(0.0, 0.384, 0.682);
+        // finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight,abs(d)) );
 
         oldDist = d;
-        oldPos = pUv;
       }
     }
 
@@ -340,12 +342,6 @@ void main(){
 
     //current Mouse Position
     DrawPoint(uv, screenPt(mPt), finalColor);
-
-    #if BG_GRID == 1
-    // Blue grid lines
-    finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.x) - 0.92)*4.0;
-    finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.y) - 0.92)*4.0;
-    #endif
 
     pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0);
 }

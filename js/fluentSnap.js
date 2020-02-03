@@ -120,7 +120,7 @@ function snapGlobalMv(e, fluentDoc){
     let angle = lnCurr.angle()* (180 / Math.PI);
 
     //global angle
-    let gAngle = 90;
+    let gAngle = this.factors.angle;
 
     let snapA = (Math.round(angle / gAngle) * gAngle);
     snapA = (snapA * (Math.PI / 180));

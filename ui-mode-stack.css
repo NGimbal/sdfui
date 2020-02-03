@@ -12,9 +12,9 @@
   left:1%;
   z-index: 10;
 
-  width: 31%;
+  width: 22%;
   height: 98%;
-  max-width: 300px;
+  max-width: 200px;
 }
 
 #mode-stack{
@@ -52,6 +52,7 @@
   height: 54%;
   max-width: 300px;
   bottom: 46%;
+
 }
 
 .stack{
@@ -75,7 +76,7 @@
 /* https://www.w3schools.com/howto/howto_js_snackbar.asp */
 /* The snackbar - position it at the bottom and in the middle of the screen */
 .mode-hint {
-  min-width: 200px; /* Set a default minimum width */
+  min-width: 150px; /* Set a default minimum width */
   color: black; /* White text color */
 
   box-sizing: border-box;
@@ -95,7 +96,7 @@
 }
 
 .button-hint {
-  min-width: 200px; /* Set a default minimum width */
+  min-width: 150px; /* Set a default minimum width */
   color: black; /* White text color */
 
   box-sizing: border-box;
@@ -117,7 +118,7 @@
 }
 
 .button-header {
-  min-width: 200px; /* Set a default minimum width */
+  min-width: 150px; /* Set a default minimum width */
   color: black; /* White text color */
 
   box-sizing: border-box;

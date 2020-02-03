@@ -74,8 +74,8 @@ class GhostUI{
     let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
 
     let snapPt = new UIModifier("snapPt", "snap", "p", false, {clck:SNAP.snapPtClck, mv:SNAP.snapPtMv, up:SNAP.snapPtUp}, {dist:200});
-    let snapRef = new UIModifier("snapRef", "snap", "s", false, {clck:SNAP.snapRefClck, mv:SNAP.snapRefMv, up:SNAP.snapRefUp}, {angle:45});
-    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", false, {clck:SNAP.snapGlobalClck, mv:SNAP.snapGlobalMv, up:SNAP.snapGlobalUp}, {angle:90});
+    let snapRef = new UIModifier("snapRef", "snap", "s", false, {clck:SNAP.snapRefClck, mv:SNAP.snapRefMv, up:SNAP.snapRefUp}, {angle:30});
+    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", false, {clck:SNAP.snapGlobalClck, mv:SNAP.snapGlobalMv, up:SNAP.snapGlobalUp}, {angle:45});
     let snapGrid = new UIModifier("snapGrid", "snap", "g", false, {clck:SNAP.snapGridClck, mv:SNAP.snapGridMv, up:SNAP.snapGridUp}, {});
 
     //so of course the different "edit tools" should be modifiers
@@ -92,7 +92,7 @@ class GhostUI{
     let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, drawPLine, drawCircle, lineWeight, endPLine, escPLine];
     drawMods = globalMods.concat(drawMods);
 
-    let selMods = [pauseShader, hideGrid, screenshot];
+    let selMods = [pauseShader, hideGrid, screenshot, drawPLine, drawCircle];
 
     //if no drawing tools are selected, drawExit();
     let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp});
@@ -183,8 +183,8 @@ class GhostUI{
   //most basic update pattern that will also be used in event handlers
   update(){
     let fluentDoc = this.fluentStack.curr().clone();
-
     let mode = this.modeStack.curr();
+    if(!mode.update)return;
 
     if (mode.toggle == false){
       mode = this.modeStack.undo();
@@ -200,6 +200,7 @@ class GhostUI{
   mouseUp(e) {
     let fluentDoc = this.fluentStack.curr().clone();
     let mode = this.modeStack.curr();
+    if(!mode.up)return;
 
     let newDoc = mode.up(e, fluentDoc);
     if (newDoc) fluentDoc = newDoc;
@@ -222,6 +223,9 @@ class GhostUI{
     fluentDoc.mPt.y = (fluentDoc.elem.height - evPt.y) / fluentDoc.elem.height;
 
     let mode = this.modeStack.curr();
+
+    if(!mode.mv)return;
+
     let newDoc = mode.mv(e, fluentDoc);
     if (newDoc) fluentDoc = newDoc;
 
@@ -303,7 +307,7 @@ function drawEnter(){
   var index = this.modifiers.findIndex(i => i.name === "snapPt");
   this.modifiers[index].clck();
 
-  var index = this.modifiers.findIndex(i => i.name === "drawPLine");
+  var index = this.modifiers.findIndex(i => i.name === "drawCircle");
   this.modifiers[index].clck();
 }
 
@@ -320,21 +324,21 @@ function drawUpdate(fluentDoc){
   for (let m of this.modifiers){
     if(m.tag == "primitives" && m.toggle){
       tool = m;
+      break;
+    }
+  }
+
+  for(let m of this.modifiers){
+    //each update will deal with m.toggle on an individual basis
+    if(m.update){
+      let newDoc = m.update(fluentDoc);
+      if (newDoc) fluentDoc = newDoc;
     }
   }
 
   if (tool == null){
     this.toggle = false;
     return;
-  }
-
-  for(let m of this.modifiers){
-
-    //each update will deal with m.toggle on an individual basis
-    if(m.update){
-      let newDoc = m.update(fluentDoc);
-      if (newDoc) fluentDoc = newDoc;
-    }
   }
 }
 
@@ -405,7 +409,6 @@ function drawCircleUpdate(fluentDoc){
       fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", valString);
       // fluentDoc.shaderUpdate = true;
 
-
     }
 
     this.factors.update = false;
@@ -443,31 +446,28 @@ function drawPLineClck(){
 function drawPLineUpdate(fluentDoc){
   if(!fluentDoc.currEditItem instanceof PolyLine) return;
 
+  //turn PLine Drawing off
   if(!this.toggle && this.factors.update){
-    let valString = "0";
     // need to end current PLine
     //then stop drawing PLine
     if(fluentDoc.currEditItem.pts.length > 0){
-      fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc);
-      fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(fluentDoc);
+      fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionParams(fluentDoc);
+      fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
       fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
-
-      fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", valString);
-      fluentDoc.shaderUpdate = true;
-
     }
+
+    fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "0");
+    fluentDoc.shaderUpdate = true;
 
     this.factors.update = false;
     return fluentDoc;
-
   } else if(this.toggle && this.factors.update) {
     //restart drawing PLine
-    let valString = "1";
     fluentDoc.editItemIndex++;
     fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
     fluentDoc.editItems.push(fluentDoc.currEditItem);
 
-    fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", valString);
+    fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
     fluentDoc.shaderUpdate = true;
 
     this.factors.update = false;
@@ -558,8 +558,8 @@ function endPLineUpdate(fluentDoc){
 
 
   // fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc);
-  fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineParams(fluentDoc);
-  fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(fluentDoc);
+  fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionParams(fluentDoc);
+  fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
   fluentDoc.shaderUpdate = true;
 
   fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
@@ -743,7 +743,7 @@ class FluentDoc{
     this.editItems = [this.currEditItem];
 
     //document registry of paramters
-    this.parameters = new PolyPoint(this.resolution, this.editWeight, 16);
+    this.parameters = new PolyPoint(this.resolution, this.editWeight, 128);
 
     //establishes grid offsets
     //actually don't think this instantiation is necessary
@@ -1047,6 +1047,20 @@ class PolyPoint {
     let hFloatY = y / this.resolution.y;
     let hFloatYFlip = (this.resolution.y - y) / this.resolution.y;
 
+    //this should be a property of GhostUI
+    let dpr = window.devicePixelRatio;
+
+    //The following matches the screenPt function in the fragment shader
+    //Could think about moving this code entirely to javascript, probably smart
+    hFloatX -= 0.5;
+    hFloatYFlip -= 0.5;
+    hFloatX *= this.resolution.x / this.resolution.y;
+    //I think 1.0 is where scale should go for zoom
+    hFloatX = (hFloatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
+    hFloatYFlip = (hFloatYFlip * this.resolution.y) / (this.resolution.y / dpr * 1.0);
+
+
+
     //use view.setFloat16() to set the digits in the DataView
     //then use view.getUint16 to retrieve and write to data Texture
     let buffer = new ArrayBuffer(64);
@@ -1125,7 +1139,7 @@ class PolyLine extends PolyPoint {
 
   //takes shader as argument, modifies string, returns modified shader
   //the inputs to these functions e.g. position will be parameterized
-  bakePolyLineAbsolute(fluentDoc){
+  bakeFunctionAbsolute(fluentDoc){
     let shader = fluentDoc.shader;
 
     //insert new function
@@ -1183,12 +1197,12 @@ class PolyLine extends PolyPoint {
 
       //The following matches the screenPt function in the fragment shader
       //Could think about moving this code entirely to javascript, probably smart
-      floatX -= 0.5;
-      floatY -= 0.5;
-      floatX *= this.resolution.x / this.resolution.y;
-      //I think 1.0 is where scale should go for zoom
-      floatX = (floatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
-      floatY = (floatY * this.resolution.y) / (this.resolution.y / dpr * 1.0);
+      // floatX -= 0.5;
+      // floatY -= 0.5;
+      // floatX *= this.resolution.x / this.resolution.y;
+      // //I think 1.0 is where scale should go for zoom
+      // floatX = (floatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
+      // floatY = (floatY * this.resolution.y) / (this.resolution.y / dpr * 1.0);
 
       if(oldPosX == 0 && oldPosY ==0){
         oldPosX = floatX;
@@ -1220,14 +1234,12 @@ class PolyLine extends PolyPoint {
 
     let fragShader = startShader + endShader;
 
-    // console.log(fragShader);
-
     return fragShader;
   }
 
   //takes shader as argument, modifies string, returns modified shader
   //the inputs to these functions e.g. position will be parameterized
-  bakePolyLineParams(fluentDoc){
+  bakeFunctionParams(fluentDoc){
 
     let shader = fluentDoc.shader;
 
@@ -1300,12 +1312,9 @@ class PolyLine extends PolyPoint {
       //I think 1.0 is where scale should go for zoom
       floatX = (floatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
       floatY = (floatY * this.resolution.y) / (this.resolution.y / dpr * 1.0);
-      // console.log(floatX);
-      // console.log(floatY);
 
       //there is a more efficient way of doing this
       //should have an addPoint from point thing
-      console.log(p);
       fluentDoc.parameters.addPoint(p.x, p.y, p.tag);
       let cTexel = fluentDoc.parameters.cTexel;
 
@@ -1314,14 +1323,12 @@ class PolyLine extends PolyPoint {
         //what are x, y texel indices?
         indexX = (cTexel % dataSize) / dataSize + texelOffset;
         indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-        console.log(indexX);
-        console.log(indexY);
         posString += '\n\tvec2 pos = vec2(0.0);\n';
 
         posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');\n';
         //I do think these need to be modified by screenPt
         //until screenPt code is moved to js
-        posString += '\n\tvec2 oldPos = screenPt(texture2D(parameters, index).xy);\n';
+        posString += '\n\tvec2 oldPos = texture2D(parameters, index).xy;\n';
 
         oldPosX = floatX;
         oldPosY = floatY;
@@ -1329,12 +1336,10 @@ class PolyLine extends PolyPoint {
       }else{
         indexX = (cTexel % dataSize) / dataSize + texelOffset;
         indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-        console.log(indexX);
-        console.log(indexY);
         //texture2D(posTex, vIndex).xy;
         // posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
         posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');\n';
-        posString += '\n\tpos = screenPt(texture2D(parameters, index).xy);\n';
+        posString += '\n\tpos = texture2D(parameters, index).xy;\n';
 
         posString += '\tfinalColor = min(finalColor, vec3(FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +')));\n';
 
@@ -1348,15 +1353,13 @@ class PolyLine extends PolyPoint {
     // posString += '\tfinalColor = mix(finalColor, vec3(1.0), editOpacity);\n}\n';
     posString += '\n}\n';
     posString += '//$END-' + this.id + '\n';
-    console.log(posString);
+    // console.log(posString);
     this.fragShaer = posString;
     // console.log(posString);
 
     startShader += posString;
 
     let fragShader = startShader + endShader;
-
-    console.log(fluentDoc.parameters);
 
     // console.log(fragShader);
 
@@ -1366,7 +1369,7 @@ class PolyLine extends PolyPoint {
   //takes shader as argument, modifies string, returns modified shader
   //creates function calls that calls function already created
   //the inputs to these functions e.g. position will be parameterized
-  bakePolyLineCall(fluentDoc){
+  bakeFunctionCall(fluentDoc){
     let shader = fluentDoc.shader;
     let insString = "//$INSERT CALL$------";
     let insIndex = shader.indexOf(insString);
@@ -1408,12 +1411,167 @@ class PolyCircle extends PolyPoint {
 
   }
 
-  // clone(){}
-  // bakePolyCircleFunction(){
+  clone(){
+    let resolution = this.resolution.clone();
+    let weight = this.weight;
+    let dataSize = this.dataSize;
 
-  // }
-  bakePolyCircleCall(_fragShader){
-    let shader = _fragShader;
+    let newPolyCircle = new PolyCircle(resolution, weight, dataSize);
+
+    let pts = [];
+    for (let p of this.pts){ pts.push(p.clone());};
+    let cTexel = this.cTexel;
+
+    newPolyCircle.pts = pts;
+    newPolyCircle.cTexel = cTexel;
+
+    let data = new Uint16Array(this.data);
+    let ptsTex = new THREE.DataTexture(data, dataSize, dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
+
+    newPolyCircle.data = data;
+    newPolyCircle.ptsTex = ptsTex;
+
+    let id = this.id;
+    newPolyCircle.id = id;
+
+    var fragFunction = (' ' + this.fragFunction).slice(1);
+
+    newPolyCircle.fragFunction = fragFunction;
+
+    return newPolyCircle;
+  }
+
+  bakeFunctionParams(fluentDoc){
+        let shader = fluentDoc.shader;
+
+        //insert new function
+        let insString = "//$INSERT FUNCTION$------";
+        let insIndex = shader.indexOf(insString);
+        insIndex += insString.length;
+
+        let startShader = shader.slice(0, insIndex);
+        let endShader = shader.slice(insIndex);
+
+        // if function exists start and end should be before beginning and after end
+        let exFuncStr = '//$START-' + this.id;
+
+        let exFuncIndex = shader.indexOf(exFuncStr);
+
+        //if function exists
+        if(exFuncIndex >= 0){
+          startShader = shader.slice(0, exFuncIndex);
+
+          let postFuncStr = '//$END-' + this.id;
+          let postIndex = shader.indexOf(postFuncStr);
+          postIndex += postFuncStr.length;
+          endShader = shader.slice(postIndex);
+        }
+
+        //create function
+        let posString = '\n';
+        posString += '//$START-' + this.id + '\n';
+
+        // p is a translation for polygon
+        // eventually this will be a reference to another data texture
+        posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
+
+        posString += '\n\tvec2 tUv = uv - p;\n';
+
+        let indexX = 0;
+        let indexY = 0;
+
+        let first = true;
+
+        let dpr = window.devicePixelRatio;
+
+        let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
+        let dataSize = fluentDoc.parameters.dataSize;
+
+        for (let p of this.pts){
+          //
+          // view.setUint16(0, p.texData[0]);
+          // let floatX = getFloat16(view, 0);
+          // // console.log(getFloat16(view, 0));
+          // // console.log(getFloat16(view, 0) * window.innerWidth);
+          //
+          // view.setUint16(0, p.texData[1]);
+          // let floatY = getFloat16(view, 0);
+          // // console.log(getFloat16(view, 0));
+          // // console.log(window.innerHeight - getFloat16(view, 0) * window.innerHeight);
+          //
+          // //The following matches the screenPt function in the fragment shader
+          // //Could think about moving this code entirely to javascript, probably smart
+          // //The way to move this totally to js would be to put it in PolyPoint.addPoint
+          // floatX -= 0.5;
+          // floatY -= 0.5;
+          // floatX *= this.resolution.x / this.resolution.y;
+          // //I think 1.0 is where scale should go for zoom
+          // floatX = (floatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
+          // floatY = (floatY * this.resolution.y) / (this.resolution.y / dpr * 1.0);
+
+          //there is a more efficient way of doing this
+          //should have an addPoint from point thing
+          fluentDoc.parameters.addPoint(p.x, p.y, p.tag);
+          let cTexel = fluentDoc.parameters.cTexel;
+
+          //should factor out oldPosX and oldPosY but too tired now
+          if(first){
+            first = false;
+            //what are x, y texel indices?
+            indexX = (cTexel % dataSize) / dataSize + texelOffset;
+            indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+            posString += '\n\tvec2 pos = vec2(0.0);';
+            posString += '\n\t float oldDist = 1000.0;';
+
+            posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');';
+
+            posString += '\n\tpos = texture2D(parameters, index).xy;';
+
+            posString += '\n\tfloat d = sdCircle(uv, pos, 0.125);';
+            posString += '\n\td = opSmoothUnion(d, oldDist, 0.05);';
+            posString += '\n\toldDist = d;\n';
+
+          }else{
+            indexX = (cTexel % dataSize) / dataSize + texelOffset;
+            indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+
+            posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');';
+            posString += '\n\tpos = texture2D(parameters, index).xy;';
+
+            posString += '\n\td = sdCircle(uv, pos, 0.125);';
+            posString += '\n\td = opSmoothUnion(d, oldDist, 0.05);';
+            posString += '\n\toldDist = d;';
+            // posString += '\n\tvec3 cCol = vec3(0.0, 0.384, 0.682);';
+            // posString += '\n\tfinalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight,abs(d)) );';
+
+          }
+        }
+        posString += '\n';
+
+        // posString += '\n\td = sdCircle(uv, screenPt(mPt), 0.125);';
+        // posString += '\n\tfinalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(d)));';
+        // posString += '\n\td = opSmoothUnion(d, oldDist, 0.05);';
+        posString += '\n\tvec3 cCol = vec3(0.0, 0.0, 0.00);';
+        posString += '\n\tfinalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight+0.008,abs(d)));';
+
+        // posString += '\tfinalColor = mix(finalColor, vec3(1.0), editOpacity);\n}\n';
+        posString += '\n}\n';
+        posString += '//$END-' + this.id + '\n';
+        console.log(posString);
+        this.fragShaer = posString;
+        // console.log(posString);
+
+        startShader += posString;
+
+        let fragShader = startShader + endShader;
+
+        // console.log(fragShader);
+
+        return fragShader;
+  }
+
+  bakeFunctionCall(fluentDoc){
+    let shader = fluentDoc.shader;
     let insString = "//$INSERT CALL$------";
     let insIndex = shader.indexOf(insString);
     insIndex += insString.length;
