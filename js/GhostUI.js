@@ -84,12 +84,12 @@ class GhostUI{
 
     //lineweight modifier is broken
     let lineWeight = new UIModifier("lineWeight", "edit", "w", false, {clck:lineWeightClck, update:lineWeightUpdate}, {weight:0.002});
-    let endPLine = new UIModifier("endPLine", "edit", "Enter", false, {clck:endPLineClck, update:endPLineUpdate}, {});
-    let escPLine = new UIModifier("escPLine", "edit", "Escape", false, {clck:escPLineClck, update:escPLineUpdate}, {});
+    let endDraw = new UIModifier("endDraw", "edit", "Enter", false, {clck:endDrawClck, update:endDrawUpdate}, {});
+    let escDraw = new UIModifier("escDraw", "edit", "Escape", false, {clck:escDrawClck, update:escDrawUpdate}, {});
 
     //MODES
     let globalMods = [pauseShader, hideGrid, screenshot];
-    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, drawPLine, drawCircle, lineWeight, endPLine, escPLine];
+    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, drawPLine, drawCircle, lineWeight, endDraw, escDraw];
     drawMods = globalMods.concat(drawMods);
 
     let selMods = [pauseShader, hideGrid, screenshot, drawPLine, drawCircle];
@@ -384,7 +384,7 @@ function pauseShaderClck(){
   HINT.pulseActive(this);
 }
 
-function endPLineClck(){
+function endDrawClck(){
   this.toggle = !this.toggle;
   HINT.pulseActive(this);
 }
@@ -394,6 +394,63 @@ function drawCircleClck(){
   this.factors.update = true;
   console.log(this);
   HINT.toggleActive(this);
+}
+
+function drawPLineClck(){
+  this.toggle = !this.toggle;
+  this.factors.update = true;
+  HINT.toggleActive(this);
+}
+
+// pseudoCode for
+// drawUpdate(fluentDoc){
+//   let select = document.getElementById("editItem-select");
+//   if (fluentDoc.currEditItem instanceof select.value) return;
+//   switch select.value:
+//     case "polyCircle"{
+//        fluentDoc.editItem = new PolyCircle;
+//        fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.editItem;
+//     }
+//     case "polyLine"{
+//        fluentDoc.editItem = new PolyLine;
+//        fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.editItem;
+//     }
+//     default:
+// }
+
+//toggles whether we're drawing a polyline
+function drawPLineUpdate(fluentDoc){
+  // if(!fluentDoc.currEditItem instanceof PolyLine) return;
+
+  //turn PLine Drawing off
+  if(!this.toggle && this.factors.update){
+    // need to end current PLine
+    //then stop drawing PLine
+    if(fluentDoc.currEditItem.pts.length > 0){
+      fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionParams(fluentDoc);
+      fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
+      fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+    }
+
+    fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "0");
+    fluentDoc.shaderUpdate = true;
+
+    this.factors.update = false;
+    return fluentDoc;
+  } else if(this.toggle && this.factors.update) {
+    //restart drawing PLine
+    fluentDoc.editItemIndex++;
+    fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+    fluentDoc.editItems.push(fluentDoc.currEditItem);
+
+    fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
+    fluentDoc.shaderUpdate = true;
+
+    this.factors.update = false;
+
+    return fluentDoc;
+  }
+  else return null;
 }
 
 function drawCircleUpdate(fluentDoc){
@@ -431,50 +488,8 @@ function drawCircleUpdate(fluentDoc){
   else return null;
 }
 
-function drawCircleUp(){
-
-}
-
-
-function drawPLineClck(){
-  this.toggle = !this.toggle;
-  this.factors.update = true;
-  HINT.toggleActive(this);
-}
-
-//toggles whether we're drawing a polyline
-function drawPLineUpdate(fluentDoc){
-  if(!fluentDoc.currEditItem instanceof PolyLine) return;
-
-  //turn PLine Drawing off
-  if(!this.toggle && this.factors.update){
-    // need to end current PLine
-    //then stop drawing PLine
-    if(fluentDoc.currEditItem.pts.length > 0){
-      fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionParams(fluentDoc);
-      fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
-      fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
-    }
-
-    fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "0");
-    fluentDoc.shaderUpdate = true;
-
-    this.factors.update = false;
-    return fluentDoc;
-  } else if(this.toggle && this.factors.update) {
-    //restart drawing PLine
-    fluentDoc.editItemIndex++;
-    fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
-    fluentDoc.editItems.push(fluentDoc.currEditItem);
-
-    fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
-    fluentDoc.shaderUpdate = true;
-
-    this.factors.update = false;
-
-    return fluentDoc;
-  }
-  else return null;
+function drawCircleUp(e, fluentDoc){
+  
 }
 
 function drawPLineUp(e, fluentDoc){
@@ -496,7 +511,7 @@ function drawPLineUp(e, fluentDoc){
   fluentDoc.tree.insert(plPt);
 }
 
-function escPLineClck(fluentDoc){
+function escDrawClck(fluentDoc){
   this.toggle = !this.toggle;
   HINT.pulseActive(this);
 }
@@ -553,16 +568,16 @@ function hideGridUpdate(fluentDoc){
   return fluentDoc;
 }
 
-function endPLineUpdate(fluentDoc){
+function endDrawUpdate(fluentDoc){
   if(!this.toggle) return null;
-
 
   // fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc);
   fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionParams(fluentDoc);
   fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
   fluentDoc.shaderUpdate = true;
 
-  fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+  fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+
   fluentDoc.editItems.push(fluentDoc.currEditItem);
 
   fluentDoc.editItemIndex++;
@@ -571,7 +586,7 @@ function endPLineUpdate(fluentDoc){
   return fluentDoc;
 }
 
-function escPLineUpdate(fluentDoc){
+function escDrawUpdate(fluentDoc){
   if(!this.toggle) return null;
 
   //remove all points from curr edit item before ending this polyline
@@ -582,7 +597,7 @@ function escPLineUpdate(fluentDoc){
     fluentDoc.tree.remove(p);
   }
 
-  fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+  fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
 
   this.toggle = !this.toggle;
   return fluentDoc;
@@ -1104,7 +1119,6 @@ class PolyLine extends PolyPoint {
     super(resolution, _weight, _dataSize);
 
     this.fragFunction = "";
-
   }
 
   clone(){
@@ -1398,6 +1412,10 @@ class PolyLine extends PolyPoint {
 
     return fragShader;
   }
+
+  create(resolution, weight, _dataSize){
+    return new PolyLine(resolution, weight, _dataSize);
+  }
 }
 
 class PolyCircle extends PolyPoint {
@@ -1488,27 +1506,6 @@ class PolyCircle extends PolyPoint {
         let dataSize = fluentDoc.parameters.dataSize;
 
         for (let p of this.pts){
-          //
-          // view.setUint16(0, p.texData[0]);
-          // let floatX = getFloat16(view, 0);
-          // // console.log(getFloat16(view, 0));
-          // // console.log(getFloat16(view, 0) * window.innerWidth);
-          //
-          // view.setUint16(0, p.texData[1]);
-          // let floatY = getFloat16(view, 0);
-          // // console.log(getFloat16(view, 0));
-          // // console.log(window.innerHeight - getFloat16(view, 0) * window.innerHeight);
-          //
-          // //The following matches the screenPt function in the fragment shader
-          // //Could think about moving this code entirely to javascript, probably smart
-          // //The way to move this totally to js would be to put it in PolyPoint.addPoint
-          // floatX -= 0.5;
-          // floatY -= 0.5;
-          // floatX *= this.resolution.x / this.resolution.y;
-          // //I think 1.0 is where scale should go for zoom
-          // floatX = (floatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
-          // floatY = (floatY * this.resolution.y) / (this.resolution.y / dpr * 1.0);
-
           //there is a more efficient way of doing this
           //should have an addPoint from point thing
           fluentDoc.parameters.addPoint(p.x, p.y, p.tag);
@@ -1548,9 +1545,6 @@ class PolyCircle extends PolyPoint {
         }
         posString += '\n';
 
-        // posString += '\n\td = sdCircle(uv, screenPt(mPt), 0.125);';
-        // posString += '\n\tfinalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(d)));';
-        // posString += '\n\td = opSmoothUnion(d, oldDist, 0.05);';
         posString += '\n\tvec3 cCol = vec3(0.0, 0.0, 0.00);';
         posString += '\n\tfinalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight+0.008,abs(d)));';
 
@@ -1598,6 +1592,10 @@ class PolyCircle extends PolyPoint {
     // console.log(fragShader);
 
     return fragShader;
+  }
+
+  create(resolution, weight, _dataSize){
+    return new PolyCircle(resolution, weight, _dataSize);
   }
 
 }
