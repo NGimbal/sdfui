@@ -18,6 +18,7 @@
     <!-- <script type="module" src="./js/Hfloat16.js"></script> -->
 
     <script type="module" src="./js/sdfui.js"></script>
+    <script type="module" src="./js/GhostUI.js"></script>
 
     <!-- https://github.com/petamoriken/float16 -->
     <script src="./js/libjs/float16.js"></script>
@@ -31,6 +32,12 @@
       <div id="button-stack" class="stack">
       </div>
       <div id="input-stack" class="stack">
+        <select name="primitives" id="primitive-select">
+          <option value="PolyLine" selected>Poly Line</option>
+          <option value="PolyCircle">Poly Circle</option>
+          <option value="Circle">Circle</option>
+          <option value="Rectangle">Rectangle</option>
+        </select>
       </div>
       <div id="mode-stack" class="stack">
       </div>

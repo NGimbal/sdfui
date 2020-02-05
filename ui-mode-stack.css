@@ -40,6 +40,9 @@
   height: 24%;
   max-width: 300px;
   bottom: 21%;
+
+  box-sizing: border-box;
+  padding-top: 1vh;
 }
 
 #button-stack{
@@ -52,7 +55,10 @@
   height: 54%;
   max-width: 300px;
   bottom: 46%;
+}
 
+#primitive-select{
+  width:96%;
 }
 
 .stack{

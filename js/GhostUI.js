@@ -56,6 +56,7 @@ class GhostUI{
 
     console.log(endianNess());
 
+
     //DOCUMENT STATE
     let fluentDoc = new FluentDoc(this.elem, this.shader);
     this.fluentStack = new StateStack(fluentDoc, 10);
@@ -77,11 +78,7 @@ class GhostUI{
     let snapRef = new UIModifier("snapRef", "snap", "s", false, {clck:SNAP.snapRefClck, mv:SNAP.snapRefMv, up:SNAP.snapRefUp}, {angle:30});
     let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", false, {clck:SNAP.snapGlobalClck, mv:SNAP.snapGlobalMv, up:SNAP.snapGlobalUp}, {angle:45});
     let snapGrid = new UIModifier("snapGrid", "snap", "g", false, {clck:SNAP.snapGridClck, mv:SNAP.snapGridMv, up:SNAP.snapGridUp}, {});
-
-    //so of course the different "edit tools" should be modifiers
-    let drawPLine = new UIModifier("drawPLine", "primitives", "a", false, {clck:drawPLineClck, update:drawPLineUpdate, up:drawPLineUp}, {update:false});
-    let drawCircle = new UIModifier("drawCircle", "primitives", "c", false, {clck:drawCircleClck, update:drawCircleUpdate, up:drawCircleUp}, {update:false});
-
+    
     //lineweight modifier is broken
     let lineWeight = new UIModifier("lineWeight", "edit", "w", false, {clck:lineWeightClck, update:lineWeightUpdate}, {weight:0.002});
     let endDraw = new UIModifier("endDraw", "edit", "Enter", false, {clck:endDrawClck, update:endDrawUpdate}, {});
@@ -89,13 +86,13 @@ class GhostUI{
 
     //MODES
     let globalMods = [pauseShader, hideGrid, screenshot];
-    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, drawPLine, drawCircle, lineWeight, endDraw, escDraw];
+    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, lineWeight, endDraw, escDraw];
     drawMods = globalMods.concat(drawMods);
 
-    let selMods = [pauseShader, hideGrid, screenshot, drawPLine, drawCircle];
+    let selMods = [pauseShader, hideGrid, screenshot];
 
     //if no drawing tools are selected, drawExit();
-    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp});
+    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, {currEditItem:"PolyLine", editWeight:0.02});
     let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
     // let edit = new UIMode("select", false, edit)
     // let move
@@ -276,6 +273,12 @@ class GhostUI{
   }
 }
 
+//this might as well just be taken care of in draw update
+function selectPrimitive(e){
+  let sel = document.getElementById("primitive-select");
+  console.log(sel.value);
+}
+
 //---SELECT---------------------------
 function selEnter(){
   HINT.pushModeHint(this.name, "Select Mode!");
@@ -302,13 +305,19 @@ function drawEnter(){
   // pushPopModeHint(this.name, "Begin Drawing!");
   HINT.pushModeHint(this.name, "Begin Drawing!");
   this.initUIModeButtons();
+
+  //add event to primitive select element
+  //this is going to move somewhere...
+  let sel = document.getElementById("primitive-select");
+  sel.addEventListener("change", selectPrimitive);
+
   //turns on snapping to pts by default
   //function should take some default settings at some point
   var index = this.modifiers.findIndex(i => i.name === "snapPt");
   this.modifiers[index].clck();
 
-  var index = this.modifiers.findIndex(i => i.name === "drawCircle");
-  this.modifiers[index].clck();
+  // var index = this.modifiers.findIndex(i => i.name === "drawPLine");
+  // this.modifiers[index].clck();
 }
 
 function drawExit(){
@@ -320,12 +329,44 @@ function drawExit(){
 function drawUpdate(fluentDoc){
   //exit draw condition
   //no primitive tool active
-  let tool = null;
-  for (let m of this.modifiers){
-    if(m.tag == "primitives" && m.toggle){
-      tool = m;
-      break;
+  if(this.factors.currEditItem == null){
+    this.exit();
+    return;
+  }
+
+  let sel = document.getElementById("primitive-select");
+
+  //interesting blink if currEditItem is not finished before choosing new primitive
+  //might need to have some kind of shader pause toggle here to avoid that
+  if(this.factors.currEditItem != sel.value){
+    fluentDoc = fluentDoc.currEditItem.end(fluentDoc);
+    fluentDoc.shaderUpdate = true;
+    switch(sel.value){
+      case "PolyLine":
+        this.factors.currEditItem = "PolyLine";
+        fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+        fluentDoc.editItems.push(fluentDoc.currEditItem);
+        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
+        break;
+      case "PolyCircle":
+        this.factors.currEditItem = "PolyCircle";
+        fluentDoc.currEditItem = new PolyCircle(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "2");
+        break;
+      case "Circle":
+        console.log("Circle not yet implemented!");
+        this.factors.currEditItem = "Circle";
+        fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
+        break;
+      case "Rectangle":
+        console.log("Rectangle not yet implemented!");
+        this.factors.currEditItem = "Rectangle";
+        fluentDoc.currEditItem = new PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
+        break;
     }
+    fluentDoc.shaderUpdate = true;
   }
 
   for(let m of this.modifiers){
@@ -336,10 +377,6 @@ function drawUpdate(fluentDoc){
     }
   }
 
-  if (tool == null){
-    this.toggle = false;
-    return;
-  }
 }
 
 function drawMv(e, fluentDoc){
@@ -364,6 +401,23 @@ function drawUp(e, fluentDoc){
     fluentDoc = modState;
   }
 
+  let addPt = {
+    x: 0,
+    y: 0,
+    tag: "none",
+  }
+
+  addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
+  addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+  addPt.tag = "plPoint";
+
+  let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
+
+  //important to keep a simple array of pts for reconstructing
+  //tree on cloneing
+  fluentDoc.pts.push(plPt);
+  fluentDoc.tree.insert(plPt);
+
   return fluentDoc;
 }
 
@@ -387,128 +441,6 @@ function pauseShaderClck(){
 function endDrawClck(){
   this.toggle = !this.toggle;
   HINT.pulseActive(this);
-}
-
-function drawCircleClck(){
-  this.toggle = !this.toggle;
-  this.factors.update = true;
-  console.log(this);
-  HINT.toggleActive(this);
-}
-
-function drawPLineClck(){
-  this.toggle = !this.toggle;
-  this.factors.update = true;
-  HINT.toggleActive(this);
-}
-
-// pseudoCode for
-// drawUpdate(fluentDoc){
-//   let select = document.getElementById("editItem-select");
-//   if (fluentDoc.currEditItem instanceof select.value) return;
-//   switch select.value:
-//     case "polyCircle"{
-//        fluentDoc.editItem = new PolyCircle;
-//        fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.editItem;
-//     }
-//     case "polyLine"{
-//        fluentDoc.editItem = new PolyLine;
-//        fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.editItem;
-//     }
-//     default:
-// }
-
-//toggles whether we're drawing a polyline
-function drawPLineUpdate(fluentDoc){
-  // if(!fluentDoc.currEditItem instanceof PolyLine) return;
-
-  //turn PLine Drawing off
-  if(!this.toggle && this.factors.update){
-    // need to end current PLine
-    //then stop drawing PLine
-    if(fluentDoc.currEditItem.pts.length > 0){
-      fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionParams(fluentDoc);
-      fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
-      fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
-    }
-
-    fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "0");
-    fluentDoc.shaderUpdate = true;
-
-    this.factors.update = false;
-    return fluentDoc;
-  } else if(this.toggle && this.factors.update) {
-    //restart drawing PLine
-    fluentDoc.editItemIndex++;
-    fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
-    fluentDoc.editItems.push(fluentDoc.currEditItem);
-
-    fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
-    fluentDoc.shaderUpdate = true;
-
-    this.factors.update = false;
-
-    return fluentDoc;
-  }
-  else return null;
-}
-
-function drawCircleUpdate(fluentDoc){
-  if(!this.toggle && this.factors.update){
-    let valString = "0";
-    // need to end current PLine
-    //then stop drawing PLine
-    if(fluentDoc.currEditItem.pts.length > 0){
-      // let shaderUpdate = fluentDoc.currEditItem.bakePolyLineFunction(fluentDoc.shader);
-      // fluentDoc.shader = fluentDoc.currEditItem.bakePolyLineCall(shaderUpdate);
-      fluentDoc.currEditItem = new PolyCircle(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
-
-      fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", valString);
-      // fluentDoc.shaderUpdate = true;
-
-    }
-
-    this.factors.update = false;
-    return fluentDoc;
-
-  } else if(this.toggle && this.factors.update) {
-    //restart drawing PLine
-    let valString = "2";
-    fluentDoc.editItemIndex++;
-    fluentDoc.currEditItem = new PolyCircle(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
-    fluentDoc.editItems.push(fluentDoc.currEditItem);
-
-    fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", valString);
-    // fluentDoc.shaderUpdate = true;
-
-    this.factors.update = false;
-
-    return fluentDoc;
-  }
-  else return null;
-}
-
-function drawCircleUp(e, fluentDoc){
-  
-}
-
-function drawPLineUp(e, fluentDoc){
-  let addPt = {
-    x: 0,
-    y: 0,
-    tag: "none",
-  }
-
-  addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
-  addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
-  addPt.tag = "plPoint";
-
-  let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
-
-  //important to keep a simple array of pts for reconstructing
-  //tree on cloneing
-  fluentDoc.pts.push(plPt);
-  fluentDoc.tree.insert(plPt);
 }
 
 function escDrawClck(fluentDoc){
@@ -853,7 +785,7 @@ class FluentDoc{
 class UIMode{
   //bool, [], functions
   // constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
-  constructor(name, modifiers, enter, exit, update, _events){
+  constructor(name, modifiers, enter, exit, update, _events, _factors){
     this.name = name;
     // this.toggle = toggle;
     this.modifiers = modifiers;
@@ -868,6 +800,8 @@ class UIMode{
     if(_events.up) this.up = _events.up;
     if(_events.dwn) this.dwn = _events.dwn;
     if(_events.scrll) this.scrll = _events.scrll;
+
+    this.factors = _factors || {factor:1.0};
   }
 
   initUIModeButtons(){
@@ -1066,14 +1000,12 @@ class PolyPoint {
     let dpr = window.devicePixelRatio;
 
     //The following matches the screenPt function in the fragment shader
-    //Could think about moving this code entirely to javascript, probably smart
     hFloatX -= 0.5;
     hFloatYFlip -= 0.5;
     hFloatX *= this.resolution.x / this.resolution.y;
     //I think 1.0 is where scale should go for zoom
     hFloatX = (hFloatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
     hFloatYFlip = (hFloatYFlip * this.resolution.y) / (this.resolution.y / dpr * 1.0);
-
 
 
     //use view.setFloat16() to set the digits in the DataView
@@ -1208,15 +1140,6 @@ class PolyLine extends PolyPoint {
       let floatY = getFloat16(view, 0);
       // console.log(getFloat16(view, 0));
       // console.log(window.innerHeight - getFloat16(view, 0) * window.innerHeight);
-
-      //The following matches the screenPt function in the fragment shader
-      //Could think about moving this code entirely to javascript, probably smart
-      // floatX -= 0.5;
-      // floatY -= 0.5;
-      // floatX *= this.resolution.x / this.resolution.y;
-      // //I think 1.0 is where scale should go for zoom
-      // floatX = (floatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
-      // floatY = (floatY * this.resolution.y) / (this.resolution.y / dpr * 1.0);
 
       if(oldPosX == 0 && oldPosY ==0){
         oldPosX = floatX;
@@ -1416,6 +1339,15 @@ class PolyLine extends PolyPoint {
   create(resolution, weight, _dataSize){
     return new PolyLine(resolution, weight, _dataSize);
   }
+
+  //should clone and probably push to state stack prior to this
+  end(fluentDoc){
+    if(this.pts.length == 0) return fluentDoc;
+    fluentDoc.editItemIndex++;
+    fluentDoc.shader = this.bakeFunctionParams(fluentDoc);
+    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
+    return fluentDoc;
+  }
 }
 
 class PolyCircle extends PolyPoint {
@@ -1598,6 +1530,14 @@ class PolyCircle extends PolyPoint {
     return new PolyCircle(resolution, weight, _dataSize);
   }
 
+  //should clone and probably push to state stack prior to this
+  end(fluentDoc){
+    if(this.pts.length == 0) return fluentDoc;
+    fluentDoc.editItemIndex++;
+    fluentDoc.shader = this.bakeFunctionParams(fluentDoc);
+    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
+    return fluentDoc;
+  }
 }
 // good for debugging and for reference
 //returns svg element
