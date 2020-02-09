@@ -47,16 +47,16 @@ function main() {
 
   resizeRendererToDisplaySize(renderer);
 
-// linearSlider
   uniforms = {
     iTime: { value: 0 },
     iResolution:  { value: new THREE.Vector3(canvas.width, canvas.height, 1) },
-    iFrame: { value: 0 },
-    //this should really be editTex or something
+    //initialized to 0 - how does this get set?
+    //in a lot of ways this uniforms should be a member of fluentDoc
+    pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
     posTex: { value: fluentDoc.currEditItem.ptsTex},
-    parameters: {value: fluentDoc.parameters.ptsTex},
-
     posTexRes: {value: new THREE.Vector2(16.0, 16.0)},
+
+    parameters: {value: fluentDoc.parameters.ptsTex},
     mousePt: {value: fluentDoc.mPt},
     editWeight : {value: fluentDoc.editWeight},
     editOpacity : {value: fluentDoc.editOpacity},
@@ -110,8 +110,20 @@ function render() {
   const canvas = renderer.domElement;
   let fluentDoc = ui.fluentStack.curr();
 
+  //update uniforms
+  if(fluentDoc.currEditItem.ptsTex){
+    screenMesh.material.uniforms.posTex.value = fluentDoc.currEditItem.ptsTex;
+  }
+  if(fluentDoc.currEditItem.pointPrim){
+    screenMesh.material.uniforms.pointPrim.value = fluentDoc.currEditItem.pointPrim;
+  }
+
+  screenMesh.material.uniforms.parameters.value = fluentDoc.parameters.ptsTex;
+  screenMesh.material.uniforms.mousePt.value = fluentDoc.mPt;
   screenMesh.material.uniforms.editWeight.value = fluentDoc.editWeight;
   screenMesh.material.uniforms.editOpacity.value = fluentDoc.editOpacity;
+
+  screenMesh.material.uniforms.needsUpdate = true;
 
   if (fluentDoc.shaderUpdate){
     console.log("shader update!")
@@ -119,12 +131,10 @@ function render() {
     uniforms.parameters.value = fluentDoc.parameters.ptsTex;
 
     //annoying that this is set in so many places
-    //may be a hazard of this approach
+    //in the future refactor resolution so it always just reads element size
     fluentDoc.resolution = new THREE.Vector2(canvas.width, canvas.height);
     fluentDoc.currEditItem.resolution = fluentDoc.resolution;
     fluentDoc.parameters.resolution = fluentDoc.resolution;
-    // screenMesh.material.uniforms.parameters.value = fluentDoc.parameters;
-    // console.log(fluentDoc.parameters);
 
     let vertexShader = sdfPrimVert;
     let fragmentShader = fluentDoc.shader;
@@ -154,18 +164,9 @@ function render() {
 
 function animate(time){
   state.time = time * 0.001; //convert to seconds
+  //currently can't unpause for some reason
   let fluentDoc = ui.fluentStack.curr();
   if(!fluentDoc.shaderPause){ render(); }
-
-  //proper way to update uniforms!
-  screenMesh.material.uniforms.posTex.value = fluentDoc.currEditItem.ptsTex;
-  screenMesh.material.uniforms.parameters.value = fluentDoc.parameters.ptsTex;
-
-  screenMesh.material.uniforms.mousePt.value = fluentDoc.mPt;
-
-  // console.log(fluentDoc.parameters);
-
-  screenMesh.material.uniforms.needsUpdate = true;
 
   requestAnimationFrame(animate);
 }

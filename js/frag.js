@@ -1,7 +1,12 @@
 const sdfLines =`
+//Eventually this should go point, circle, rect, polyline,polycircle
 //0 = Nothing
 //1 = PolyLine
 //2 = PolyCircle
+//3 = Circle
+//4 = Rectangle
+//5 = Point
+
 #define EDIT_SHAPE 1
 #define EDIT_VERTS 0
 #define BG_GRID 1
@@ -9,18 +14,21 @@ const sdfLines =`
 // https://www.shadertoy.com/view/4tc3DX
 uniform vec3      iResolution;           // viewport resolution (in pixels)
 uniform float     iTime;                 // shader playback time (in seconds)
-uniform int       iFrame;                // shader playback frame
 
-//expandable structure for polyline being edited
+//simple uniform for 2 xy coordinate based prims
+uniform vec4       pointPrim;
+
+//expandable structure for item being edited
 uniform sampler2D  posTex;
-uniform sampler2D  pLinesTex;
 uniform vec2       posTexRes;
 
+//global parameter container for all parameterized properties
 uniform sampler2D parameters;
 
 //current mouse position
 uniform vec3       mousePt;
 
+//editUniforms
 uniform float      editWeight;
 uniform float      editOpacity;
 
@@ -239,12 +247,17 @@ void main(){
     vec3 finalColor = vec3(1.0);
 
     float texelOffset = 0.5 * (1. / (16. * 16.));
+
     vec2 oldPos = vec2(0.);
     float oldDist = 1000.0;
+
+    float d = 1000.0;
 
     vec2 mPt = vec2(mousePt.x, mousePt.y);
 
     vec2 pos = vec2(0.);
+    vec2 index = vec2(0.);
+    float radius = 0.125;
 
     //$INSERT CALL$------
 
@@ -259,6 +272,22 @@ void main(){
     finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.x) - 0.92)*4.0;
     finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.y) - 0.92)*4.0;
     #endif
+
+    //Circle--------
+    #if EDIT_SHAPE == 3
+    vec2 center = pointPrim.xy;
+    d = sdCircle(uv, screenPt(mPt), 0.125);
+
+    if(center.x != 0.0){
+      vec2 rPt = screenPt(mPt).xy;
+      radius = distance(center, rPt);
+      d = sdCircle(uv, center, radius);
+    }
+
+    finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(d)) );
+
+    #endif
+    //Circle--------
 
     //Polyline-------
     #if EDIT_SHAPE == 1
@@ -299,7 +328,7 @@ void main(){
     #endif
     //Polyline-------
 
-    //MetaBall-------
+    //PolyCircle-----
     #if EDIT_SHAPE == 2
     for (float i = 0.; i < 16.; i++ ){
       float yIndex = (i / 16.) + texelOffset;
@@ -317,7 +346,7 @@ void main(){
 
         // float d = sdCircle(uv, pUv, 0.125);
         // finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(sdCircle(uv, pUv, 0.125))) );
-        float d = sdCircle(uv, pos, 0.125);
+        d = sdCircle(uv, pos, 0.125);
         //d = min(d, oldDist);
         d = opSmoothUnion(d, oldDist, 0.05);
         // vec3 cCol = vec3(0.0, 0.384, 0.682);
@@ -327,7 +356,7 @@ void main(){
       }
     }
 
-    float d = sdCircle(uv, screenPt(mPt), 0.125);
+    d = sdCircle(uv, screenPt(mPt), 0.125);
     // if (oldPos != vec2(0.) && mousePt.z != -1.0){
     finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(d)) );
     // }
@@ -337,7 +366,7 @@ void main(){
     finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight+0.008,abs(d)));
 
     #endif
-    //MetaBall----------
+    //PolyCircle--------
 
 
     //current Mouse Position
