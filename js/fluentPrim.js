@@ -131,14 +131,132 @@ class Circle{
     return pt;
   }
 
-  //here will just add params to fluentDoc.parameters
-  //reversing position on this - this should all just happen in bakeFunctionCall
-  // bakeFunctionParams(fluentDoc){
-  //   let shader = fluentDoc.shader;
-  //   let p = this.pointPrim;
-  //   fluentDoc.parameters.addPoint(p.x, p.y, p.tag , p.z, p.w);
-  //   let cTexel = fluentDoc.parameters.cTexel;
-  // }
+  //going to add each of the 2 points to fluentDoc.params
+  bakeFunctionCall(fluentDoc){
+    let shader = fluentDoc.shader;
+
+    //bakes pointPrim data the fluentDoc.parameters
+    let p = this.pointPrim;
+    fluentDoc.parameters.addPointPrim(p.x, p.y,p.z, p.w, "blah");
+
+    let cTexel = fluentDoc.parameters.cTexel;
+    let dataSize = fluentDoc.parameters.dataSize;
+
+    let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
+
+    let indexX = (cTexel % dataSize) / dataSize + texelOffset;
+    let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+
+
+    //eventually address these functions using id in place of d
+    //then perform scene merge operation when modifying finalColor
+    let insString = "//$INSERT CALL$------";
+    let insIndex = shader.indexOf(insString);
+    insIndex += insString.length;
+
+    let startShader = shader.slice(0, insIndex);
+    let endShader = shader.slice(insIndex);
+
+    let buffer = new ArrayBuffer(10);
+    let view = new DataView(buffer);
+
+    //create function call
+    let posString = '\n';
+
+    posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
+    posString += '\tradius = distance(texture2D(parameters, index).xy, texture2D(parameters, index).zw);\n';
+    posString += '\td = sdCircle(uv, texture2D(parameters, index).xy, radius);\n';
+    posString += '\tfinalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
+
+    startShader += posString;
+    let fragShader = startShader + endShader;
+
+    // console.log(fragShader);
+
+    return fragShader;
+
+  }
+
+  // bakeFunctionAbsolute
+
+  clone(){
+    let resolution = this.resolution;
+    let weight = this.weight;
+    let pointPrim = this.pointPrim.clone();
+    //may need to clone this in a better way
+    let id = this.id;
+
+    //list of points
+    let pts = [];
+    for (let p of this.pts){ pts.push(p.clone());};
+    let newCircle = new Circle(resolution, weight);
+    newCircle.pointPrim = pointPrim;
+    newCircle.id = id;
+    newCircle.pts = pts;
+
+    return newCircle;
+  }
+
+  create(resolution, weight){
+    return new Circle(resolution, weight);
+  }
+
+  end(fluentDoc){
+    if(this.pts.length == 0) return fluentDoc;
+    fluentDoc.editItemIndex++;
+    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
+    return fluentDoc;
+  }
+}
+
+//maybe create a PointPrim class like PolyPoint
+class Rectangle{
+  constructor(resolution, _weight){
+    this.resolution = resolution;
+
+    //input is 1 to 20 divided by 2500
+    this.weight = _weight || .002,
+
+    this.pointPrim = new THREE.Vector4(0.0, 0.0, 0.0, 0.0);
+
+    //list of points
+    this.pts=[];
+
+    this.id = (+new Date).toString(36).slice(-8);
+  }
+
+  //really just going to add 1 of 2 points to this.pts
+  addPoint(x, y, tag){
+    let hFloatX = x / this.resolution.x;
+    let hFloatY = y / this.resolution.y;
+    let hFloatYFlip = (this.resolution.y - y) / this.resolution.y;
+
+    let dpr = window.devicePixelRatio;
+
+    hFloatX -= 0.5;
+    hFloatYFlip -= 0.5;
+    hFloatX *= this.resolution.x / this.resolution.y;
+
+    //I think 1.0 is where scale should go for zoom
+    hFloatX = (hFloatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
+    hFloatYFlip = (hFloatYFlip * this.resolution.y) / (this.resolution.y / dpr * 1.0);
+
+    if(this.pts.length == 0){
+      this.pointPrim.x = hFloatX;
+      this.pointPrim.y = hFloatYFlip;
+    } else {
+      this.pointPrim.z = hFloatX;
+      this.pointPrim.w = hFloatYFlip;
+    }
+
+    // console.log(this.pointPrim);
+
+    let pt = new Point(x, y, 0, [], this.id, "circlePt");
+
+    this.pts.push(pt);
+
+    return pt;
+  }
 
   //going to add each of the 2 points to fluentDoc.params
   bakeFunctionCall(fluentDoc){
@@ -156,11 +274,9 @@ class Circle{
     let indexX = (cTexel % dataSize) / dataSize + texelOffset;
     let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
 
-    //will eventually need to handle the case of modifying existing function calls
-    //That thought has made me realize that in some ways we really do want a function
-    //per primitive - seems like a waste and could slow compilation?
-    //maybe solution is to wrap function calls in id anchors like functions
-    //I mean that is already the case for the polypoint function calls
+
+    //eventually address these functions using id in place of d
+    //then perform scene merge operation when modifying finalColor
     let insString = "//$INSERT CALL$------";
     let insIndex = shader.indexOf(insString);
     insIndex += insString.length;
@@ -174,18 +290,14 @@ class Circle{
     //create function call
     let posString = '\n';
 
-    // p here vec2(0.0,0.0) is a translation for polygon
-    // eventually this will be a reference to another data texture
-    //     float d = sdCircle(uv, screenPt(mPt), 0.125);
     posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
-    posString += '\tradius = distance(texture2D(parameters, index).xy, texture2D(parameters, index).zw);\n';
-    posString += '\td = sdCircle(uv, texture2D(parameters, index).xy, radius);\n';
+    posString += '\td = sdBox(uv, texture2D(parameters, index).xy, (abs(texture2D(parameters, index).zw - texture2D(parameters, index).xy)));\n';
     posString += '\tfinalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
 
     startShader += posString;
     let fragShader = startShader + endShader;
 
-    console.log(fragShader);
+    // console.log(fragShader);
 
     return fragShader;
 
@@ -194,11 +306,25 @@ class Circle{
   // bakeFunctionAbsolute
 
   clone(){
-    return this;
+    let resolution = this.resolution;
+    let weight = this.weight;
+    let pointPrim = this.pointPrim.clone();
+    //may need to clone this in a better way
+    let id = this.id;
+
+    //list of points
+    let pts = [];
+    for (let p of this.pts){ pts.push(p.clone());};
+    let newCircle = new Rectangle(resolution, weight);
+    newCircle.pointPrim = pointPrim;
+    newCircle.id = id;
+    newCircle.pts = pts;
+
+    return newCircle;
   }
 
   create(resolution, weight){
-    return new Circle(resolution, weight);
+    return new Rectangle(resolution, weight);
   }
 
   end(fluentDoc){
@@ -405,6 +531,7 @@ class PolyLine extends PolyPoint {
     let id = this.id;
     newPolyLine.id = id;
 
+    //is there a bug here? should I clone id this way?
     var fragFunction = (' ' + this.fragFunction).slice(1);
 
     newPolyLine.fragFunction = fragFunction;
@@ -869,4 +996,4 @@ class PolyCircle extends PolyPoint {
   }
 }
 
-export {Point, Circle, PolyPoint, PolyLine, PolyCircle};
+export {Point, Circle, Rectangle, PolyPoint, PolyLine, PolyCircle};

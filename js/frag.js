@@ -104,6 +104,13 @@ float sdPoly( in vec2[256] v, in vec2 p )
     return s*sqrt(d);
 }
 
+float sdBox( in vec2 uv, in vec2 p, in vec2 b )
+{
+    uv = uv-p;
+    vec2 d = abs(uv)-b;
+    return length(max(d,vec2(0))) + min(max(d.x,d.y),0.0);
+}
+
 //https://www.shadertoy.com/view/4tc3DX
 float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
     // Don't let it get more round than circular.
@@ -284,10 +291,25 @@ void main(){
       d = sdCircle(uv, center, radius);
     }
 
-    finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(d)) );
+    finalColor = mix( finalColor, vec3(0.98, 0.215, 0.262), 1.0-smoothstep(0.0,editWeight,abs(d)) );
 
     #endif
     //Circle--------
+
+    //Rectange--------
+    #if EDIT_SHAPE == 4
+    vec2 center = pointPrim.xy;
+    d = sdBox(uv, screenPt(mPt), vec2(0.25, 0.125));
+
+    if(center.x != 0.0){
+      vec2 rPt = abs(screenPt(mPt).xy - center);
+      d = sdBox(uv, center, rPt);
+    }
+
+    finalColor = mix( finalColor, vec3(0.98, 0.215, 0.262), 1.0-smoothstep(0.0,editWeight,abs(d)) );
+
+    #endif
+    //Rectangle--------
 
     //Polyline-------
     #if EDIT_SHAPE == 1

@@ -76,7 +76,7 @@ class GhostUI{
 
     let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
 
-    let snapPt = new UIModifier("snapPt", "snap", "p", false, {clck:SNAP.snapPtClck, mv:SNAP.snapPtMv, up:SNAP.snapPtUp}, {dist:200});
+    let snapPt = new UIModifier("snapPt", "snap", "p", false, {clck:SNAP.snapPtClck, mv:SNAP.snapPtMv, up:SNAP.snapPtUp}, {dist:100});
     let snapRef = new UIModifier("snapRef", "snap", "s", false, {clck:SNAP.snapRefClck, mv:SNAP.snapRefMv, up:SNAP.snapRefUp}, {angle:30});
     let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", false, {clck:SNAP.snapGlobalClck, mv:SNAP.snapGlobalMv, up:SNAP.snapGlobalUp}, {angle:45});
     let snapGrid = new UIModifier("snapGrid", "snap", "g", false, {clck:SNAP.snapGridClck, mv:SNAP.snapGridMv, up:SNAP.snapGridUp}, {});
@@ -363,11 +363,11 @@ function drawUpdate(fluentDoc){
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "3");
         break;
       case "Rectangle":
-        console.log("Rectangle not yet implemented!");
+        // console.log("Rectangle not yet implemented!");
         this.factors.currEditItem = "Rectangle";
-        fluentDoc.currEditItem = new PRIM.PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+        fluentDoc.currEditItem = new PRIM.Rectangle(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
         fluentDoc.editItems.push(fluentDoc.currEditItem);
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
+        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "4");
         break;
     }
     fluentDoc.shaderUpdate = true;
@@ -425,7 +425,7 @@ function drawUp(e, fluentDoc){
   if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
     fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
     fluentDoc.editItemIndex++;
-    fluentDoc.currEditItem = new PRIM.Circle(fluentDoc.resolution, fluentDoc.editWeight);
+    fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editWeight);
     fluentDoc.editItems.push(fluentDoc.currEditItem);
     fluentDoc.shaderUpdate = true;
   }
@@ -474,7 +474,7 @@ function lineWeightClck(e){
   else if(this.button.input){
     //evaluates false when closing slider
     if(e.srcElement.value){
-      this.factors.weight = parseInt(event.srcElement.value) / 2500;
+      this.factors.weight = parseInt(event.srcElement.value) / 2000;
       // fluentDoc.currEditItem.weight = parseInt(event.srcElement.value) / 2500;
       // fluentDoc.editWeight = parseInt(event.srcElement.value) / 2500;
     }
