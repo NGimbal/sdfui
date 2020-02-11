@@ -64,8 +64,6 @@ class GhostUI{
     this.fluentStack = new StateStack(fluentDoc, 10);
 
     //MODE STATE
-    this.editWeight = .002;
-    this.editOpacity = 0.0;
     this.drawing = true;
     this.editPolyLn = false;
 
@@ -94,7 +92,7 @@ class GhostUI{
     let selMods = [pauseShader, hideGrid, screenshot];
 
     //if no drawing tools are selected, drawExit();
-    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, {currEditItem:"PolyLine", editWeight:0.02});
+    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, {currEditItem:"PolyLine"});
     let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
     // let edit = new UIMode("select", false, edit)
     // let move
@@ -346,26 +344,26 @@ function drawUpdate(fluentDoc){
     switch(sel.value){
       case "PolyLine":
         this.factors.currEditItem = "PolyLine";
-        fluentDoc.currEditItem = new PRIM.PolyLine(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+        fluentDoc.currEditItem = new PRIM.PolyLine(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
         fluentDoc.editItems.push(fluentDoc.currEditItem);
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
         break;
       case "PolyCircle":
         this.factors.currEditItem = "PolyCircle";
-        fluentDoc.currEditItem = new PRIM.PolyCircle(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+        fluentDoc.currEditItem = new PRIM.PolyCircle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
         fluentDoc.editItems.push(fluentDoc.currEditItem);
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "2");
         break;
       case "Circle":
         this.factors.currEditItem = "Circle";
-        fluentDoc.currEditItem = new PRIM.Circle(fluentDoc.resolution, fluentDoc.editWeight);
+        fluentDoc.currEditItem = new PRIM.Circle(fluentDoc.resolution, fluentDoc.editOptions);
         fluentDoc.editItems.push(fluentDoc.currEditItem);
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "3");
         break;
       case "Rectangle":
         // console.log("Rectangle not yet implemented!");
         this.factors.currEditItem = "Rectangle";
-        fluentDoc.currEditItem = new PRIM.Rectangle(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+        fluentDoc.currEditItem = new PRIM.Rectangle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
         fluentDoc.editItems.push(fluentDoc.currEditItem);
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "4");
         break;
@@ -425,7 +423,7 @@ function drawUp(e, fluentDoc){
   if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
     fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
     fluentDoc.editItemIndex++;
-    fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editWeight);
+    fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions);
     fluentDoc.editItems.push(fluentDoc.currEditItem);
     fluentDoc.shaderUpdate = true;
   }
@@ -476,7 +474,7 @@ function lineWeightClck(e){
     if(e.srcElement.value){
       this.factors.weight = parseInt(event.srcElement.value) / 2000;
       // fluentDoc.currEditItem.weight = parseInt(event.srcElement.value) / 2500;
-      // fluentDoc.editWeight = parseInt(event.srcElement.value) / 2500;
+      // fluentDoc.editOptions = parseInt(event.srcElement.value) / 2500;
     }
 
     if(e.target != this.button.elem) return;
@@ -519,7 +517,7 @@ function endDrawUpdate(fluentDoc){
   fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
   fluentDoc.shaderUpdate = true;
 
-  fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+  fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
 
   fluentDoc.editItems.push(fluentDoc.currEditItem);
 
@@ -540,7 +538,7 @@ function escDrawUpdate(fluentDoc){
     fluentDoc.tree.remove(p);
   }
 
-  fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editWeight, fluentDoc.dataSize);
+  fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
 
   this.toggle = !this.toggle;
   return fluentDoc;
@@ -559,8 +557,8 @@ function lineWeightUpdate(fluentDoc){
   if (this.toggle == false) return null;
   this.toggle = !this.toggle;
 
-  if (fluentDoc.editWeight != this.factors.weight){
-    fluentDoc.editWeight = this.factors.weight;
+  if (fluentDoc.editOptions.weight != this.factors.weight){
+    fluentDoc.editOptions.weight = this.factors.weight;
     fluentDoc.currEditItem.weight = this.factors.weight;
     return fluentDoc;
   }
@@ -692,16 +690,22 @@ class FluentDoc{
     //all clickable / snappable points
     this.tree = new kdTree(this.pts, this.pointDist, ["x", "y"]);
 
-    //List of polyline objects
-    //Eventually this will become a full scene graph of some sort
     //current editItem
-    this.editWeight = 0.003;
+    //this might want to get moved to UIMode some day...
+    this.editOptions = {
+      weight:0.003,
+      stroke:"#0063ae",
+      fill:"0063ae",
+      fillToggle:false,
+      radius:0.125
+    }
+
     this.editItemIndex = 0;
-    this.currEditItem = new PRIM.PolyLine(this.resolution, this.editWeight, this.dataSize);
+    this.currEditItem = new PRIM.PolyLine(this.resolution, this.editOptions, this.dataSize);
     this.editItems = [this.currEditItem];
 
     //document registry of paramters
-    this.parameters = new PRIM.PolyPoint(this.resolution, this.editWeight, 128);
+    this.parameters = new PRIM.PolyPoint(this.resolution, this.editOptions, 128);
 
     //establishes grid offsets
     //actually don't think this instantiation is necessary
@@ -774,7 +778,8 @@ class FluentDoc{
 
     newDoc.pts = pts;
 
-    newDoc.editWeight = this.editWeight;
+    //this may have to get a little more sofisticated...
+    newDoc.editOptions = {...this.editOptions};
     newDoc.editItemIndex = this.editItemIndex;
 
     let currEditItem = this.currEditItem.clone();

@@ -58,8 +58,7 @@ function main() {
 
     parameters: {value: fluentDoc.parameters.ptsTex},
     mousePt: {value: fluentDoc.mPt},
-    editWeight : {value: fluentDoc.editWeight},
-    editOpacity : {value: fluentDoc.editOpacity},
+    editWeight : {value: fluentDoc.editOptions.weight},
     scale: {value: fluentDoc.scale},
     hiDPR: {value: window.devicePixelRatio}
   };
@@ -120,8 +119,8 @@ function render() {
 
   screenMesh.material.uniforms.parameters.value = fluentDoc.parameters.ptsTex;
   screenMesh.material.uniforms.mousePt.value = fluentDoc.mPt;
-  screenMesh.material.uniforms.editWeight.value = fluentDoc.editWeight;
-  screenMesh.material.uniforms.editOpacity.value = fluentDoc.editOpacity;
+  screenMesh.material.uniforms.editWeight.value = fluentDoc.editOptions.weight;
+  // screenMesh.material.uniforms.editOpacity.value = fluentDoc.editOpacity;
 
   screenMesh.material.uniforms.needsUpdate = true;
 

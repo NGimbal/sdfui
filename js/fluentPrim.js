@@ -84,11 +84,12 @@ class Point{
 }
 
 class Circle{
-  constructor(resolution, _weight){
+  constructor(resolution, options){
     this.resolution = resolution;
 
     //input is 1 to 20 divided by 2500
-    this.weight = _weight || .002,
+    this.weight = options.weight || .002;
+    this.options = {...options};
 
     this.pointPrim = new THREE.Vector4(0.0, 0.0, 0.0, 0.0);
 
@@ -181,7 +182,7 @@ class Circle{
 
   clone(){
     let resolution = this.resolution;
-    let weight = this.weight;
+    let options = {...this.options};
     let pointPrim = this.pointPrim.clone();
     //may need to clone this in a better way
     let id = this.id;
@@ -189,7 +190,7 @@ class Circle{
     //list of points
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
-    let newCircle = new Circle(resolution, weight);
+    let newCircle = new Circle(resolution, options);
     newCircle.pointPrim = pointPrim;
     newCircle.id = id;
     newCircle.pts = pts;
@@ -197,8 +198,8 @@ class Circle{
     return newCircle;
   }
 
-  create(resolution, weight){
-    return new Circle(resolution, weight);
+  create(resolution, options){
+    return new Circle(resolution, options);
   }
 
   end(fluentDoc){
@@ -211,12 +212,12 @@ class Circle{
 
 //maybe create a PointPrim class like PolyPoint
 class Rectangle{
-  constructor(resolution, _weight){
+  constructor(resolution, options){
     this.resolution = resolution;
 
     //input is 1 to 20 divided by 2500
-    this.weight = _weight || .002,
-
+    this.weight = options.weight || .002,
+    this.options = {...options};
     this.pointPrim = new THREE.Vector4(0.0, 0.0, 0.0, 0.0);
 
     //list of points
@@ -307,7 +308,8 @@ class Rectangle{
 
   clone(){
     let resolution = this.resolution;
-    let weight = this.weight;
+    // let weight = this.weight;
+    let options = {...this.options};
     let pointPrim = this.pointPrim.clone();
     //may need to clone this in a better way
     let id = this.id;
@@ -315,7 +317,7 @@ class Rectangle{
     //list of points
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
-    let newCircle = new Rectangle(resolution, weight);
+    let newCircle = new Rectangle(resolution, options);
     newCircle.pointPrim = pointPrim;
     newCircle.id = id;
     newCircle.pts = pts;
@@ -323,8 +325,8 @@ class Rectangle{
     return newCircle;
   }
 
-  create(resolution, weight){
-    return new Rectangle(resolution, weight);
+  create(resolution, options){
+    return new Rectangle(resolution, options);
   }
 
   end(fluentDoc){
@@ -340,14 +342,15 @@ class Rectangle{
 class PolyPoint {
 
   //creates empty PolyPoint object
-  constructor(resolution, _weight, _dataSize){
+  constructor(resolution, options, _dataSize){
     this.resolution = resolution;
 
     this.dataSize = _dataSize || 16;
 
-    //input is 1 to 20 divided by 2500
-    this.weight = _weight || .002,
-
+    //input is 1 to 20 divided by 2000
+    this.weight = options.weight || .002,
+    //this can probably be relegated to the actual primitives? idk
+    this.options = {...options};
     //list of points
     this.pts=[];
 
@@ -368,9 +371,10 @@ class PolyPoint {
   clone(){
     let resolution = this.resolution.clone();
     let weight = this.weight;
+    let options  = {...this.options};
     let dataSize = this.dataSize;
 
-    let newPolyPoint = new PolyPoint(resolution, weight, dataSize);
+    let newPolyPoint = new PolyPoint(resolution, options, dataSize);
 
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
@@ -500,10 +504,10 @@ class PolyPoint {
 
 class PolyLine extends PolyPoint {
 
-  constructor(resolution, _weight, _dataSize){
+  constructor(resolution, options, _dataSize){
     //super is how PolyPoint class is constructed
     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
-    super(resolution, _weight, _dataSize);
+    super(resolution, options, _dataSize);
 
     this.fragFunction = "";
   }
@@ -511,9 +515,10 @@ class PolyLine extends PolyPoint {
   clone(){
     let resolution = this.resolution.clone();
     let weight = this.weight;
+    let options = {...this.options};
     let dataSize = this.dataSize;
 
-    let newPolyLine = new PolyLine(resolution, weight, dataSize);
+    let newPolyLine = new PolyLine(resolution, options, dataSize);
 
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
@@ -792,8 +797,8 @@ class PolyLine extends PolyPoint {
     return fragShader;
   }
 
-  create(resolution, weight, _dataSize){
-    return new PolyLine(resolution, weight, _dataSize);
+  create(resolution, options, _dataSize){
+    return new PolyLine(resolution, options, _dataSize);
   }
 
   //should clone and probably push to state stack prior to this
@@ -808,10 +813,10 @@ class PolyLine extends PolyPoint {
 
 class PolyCircle extends PolyPoint {
 
-  constructor(resolution, _weight, _dataSize){
+  constructor(resolution, options, _dataSize){
     //super is how PolyPoint class is constructed
     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
-    super(resolution, _weight, _dataSize);
+    super(resolution, options, _dataSize);
 
     this.fragFunction = "";
 
@@ -820,9 +825,10 @@ class PolyCircle extends PolyPoint {
   clone(){
     let resolution = this.resolution.clone();
     let weight = this.weight;
+    let options = {...this.options};
     let dataSize = this.dataSize;
 
-    let newPolyCircle = new PolyCircle(resolution, weight, dataSize);
+    let newPolyCircle = new PolyCircle(resolution, options, dataSize);
 
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
@@ -933,8 +939,8 @@ class PolyCircle extends PolyPoint {
         }
         posString += '\n';
 
-        posString += '\n\tvec3 cCol = vec3(0.0, 0.0, 0.00);';
-        posString += '\n\tfinalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight+0.008,abs(d)));';
+        posString += '\n\tvec3 cCol = vec3(0.0, 0.384, 0.682);';
+        posString += '\n\tfinalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,'+ this.weight + '+0.002,abs(d)));';
 
         // posString += '\tfinalColor = mix(finalColor, vec3(1.0), editOpacity);\n}\n';
         posString += '\n}\n';
@@ -982,8 +988,8 @@ class PolyCircle extends PolyPoint {
     return fragShader;
   }
 
-  create(resolution, weight, _dataSize){
-    return new PolyCircle(resolution, weight, _dataSize);
+  create(resolution, options, _dataSize){
+    return new PolyCircle(resolution, options, _dataSize);
   }
 
   //should clone and probably push to state stack prior to this

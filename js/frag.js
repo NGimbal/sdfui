@@ -30,7 +30,6 @@ uniform vec3       mousePt;
 
 //editUniforms
 uniform float      editWeight;
-uniform float      editOpacity;
 
 //scale
 uniform float      scale;
@@ -384,8 +383,8 @@ void main(){
     // }
     d = opSmoothUnion(d, oldDist, 0.05);
 
-    vec3 cCol = vec3(0.0, 0.0, 0.00);
-    finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight+0.008,abs(d)));
+    vec3 cCol = vec3(0.98, 0.215, 0.262);
+    finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight+0.002,abs(d)));
 
     #endif
     //PolyCircle--------
