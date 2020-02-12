@@ -30,6 +30,7 @@ uniform vec3       mousePt;
 
 //editUniforms
 uniform float      editWeight;
+uniform vec3       strokeColor;
 
 //scale
 uniform float      scale;
@@ -216,19 +217,19 @@ vec2 screenPt(vec2 p) {
 }
 
 //this is not quite right...
-vec3 minColor(float d1, float d2, vec3 col1, vec3 col2){
-  float mm = min(d1, d2) + 0.001;
-  float mx = max(d1, d2) - 0.001;
+// vec3 minColor(float d1, float d2, vec3 col1, vec3 col2){
+//   float mm = min(d1, d2) + 0.001;
+//   float mx = max(d1, d2) - 0.001;
 
   //1 if d1 is min
   // float d1mm = abs(1.0 - step(mm, d1));
   // float d2mm = abs(1.0 - step(mm, d2));
   //0 if d1 is max
-  float d1mx = abs(1.0 - step(mx, d1));
-  float d2mx = abs(1.0 - step(mx, d2));
-
-  return (col1 * d1mx) + (col2*d2mx);
-}
+//   float d1mx = abs(1.0 - step(mx, d1));
+//   float d2mx = abs(1.0 - step(mx, d2));
+//
+//   return (col1 * d1mx) + (col2*d2mx);
+// }
 
 //https://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 float opSmoothUnion( float d1, float d2, float k ) {
@@ -239,6 +240,12 @@ float opSmoothUnion( float d1, float d2, float k ) {
 //$INSERT FUNCTION$------
 
 //$ENDINSERT FUNCTION$---
+
+float sceneDist(vec2 uv, inout vec3 col) {
+  float d = 1.0;
+
+  return d;
+}
 
 void main(){
 
@@ -290,7 +297,7 @@ void main(){
       d = sdCircle(uv, center, radius);
     }
 
-    finalColor = mix( finalColor, vec3(0.98, 0.215, 0.262), 1.0-smoothstep(0.0,editWeight,abs(d)) );
+    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight,abs(d)) );
 
     #endif
     //Circle--------
@@ -305,7 +312,7 @@ void main(){
       d = sdBox(uv, center, rPt);
     }
 
-    finalColor = mix( finalColor, vec3(0.98, 0.215, 0.262), 1.0-smoothstep(0.0,editWeight,abs(d)) );
+    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight,abs(d)) );
 
     #endif
     //Rectangle--------
@@ -329,10 +336,10 @@ void main(){
         if (oldPos != vec2(0.)){
           // finalColor = min(finalColor, FillLine(uv, oldPos, pUv, vec2(editWeight, editWeight), editWeight));
           // float line = LineDistField(uv, oldPos, pUv, vec2(editWeight), editWeight, 0.0);
-          vec3 cCol = vec3(0.98, 0.215, 0.262);
+          // vec3 cCol = vec3(0.98, 0.215, 0.262);
           // line = 1.0 - smoothstep(0.0, editWeight, line);
           float line = drawLine(uv, oldPos, pos, editWeight, 0.0);
-          finalColor = mix(finalColor, cCol, line);
+          finalColor = mix(finalColor, strokeColor, line);
         }
 
         oldPos = pos;
@@ -341,10 +348,10 @@ void main(){
 
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
       // finalColor *= FillLineDash(uv, oldPos, screenPt(mPt), vec2(editWeight, editWeight), 1.0);
-      vec3 cCol = vec3(0.98, 0.215, 0.262);
+      // vec3 cCol = vec3(0.98, 0.215, 0.262);
       // line = 1.0 - smoothstep(0.0, editWeight, line);
       float line = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
-      finalColor = mix(finalColor, cCol, line);
+      finalColor = mix(finalColor, strokeColor, line);
     }
     #endif
     //Polyline-------
@@ -379,12 +386,12 @@ void main(){
 
     d = sdCircle(uv, screenPt(mPt), 0.125);
     // if (oldPos != vec2(0.) && mousePt.z != -1.0){
-    finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(d)) );
+    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight,abs(d)) );
     // }
     d = opSmoothUnion(d, oldDist, 0.05);
 
     vec3 cCol = vec3(0.98, 0.215, 0.262);
-    finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight+0.002,abs(d)));
+    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight+0.002,abs(d)));
 
     #endif
     //PolyCircle--------

@@ -92,7 +92,7 @@ class GhostUI{
     let selMods = [pauseShader, hideGrid, screenshot];
 
     //if no drawing tools are selected, drawExit();
-    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, {currEditItem:"PolyLine"});
+    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, {currEditItem:"PolyLine", strokeColor:"#0063ae"});
     let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
     // let edit = new UIMode("select", false, edit)
     // let move
@@ -371,6 +371,18 @@ function drawUpdate(fluentDoc){
     fluentDoc.shaderUpdate = true;
   }
 
+  sel = document.getElementById("strokeColor-select");
+  if(this.factors.strokeColor != sel.value){
+    // console.log(sel.value);
+    // console.log(hexToRgb(sel.value));
+    this.factors.strokeColor = sel.value;
+    let rgb = hexToRgb(sel.value);
+    let newColor = new THREE.Vector3(rgb.r / 255, rgb.g / 255, rgb.b/255);
+    fluentDoc.editOptions.stroke = newColor;
+    fluentDoc.currEditItem.options.stroke = newColor;
+    // fluentDoc.shaderUpdate = true;
+  }
+
   for(let m of this.modifiers){
     //each update will deal with m.toggle on an individual basis
     if(m.update){
@@ -473,8 +485,6 @@ function lineWeightClck(e){
     //evaluates false when closing slider
     if(e.srcElement.value){
       this.factors.weight = parseInt(event.srcElement.value) / 2000;
-      // fluentDoc.currEditItem.weight = parseInt(event.srcElement.value) / 2500;
-      // fluentDoc.editOptions = parseInt(event.srcElement.value) / 2500;
     }
 
     if(e.target != this.button.elem) return;
@@ -559,7 +569,7 @@ function lineWeightUpdate(fluentDoc){
 
   if (fluentDoc.editOptions.weight != this.factors.weight){
     fluentDoc.editOptions.weight = this.factors.weight;
-    fluentDoc.currEditItem.weight = this.factors.weight;
+    fluentDoc.currEditItem.options.weight = this.factors.weight;
     return fluentDoc;
   }
 
@@ -694,7 +704,7 @@ class FluentDoc{
     //this might want to get moved to UIMode some day...
     this.editOptions = {
       weight:0.003,
-      stroke:"#0063ae",
+      stroke:new THREE.Vector3(0.0, 0.384, 0.682),
       fill:"0063ae",
       fillToggle:false,
       radius:0.125
@@ -904,6 +914,22 @@ class Button{
     let classes = elem.classList;
   }
 }
+
+function hexToRgb(hex) {
+  // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+  var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+    return r + r + g + g + b + b;
+  });
+
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
 // good for debugging and for reference
 //returns svg element
 //id as string; x & y as pixel coords; opacity as 0 -1, fill & stroke as colors

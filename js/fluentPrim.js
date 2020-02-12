@@ -164,10 +164,14 @@ class Circle{
     //create function call
     let posString = '\n';
 
+    let rgb = this.options.stroke;
+
+    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+
     posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
     posString += '\tradius = distance(texture2D(parameters, index).xy, texture2D(parameters, index).zw);\n';
     posString += '\td = sdCircle(uv, texture2D(parameters, index).xy, radius);\n';
-    posString += '\tfinalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
+    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
 
     startShader += posString;
     let fragShader = startShader + endShader;
@@ -291,9 +295,12 @@ class Rectangle{
     //create function call
     let posString = '\n';
 
+    let rgb = this.options.stroke;
+    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+
     posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
     posString += '\td = sdBox(uv, texture2D(parameters, index).xy, (abs(texture2D(parameters, index).zw - texture2D(parameters, index).xy)));\n';
-    posString += '\tfinalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
+    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
 
     startShader += posString;
     let fragShader = startShader + endShader;
@@ -588,6 +595,9 @@ class PolyLine extends PolyPoint {
     let oldPosX = 0;
     let oldPosY = 0;
 
+    let rgb = this.options.stroke;
+    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+
     for (let p of this.pts){
       view.setUint16(0, p.texData[0]);
       let floatX = getFloat16(view, 0);
@@ -612,7 +622,8 @@ class PolyLine extends PolyPoint {
         continue;
       }else{
         posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
-        posString += '\tfinalColor = min(finalColor, vec3(FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +')));\n';
+        // posString += '\tfinalColor = min(finalColor, vec3(FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +')));\n';
+        posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +'));\n'
 
         posString += '\toldPos = pos;\n';
 
@@ -689,6 +700,9 @@ class PolyLine extends PolyPoint {
     let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
     let dataSize = fluentDoc.parameters.dataSize;
 
+    let rgb = this.options.stroke;
+    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+
     for (let p of this.pts){
 
       view.setUint16(0, p.texData[0]);
@@ -739,7 +753,8 @@ class PolyLine extends PolyPoint {
         posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');\n';
         posString += '\n\tpos = texture2D(parameters, index).xy;\n';
 
-        posString += '\tfinalColor = min(finalColor, vec3(FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +')));\n';
+        // posString += '\tfinalColor = min(finalColor, vec3(FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +')));\n';
+        posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +'));\n'
 
         posString += '\toldPos = pos;\n';
 
@@ -899,6 +914,9 @@ class PolyCircle extends PolyPoint {
         let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
         let dataSize = fluentDoc.parameters.dataSize;
 
+        let rgb = this.options.stroke;
+        let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+
         for (let p of this.pts){
           //there is a more efficient way of doing this
           //should have an addPoint from point thing
@@ -939,8 +957,8 @@ class PolyCircle extends PolyPoint {
         }
         posString += '\n';
 
-        posString += '\n\tvec3 cCol = vec3(0.0, 0.384, 0.682);';
-        posString += '\n\tfinalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,'+ this.weight + '+0.002,abs(d)));';
+        // posString += '\n\tvec3 cCol = vec3(0.0, 0.384, 0.682);';
+        posString += '\n\tfinalColor = mix( finalColor, ' + color + ' , 1.0-smoothstep(0.0,'+ this.weight + '+0.002,abs(d)));';
 
         // posString += '\tfinalColor = mix(finalColor, vec3(1.0), editOpacity);\n}\n';
         posString += '\n}\n';
