@@ -10,6 +10,7 @@ const sdfLines =`
 #define EDIT_SHAPE 1
 #define EDIT_VERTS 0
 #define BG_GRID 1
+#define SHOW_PTS 0
 
 // https://www.shadertoy.com/view/4tc3DX
 uniform vec3      iResolution;           // viewport resolution (in pixels)
@@ -216,21 +217,11 @@ vec2 screenPt(vec2 p) {
   return pos;
 }
 
-//this is not quite right...
-// vec3 minColor(float d1, float d2, vec3 col1, vec3 col2){
-//   float mm = min(d1, d2) + 0.001;
-//   float mx = max(d1, d2) - 0.001;
+//Shadow and Light
+//https://www.shadertoy.com/view/4dfXDn
 
-  //1 if d1 is min
-  // float d1mm = abs(1.0 - step(mm, d1));
-  // float d2mm = abs(1.0 - step(mm, d2));
-  //0 if d1 is max
-//   float d1mx = abs(1.0 - step(mx, d1));
-//   float d2mx = abs(1.0 - step(mx, d2));
-//
-//   return (col1 * d1mx) + (col2*d2mx);
-// }
 
+//Merge Operations
 //https://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 float opSmoothUnion( float d1, float d2, float k ) {
     float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1.0 );
@@ -241,9 +232,12 @@ float opSmoothUnion( float d1, float d2, float k ) {
 
 //$ENDINSERT FUNCTION$---
 
-float sceneDist(vec2 uv, inout vec3 col) {
+float sceneDist(vec2 uv, inout vec3 finalColor) {
   float d = 1.0;
-
+  vec2 index = vec2(0.);
+  float radius = 0.125;
+  //$INSERT CALL$------
+  //$ENDINSERT CALL$---
   return d;
 }
 
@@ -269,12 +263,13 @@ void main(){
     vec2 mPt = vec2(mousePt.x, mousePt.y);
 
     vec2 pos = vec2(0.);
-    vec2 index = vec2(0.);
+    // vec2 index = vec2(0.);
     float radius = 0.125;
 
-    //$INSERT CALL$------
+    d = sceneDist(uv, finalColor);
 
-    //$ENDINSERT CALL$---
+    //current Mouse Position
+    DrawPoint(uv, screenPt(mPt), finalColor);
 
     //global opacity
     // finalColor = mix(finalColor, vec3(1.0), editOpacity);
@@ -329,10 +324,6 @@ void main(){
         vec2 pos = texture2D(posTex, vIndex).xy;
         if (pos == vec2(0.)){ break; }
 
-        #if EDIT_VERTS == 1
-        DrawPoint(uv, pos, finalColor);
-        #endif
-
         if (oldPos != vec2(0.)){
           // finalColor = min(finalColor, FillLine(uv, oldPos, pUv, vec2(editWeight, editWeight), editWeight));
           // float line = LineDistField(uv, oldPos, pUv, vec2(editWeight), editWeight, 0.0);
@@ -341,6 +332,10 @@ void main(){
           float line = drawLine(uv, oldPos, pos, editWeight, 0.0);
           finalColor = mix(finalColor, strokeColor, line);
         }
+
+        #if SHOW_PTS == 1
+        DrawPoint(uv, pos, finalColor);
+        #endif
 
         oldPos = pos;
       }
@@ -396,9 +391,25 @@ void main(){
     #endif
     //PolyCircle--------
 
+    //Show points in parameters.
+    #if SHOW_PTS == 1
+    for (float i = 0.; i < 128.; i++ ){
+      float yIndex = i / 128. + texelOffset;
 
-    //current Mouse Position
-    DrawPoint(uv, screenPt(mPt), finalColor);
+      for (float j = 0.; j < 128.; j++ ){
+        float xIndex = j / 128.  + texelOffset;
+        vec2 vIndex = vec2(xIndex, yIndex);
+
+        vec2 pos = texture2D(parameters, vIndex).xy;
+        if (pos == vec2(0.)){ break; }
+        DrawPoint(uv, pos, finalColor);
+
+        pos = texture2D(parameters, vIndex).zw;
+        if (pos == vec2(0.)){ continue; }
+        DrawPoint(uv, pos, finalColor);
+      }
+    }
+    #endif
 
     pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0);
 }

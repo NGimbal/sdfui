@@ -11,6 +11,9 @@ BakeFunctionAbsolute(fluentDoc) (optional)
 Clone()
 Create() //this returns a new prim of the same type
 
+//This is not implemented yet, could be used for selection
+Dist() //returns distance to primitive at a point
+
 Members:
 StrokeColor : rgba
 FillColor: rgba
@@ -45,52 +48,16 @@ import * as THREE from './libjs/three.module.js';
 import * as SNAP from './fluentSnap.js';
 import * as HINT from './fluentHints.js';
 
-//Simple point class (for insertion into kdTree)
-//Holds information for kdTree / UI and for fragment shader
-class Point{
-  constructor(x, y, _texRef, _texData, _shapeID, _tag){
-    this.x = x;
-    this.y = y;
-    //texture coordinates can be reconstructed from this and dataSize
-    this.texRef = _texRef || 0;
-
-    //half float data will be stored here for future use in bake function
-    this.texData = _texData || [];
-
-    //for selection by point
-    this.shapeID = _shapeID || "";
-
-    //for filtering point selection
-    this.tag = _tag || "none";
-
-    this.id = (+new Date).toString(36).slice(-8);
-  }
-  clone(){
-    let x = this.x;
-    let y = this.y;
-    let texRef = this.texRef;
-    let texData = [];
-    let shapeID = this.shapeID;
-    let tag = this.tag;
-    let id = this.id;
-
-    for (let t of this.texData) texData.push(t);
-
-    let newPt = new Point(x, y, texRef, texData, shapeID, tag);
-    newPt.id = id;
-
-    return newPt;
-  }
-}
-
-class Circle{
+//Two primitive types, PointPrim and PolyPoint
+//PointPrim is for primitives that take 2 xy values + options
+//PolyPoint is a datastructure that holds many xy values
+class PointPrim{
   constructor(resolution, options){
     this.resolution = resolution;
 
     //input is 1 to 20 divided by 2500
     this.weight = options.weight || .002;
     this.options = {...options};
-
     this.pointPrim = new THREE.Vector4(0.0, 0.0, 0.0, 0.0);
 
     //list of points
@@ -118,7 +85,7 @@ class Circle{
     if(this.pts.length == 0){
       this.pointPrim.x = hFloatX;
       this.pointPrim.y = hFloatYFlip;
-    } else {
+    }else{
       this.pointPrim.z = hFloatX;
       this.pointPrim.w = hFloatYFlip;
     }
@@ -132,218 +99,7 @@ class Circle{
     return pt;
   }
 
-  //going to add each of the 2 points to fluentDoc.params
-  bakeFunctionCall(fluentDoc){
-    let shader = fluentDoc.shader;
-
-    //bakes pointPrim data the fluentDoc.parameters
-    let p = this.pointPrim;
-    fluentDoc.parameters.addPointPrim(p.x, p.y,p.z, p.w, "blah");
-
-    let cTexel = fluentDoc.parameters.cTexel;
-    let dataSize = fluentDoc.parameters.dataSize;
-
-    let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
-
-    let indexX = (cTexel % dataSize) / dataSize + texelOffset;
-    let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-
-
-    //eventually address these functions using id in place of d
-    //then perform scene merge operation when modifying finalColor
-    let insString = "//$INSERT CALL$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    //create function call
-    let posString = '\n';
-
-    let rgb = this.options.stroke;
-
-    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-
-    posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
-    posString += '\tradius = distance(texture2D(parameters, index).xy, texture2D(parameters, index).zw);\n';
-    posString += '\td = sdCircle(uv, texture2D(parameters, index).xy, radius);\n';
-    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
-
-    startShader += posString;
-    let fragShader = startShader + endShader;
-
-    // console.log(fragShader);
-
-    return fragShader;
-
-  }
-
-  // bakeFunctionAbsolute
-
-  clone(){
-    let resolution = this.resolution;
-    let options = {...this.options};
-    let pointPrim = this.pointPrim.clone();
-    //may need to clone this in a better way
-    let id = this.id;
-
-    //list of points
-    let pts = [];
-    for (let p of this.pts){ pts.push(p.clone());};
-    let newCircle = new Circle(resolution, options);
-    newCircle.pointPrim = pointPrim;
-    newCircle.id = id;
-    newCircle.pts = pts;
-
-    return newCircle;
-  }
-
-  create(resolution, options){
-    return new Circle(resolution, options);
-  }
-
-  end(fluentDoc){
-    if(this.pts.length == 0) return fluentDoc;
-    fluentDoc.editItemIndex++;
-    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
-    return fluentDoc;
-  }
 }
-
-//maybe create a PointPrim class like PolyPoint
-class Rectangle{
-  constructor(resolution, options){
-    this.resolution = resolution;
-
-    //input is 1 to 20 divided by 2500
-    this.weight = options.weight || .002,
-    this.options = {...options};
-    this.pointPrim = new THREE.Vector4(0.0, 0.0, 0.0, 0.0);
-
-    //list of points
-    this.pts=[];
-
-    this.id = (+new Date).toString(36).slice(-8);
-  }
-
-  //really just going to add 1 of 2 points to this.pts
-  addPoint(x, y, tag){
-    let hFloatX = x / this.resolution.x;
-    let hFloatY = y / this.resolution.y;
-    let hFloatYFlip = (this.resolution.y - y) / this.resolution.y;
-
-    let dpr = window.devicePixelRatio;
-
-    hFloatX -= 0.5;
-    hFloatYFlip -= 0.5;
-    hFloatX *= this.resolution.x / this.resolution.y;
-
-    //I think 1.0 is where scale should go for zoom
-    hFloatX = (hFloatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
-    hFloatYFlip = (hFloatYFlip * this.resolution.y) / (this.resolution.y / dpr * 1.0);
-
-    if(this.pts.length == 0){
-      this.pointPrim.x = hFloatX;
-      this.pointPrim.y = hFloatYFlip;
-    } else {
-      this.pointPrim.z = hFloatX;
-      this.pointPrim.w = hFloatYFlip;
-    }
-
-    // console.log(this.pointPrim);
-
-    let pt = new Point(x, y, 0, [], this.id, "circlePt");
-
-    this.pts.push(pt);
-
-    return pt;
-  }
-
-  //going to add each of the 2 points to fluentDoc.params
-  bakeFunctionCall(fluentDoc){
-    let shader = fluentDoc.shader;
-
-    //bakes pointPrim data the fluentDoc.parameters
-    let p = this.pointPrim;
-    fluentDoc.parameters.addPointPrim(p.x, p.y,p.z, p.w, "blah");
-
-    let cTexel = fluentDoc.parameters.cTexel;
-    let dataSize = fluentDoc.parameters.dataSize;
-
-    let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
-
-    let indexX = (cTexel % dataSize) / dataSize + texelOffset;
-    let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-
-
-    //eventually address these functions using id in place of d
-    //then perform scene merge operation when modifying finalColor
-    let insString = "//$INSERT CALL$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    //create function call
-    let posString = '\n';
-
-    let rgb = this.options.stroke;
-    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-
-    posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
-    posString += '\td = sdBox(uv, texture2D(parameters, index).xy, (abs(texture2D(parameters, index).zw - texture2D(parameters, index).xy)));\n';
-    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
-
-    startShader += posString;
-    let fragShader = startShader + endShader;
-
-    // console.log(fragShader);
-
-    return fragShader;
-
-  }
-
-  // bakeFunctionAbsolute
-
-  clone(){
-    let resolution = this.resolution;
-    // let weight = this.weight;
-    let options = {...this.options};
-    let pointPrim = this.pointPrim.clone();
-    //may need to clone this in a better way
-    let id = this.id;
-
-    //list of points
-    let pts = [];
-    for (let p of this.pts){ pts.push(p.clone());};
-    let newCircle = new Rectangle(resolution, options);
-    newCircle.pointPrim = pointPrim;
-    newCircle.id = id;
-    newCircle.pts = pts;
-
-    return newCircle;
-  }
-
-  create(resolution, options){
-    return new Rectangle(resolution, options);
-  }
-
-  end(fluentDoc){
-    if(this.pts.length == 0) return fluentDoc;
-    fluentDoc.editItemIndex++;
-    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
-    return fluentDoc;
-  }
-}
-
 //PolyPoint is an array of points, a texture representation and properties
 //Another class e.g. PolyLine extends PolyPoint to manipulate and bake
 class PolyPoint {
@@ -506,6 +262,222 @@ class PolyPoint {
     this.pts.push(pt);
 
     return pt;
+  }
+}
+
+//Simple point class (for insertion into kdTree)
+//Holds information for kdTree / UI and for fragment shader
+class Point{
+  constructor(x, y, _texRef, _texData, _shapeID, _tag){
+    this.x = x;
+    this.y = y;
+    //texture coordinates can be reconstructed from this and dataSize
+    this.texRef = _texRef || 0;
+
+    //half float data will be stored here for future use in bake function
+    this.texData = _texData || [];
+
+    //for selection by point
+    this.shapeID = _shapeID || "";
+
+    //for filtering point selection
+    this.tag = _tag || "none";
+
+    this.id = (+new Date).toString(36).slice(-8);
+  }
+  clone(){
+    let x = this.x;
+    let y = this.y;
+    let texRef = this.texRef;
+    let texData = [];
+    let shapeID = this.shapeID;
+    let tag = this.tag;
+    let id = this.id;
+
+    for (let t of this.texData) texData.push(t);
+
+    let newPt = new Point(x, y, texRef, texData, shapeID, tag);
+    newPt.id = id;
+
+    return newPt;
+  }
+}
+
+class Circle extends PointPrim{
+  constructor(resolution, options){
+    super(resolution, options);
+
+    this.fragFunction = "";
+  }
+
+  //going to add each of the 2 points to fluentDoc.params
+  bakeFunctionCall(fluentDoc){
+    let shader = fluentDoc.shader;
+
+    //bakes pointPrim data the fluentDoc.parameters
+    let p = this.pointPrim;
+    fluentDoc.parameters.addPointPrim(p.x, p.y,p.z, p.w, "Circle");
+
+    let cTexel = fluentDoc.parameters.cTexel;
+    let dataSize = fluentDoc.parameters.dataSize;
+
+    let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
+
+    let indexX = (cTexel % dataSize) / dataSize + texelOffset;
+    let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+
+
+    //eventually address these functions using id in place of d
+    //then perform scene merge operation when modifying finalColor
+    let insString = "//$INSERT CALL$------";
+    let insIndex = shader.indexOf(insString);
+    insIndex += insString.length;
+
+    let startShader = shader.slice(0, insIndex);
+    let endShader = shader.slice(insIndex);
+
+    let buffer = new ArrayBuffer(10);
+    let view = new DataView(buffer);
+
+    //create function call
+    let posString = '\n';
+
+    let rgb = this.options.stroke;
+
+    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+
+    posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
+    posString += '\tradius = distance(texture2D(parameters, index).xy, texture2D(parameters, index).zw);\n';
+    posString += '\td = sdCircle(uv, texture2D(parameters, index).xy, radius);\n';
+    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
+
+    startShader += posString;
+    let fragShader = startShader + endShader;
+
+    // console.log(fragShader);
+
+    return fragShader;
+
+  }
+
+  // bakeFunctionAbsolute
+
+  clone(){
+    let resolution = this.resolution;
+    let options = {...this.options};
+    let pointPrim = this.pointPrim.clone();
+    //may need to clone this in a better way
+    let id = this.id;
+
+    //list of points
+    let pts = [];
+    for (let p of this.pts){ pts.push(p.clone());};
+    let newCircle = new Circle(resolution, options);
+    newCircle.pointPrim = pointPrim;
+    newCircle.id = id;
+    newCircle.pts = pts;
+
+    return newCircle;
+  }
+
+  create(resolution, options){
+    return new Circle(resolution, options);
+  }
+
+  end(fluentDoc){
+    if(this.pts.length == 0) return fluentDoc;
+    fluentDoc.editItemIndex++;
+    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
+    return fluentDoc;
+  }
+}
+
+//maybe create a PointPrim class like PolyPoint
+class Rectangle extends PointPrim{
+  constructor(resolution, options){
+    super(resolution, options);
+
+    this.fragFunction = "";
+  }
+
+  //going to add each of the 2 points to fluentDoc.params
+  bakeFunctionCall(fluentDoc){
+    let shader = fluentDoc.shader;
+
+    //bakes pointPrim data the fluentDoc.parameters
+    let p = this.pointPrim;
+    fluentDoc.parameters.addPointPrim(p.x, p.y,p.z, p.w, "blah");
+
+    let cTexel = fluentDoc.parameters.cTexel;
+    let dataSize = fluentDoc.parameters.dataSize;
+
+    let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
+
+    let indexX = (cTexel % dataSize) / dataSize + texelOffset;
+    let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+
+
+    //eventually address these functions using id in place of d
+    //then perform scene merge operation when modifying finalColor
+    let insString = "//$INSERT CALL$------";
+    let insIndex = shader.indexOf(insString);
+    insIndex += insString.length;
+
+    let startShader = shader.slice(0, insIndex);
+    let endShader = shader.slice(insIndex);
+
+    let buffer = new ArrayBuffer(10);
+    let view = new DataView(buffer);
+
+    //create function call
+    let posString = '\n';
+
+    let rgb = this.options.stroke;
+    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+
+    posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
+    posString += '\td = sdBox(uv, texture2D(parameters, index).xy, (abs(texture2D(parameters, index).zw - texture2D(parameters, index).xy)));\n';
+    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
+
+    startShader += posString;
+    let fragShader = startShader + endShader;
+
+    // console.log(fragShader);
+
+    return fragShader;
+
+  }
+
+  // bakeFunctionAbsolute
+
+  clone(){
+    let resolution = this.resolution;
+    // let weight = this.weight;
+    let options = {...this.options};
+    let pointPrim = this.pointPrim.clone();
+    //may need to clone this in a better way
+    let id = this.id;
+
+    //list of points
+    let pts = [];
+    for (let p of this.pts){ pts.push(p.clone());};
+    let newCircle = new Rectangle(resolution, options);
+    newCircle.pointPrim = pointPrim;
+    newCircle.id = id;
+    newCircle.pts = pts;
+
+    return newCircle;
+  }
+
+  create(resolution, options){
+    return new Rectangle(resolution, options);
+  }
+
+  end(fluentDoc){
+    if(this.pts.length == 0) return fluentDoc;
+    fluentDoc.editItemIndex++;
+    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
+    return fluentDoc;
   }
 }
 

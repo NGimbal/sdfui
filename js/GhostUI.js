@@ -83,10 +83,11 @@ class GhostUI{
     let lineWeight = new UIModifier("lineWeight", "edit", "w", false, {clck:lineWeightClck, update:lineWeightUpdate}, {weight:0.002});
     let endDraw = new UIModifier("endDraw", "edit", "Enter", false, {clck:endDrawClck, update:endDrawUpdate}, {});
     let escDraw = new UIModifier("escDraw", "edit", "Escape", false, {clck:escDrawClck, update:escDrawUpdate}, {});
+    let showPts = new UIModifier("showPts", "edit", "r", false, {clck:showPtsClck, update:showPtsUpdate}, {pts:false});
 
     //MODES
     let globalMods = [pauseShader, hideGrid, screenshot];
-    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, lineWeight, endDraw, escDraw];
+    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, lineWeight, endDraw, escDraw, showPts];
     drawMods = globalMods.concat(drawMods);
 
     let selMods = [pauseShader, hideGrid, screenshot];
@@ -316,6 +317,9 @@ function drawEnter(){
   var index = this.modifiers.findIndex(i => i.name === "snapPt");
   this.modifiers[index].clck();
 
+  var index = this.modifiers.findIndex(i => i.name === "showPts");
+  this.modifiers[index].clck();
+
   // var index = this.modifiers.findIndex(i => i.name === "drawPLine");
   // this.modifiers[index].clck();
 }
@@ -470,6 +474,11 @@ function escDrawClck(fluentDoc){
   HINT.pulseActive(this);
 }
 
+function showPtsClck(fluentDoc){
+  this.toggle = !this.toggle;
+  HINT.toggleActive(this);
+}
+
 function lineWeightClck(e){
   this.toggle = !this.toggle;
   // console.log(this);
@@ -549,6 +558,22 @@ function escDrawUpdate(fluentDoc){
   }
 
   fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
+
+  this.toggle = !this.toggle;
+  return fluentDoc;
+}
+
+function showPtsUpdate(fluentDoc){
+  if(!this.toggle) return null;
+
+  let valString = "0";
+
+  if (!this.factors.pts) valString = "1";
+
+  fluentDoc.shader = modifyDefine(fluentDoc.shader, "SHOW_PTS", valString);
+  fluentDoc.shaderUpdate = true;
+
+  this.factors.pts = !this.factors.pts;
 
   this.toggle = !this.toggle;
   return fluentDoc;
