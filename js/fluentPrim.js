@@ -386,7 +386,7 @@ class Circle extends PointPrim{
 
   end(fluentDoc){
     if(this.pts.length == 0) return fluentDoc;
-    fluentDoc.editItemIndex++;
+    // fluentDoc.editItemIndex++;
     fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
     return fluentDoc;
   }
@@ -475,7 +475,7 @@ class Rectangle extends PointPrim{
 
   end(fluentDoc){
     if(this.pts.length == 0) return fluentDoc;
-    fluentDoc.editItemIndex++;
+    // fluentDoc.editItemIndex++;
     fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
     return fluentDoc;
   }
@@ -791,9 +791,9 @@ class PolyLine extends PolyPoint {
   //should clone and probably push to state stack prior to this
   end(fluentDoc){
     if(this.pts.length == 0) return fluentDoc;
-    fluentDoc.editItemIndex++;
     fluentDoc.shader = this.bakeFunctionParams(fluentDoc);
     fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
+    // fluentDoc.editItemIndex++;
     return fluentDoc;
   }
 }
@@ -985,7 +985,7 @@ class PolyCircle extends PolyPoint {
   //should clone and probably push to state stack prior to this
   end(fluentDoc){
     if(this.pts.length == 0) return fluentDoc;
-    fluentDoc.editItemIndex++;
+    // fluentDoc.editItemIndex++;
     fluentDoc.shader = this.bakeFunctionParams(fluentDoc);
     fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
     return fluentDoc;

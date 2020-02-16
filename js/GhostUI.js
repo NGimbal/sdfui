@@ -532,8 +532,9 @@ function hideGridUpdate(fluentDoc){
 function endDrawUpdate(fluentDoc){
   if(!this.toggle) return null;
 
-  fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionParams(fluentDoc);
-  fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
+  fluentDoc.shader = fluentDoc.currEditItem.end(fluentDoc).shader;
+  // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionParams(fluentDoc);
+  // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
   fluentDoc.shaderUpdate = true;
 
   fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
