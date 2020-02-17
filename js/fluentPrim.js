@@ -437,10 +437,24 @@ class Rectangle extends PointPrim{
 
     let rgb = this.options.stroke;
     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+    let radius = this.options.radius.toFixed(2);
+    let weight = this.options.weight.toFixed(2);
 
     posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
-    posString += '\td = sdBox(uv, texture2D(parameters, index).xy, (abs(texture2D(parameters, index).zw - texture2D(parameters, index).xy)));\n';
-    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
+
+
+    // posString += '\td = sdBox(uv, texture2D(parameters, index).xy, (abs(texture2D(parameters, index).zw - texture2D(parameters, index).xy)), ' + radius + ');\n';
+    posString += '\trect1 = texture2D(parameters, index).xy;\n';
+    posString += '\trect2 = texture2D(parameters, index).zw;\n';
+    posString += '\td = sdBox(uv, 0.5 * (rect2 - rect1) + rect1, abs(rect2 - (0.5 * (rect2 - rect1) + rect1)), ' + radius + ');\n';
+    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,'+ weight +',abs(d)) );\n'
+
+    // if(pointPrim.x != 0.0){
+    //   center = 0.5 * (screenPt(mPt).xy - pointPrim.xy) + pointPrim.xy;
+    //   vec2 rPt = abs(screenPt(mPt).xy - center);
+    //   d = sdBox(uv, center, rPt, editRadius);
+    // }
+
 
     startShader += posString;
     let fragShader = startShader + endShader;
@@ -891,6 +905,7 @@ class PolyCircle extends PolyPoint {
 
         let rgb = this.options.stroke;
         let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+        let radius = this.options.radius;
 
         for (let p of this.pts){
           //there is a more efficient way of doing this
@@ -911,7 +926,7 @@ class PolyCircle extends PolyPoint {
 
             posString += '\n\tpos = texture2D(parameters, index).xy;';
 
-            posString += '\n\tfloat d = sdCircle(uv, pos, 0.125);';
+            posString += '\n\tfloat d = sdCircle(uv, pos, ' + radius + ');';
             posString += '\n\td = opSmoothUnion(d, oldDist, 0.05);';
             posString += '\n\toldDist = d;\n';
 
@@ -922,7 +937,7 @@ class PolyCircle extends PolyPoint {
             posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');';
             posString += '\n\tpos = texture2D(parameters, index).xy;';
 
-            posString += '\n\td = sdCircle(uv, pos, 0.125);';
+            posString += '\n\td = sdCircle(uv, pos, ' + radius + ');';
             posString += '\n\td = opSmoothUnion(d, oldDist, 0.05);';
             posString += '\n\toldDist = d;';
             // posString += '\n\tvec3 cCol = vec3(0.0, 0.384, 0.682);';

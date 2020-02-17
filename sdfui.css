@@ -24,12 +24,12 @@ html, body {
   top: 1vmin;
 } */
 
-#Fluent{
+#Laminar{
   position: absolute;
   bottom: 0vmin;
   right: 1vmin;
 
-  font: bold 8vmin Helvetica;
+  font: bold 6vmin Helvetica;
   font-style: italic;
 
   -webkit-user-select: none;  /* Chrome all / Safari all */
@@ -67,6 +67,16 @@ html, body {
   height: 20px;
   background: #AAAAAA;
   cursor: pointer;
+}
+
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Opera and Firefox */
 }
 
 /* https://www.w3schools.com/howto/howto_js_snackbar.asp */

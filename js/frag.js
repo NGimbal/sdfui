@@ -32,6 +32,7 @@ uniform vec3       mousePt;
 //editUniforms
 uniform float      editWeight;
 uniform vec3       strokeColor;
+uniform float      editRadius;
 
 //scale
 uniform float      scale;
@@ -105,11 +106,12 @@ float sdPoly( in vec2[256] v, in vec2 p )
     return s*sqrt(d);
 }
 
-float sdBox( in vec2 uv, in vec2 p, in vec2 b )
+float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r)
 {
-    uv = uv-p;
+    b -= r;
+    uv = (uv-p);
     vec2 d = abs(uv)-b;
-    return length(max(d,vec2(0))) + min(max(d.x,d.y),0.0);
+    return length(max(d,vec2(0))) + min(max(d.x,d.y),0.0) - r;
 }
 
 //https://www.shadertoy.com/view/4tc3DX
@@ -236,6 +238,8 @@ float sceneDist(vec2 uv, inout vec3 finalColor) {
   float d = 1.0;
   vec2 index = vec2(0.);
   float radius = 0.125;
+  vec2 rect1 = vec2(0.);
+  vec2 rect2 = vec2(0.);
   //$INSERT CALL$------
   //$ENDINSERT CALL$---
   return d;
@@ -299,12 +303,17 @@ void main(){
 
     //Rectange--------
     #if EDIT_SHAPE == 4
-    vec2 center = pointPrim.xy;
-    d = sdBox(uv, screenPt(mPt), vec2(0.25, 0.125));
+    vec2 rect = vec2(0.5, 0.25);
+    vec2 flipX = vec2(-1.0, 1.0);
 
-    if(center.x != 0.0){
+    vec2 center = screenPt(mPt).xy - rect * flipX;
+
+    d = sdBox(uv, center, rect, editRadius);
+
+    if(pointPrim.x != 0.0){
+      center = 0.5 * (screenPt(mPt).xy - pointPrim.xy) + pointPrim.xy;
       vec2 rPt = abs(screenPt(mPt).xy - center);
-      d = sdBox(uv, center, rPt);
+      d = sdBox(uv, center, rPt, editRadius);
     }
 
     finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight,abs(d)) );
@@ -367,20 +376,15 @@ void main(){
         DrawPoint(uv, pos, finalColor);
         #endif
 
-        // float d = sdCircle(uv, pUv, 0.125);
-        // finalColor = mix( finalColor, vec3(0.0, 0.384, 0.682), 1.0-smoothstep(0.0,editWeight,abs(sdCircle(uv, pUv, 0.125))) );
-        d = sdCircle(uv, pos, 0.125);
-        //d = min(d, oldDist);
+        d = sdCircle(uv, pos, editRadius);
         d = opSmoothUnion(d, oldDist, 0.05);
-        // vec3 cCol = vec3(0.0, 0.384, 0.682);
-        // finalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight,abs(d)) );
+
 
         oldDist = d;
       }
     }
 
-    d = sdCircle(uv, screenPt(mPt), 0.125);
-    // if (oldPos != vec2(0.) && mousePt.z != -1.0){
+    d = sdCircle(uv, screenPt(mPt), editRadius);
     finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight,abs(d)) );
     // }
     d = opSmoothUnion(d, oldDist, 0.05);

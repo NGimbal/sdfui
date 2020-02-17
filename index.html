@@ -6,6 +6,7 @@
 		<meta charset="utf-8">
 		<link rel="stylesheet" href="sdfui.css">
     <link rel="stylesheet" href="ui-mode-stack.css">
+    <link rel="stylesheet" href="tooltip.css">
 
     <!-- UIkit CSS -->
     <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.2.3/dist/css/uikit.min.css" /> -->
@@ -32,18 +33,25 @@
       <div id="button-stack" class="stack">
       </div>
       <div id="input-stack" class="stack">
-        <select name="primitives" id="primitive-select">
-          <option value="PolyLine" selected>Poly Line</option>
-          <option value="PolyCircle">Poly Circle</option>
-          <option value="Circle">Circle</option>
-          <option value="Rectangle">Rectangle</option>
-        </select>
-        <input type="color" name="editColor" id="strokeColor-select" value="#0063ae">
-        <input type="range" name="lineWeight" id="strokeWeight-range" min="1" max="20" value="5">
+        <div class="stack tooltip-right" data-tooltip="Shapes!" style="width:100%">
+          <select name="primitives" id="primitive-select">
+            <option value="PolyLine" selected>Poly Line</option>
+            <option value="PolyCircle">Poly Circle</option>
+            <option value="Circle">Circle</option>
+            <option value="Rectangle">Rectangle</option>
+          </select>
+        </div>
+        <input id="strokeColor-select" type="color" name="editColor" class="tooltip-right input" data-tooltip="Color!" value="#0063ae">
+        <input id="strokeWeight-range" type="range" name="strokeWeight" class="tooltip-right input" data-tooltip="Weight!" min="1" max="20" value="5">
+        <input id="radius-range" type="range" name="radius" class="tooltip-right input" data-tooltip="Radius!" min="0" max="100" value="5">
       </div>
       <div id="mode-stack" class="stack">
       </div>
     </div>
+
+    <!-- <div class="tooltip">Hover over me
+      <span class="tooltiptext">Tooltip text</span>
+    </div> -->
 
     <canvas id="c"></canvas>
 
@@ -69,7 +77,7 @@
       </style>
     </svg>
 
-    <!-- <div id="Fluent">Fluent.</div> -->
+    <div id="Laminar">Laminar.</div>
 
     <div id="snackbar">Some text some message..</div>
 

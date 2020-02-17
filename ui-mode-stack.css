@@ -71,6 +71,10 @@
   margin-top:1vh;
 }
 
+.input{
+  width:92%;
+  margin-top:1vh;
+}
 
 .stack{
   /* background-color: rgba(172, 172, 180, 0.25);
@@ -87,7 +91,7 @@
   flex-direction: column;
   align-items: center;
 
-  overflow: hidden;
+  /* overflow: hidden; */
 }
 
 /* https://www.w3schools.com/howto/howto_js_snackbar.asp */

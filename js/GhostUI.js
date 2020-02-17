@@ -95,7 +95,7 @@ class GhostUI{
     let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, {currEditItem:"PolyLine", strokeColor:"#0063ae"});
     let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
     // let edit = new UIMode("select", false, edit)
-    // let move
+    // let
 
     //modeStack is successful
     //eventually modeStack will become part of FluentDoc
@@ -398,6 +398,16 @@ function drawUpdate(fluentDoc){
     this.factors.strokeWeight = sel.value;
     fluentDoc.editOptions.weight = sel.value / 2000;
     fluentDoc.currEditItem.options.weight = sel.value / 2000;
+    // fluentDoc.shaderUpdate = true;
+  }
+
+  sel = document.getElementById("radius-range");
+  if(this.factors.strokeWeight != sel.value){
+    // console.log(sel.value);
+    // console.log(hexToRgb(sel.value));
+    this.factors.radius = sel.value;
+    fluentDoc.editOptions.radius = sel.value / 100;
+    fluentDoc.currEditItem.options.radius = sel.value / 100;
     // fluentDoc.shaderUpdate = true;
   }
 

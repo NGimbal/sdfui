@@ -61,6 +61,7 @@ function main() {
 
     editWeight : {value: fluentDoc.editOptions.weight},
     strokeColor: {value: new THREE.Vector3(0.0, 0.384, 0.682)},
+    editRadius : {value: fluentDoc.editOptions.radius},
 
     //global scale variables
     scale: {value: fluentDoc.scale},
@@ -125,6 +126,7 @@ function render() {
   screenMesh.material.uniforms.mousePt.value = fluentDoc.mPt;
   screenMesh.material.uniforms.editWeight.value = fluentDoc.editOptions.weight;
   screenMesh.material.uniforms.strokeColor.value = fluentDoc.editOptions.stroke;
+  screenMesh.material.uniforms.editRadius.value = fluentDoc.editOptions.radius;
 
   // screenMesh.material.uniforms.editOpacity.value = fluentDoc.editOpacity;
 
