@@ -352,7 +352,8 @@ class Circle extends PointPrim{
     posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
     posString += '\tradius = distance(texture2D(parameters, index).xy, texture2D(parameters, index).zw);\n';
     posString += '\td = sdCircle(uv, texture2D(parameters, index).xy, radius);\n';
-    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,'+ this.weight +',abs(d)) );\n'
+    posString += '\td = clamp(abs(d) - editWeight, 0.0, 1.0);\n';
+    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,0.003,abs(d)) );\n'
 
     startShader += posString;
     let fragShader = startShader + endShader;
@@ -442,19 +443,11 @@ class Rectangle extends PointPrim{
 
     posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
 
-
     // posString += '\td = sdBox(uv, texture2D(parameters, index).xy, (abs(texture2D(parameters, index).zw - texture2D(parameters, index).xy)), ' + radius + ');\n';
     posString += '\trect1 = texture2D(parameters, index).xy;\n';
     posString += '\trect2 = texture2D(parameters, index).zw;\n';
-    posString += '\td = sdBox(uv, 0.5 * (rect2 - rect1) + rect1, abs(rect2 - (0.5 * (rect2 - rect1) + rect1)), ' + radius + ');\n';
-    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,'+ weight +',abs(d)) );\n'
-
-    // if(pointPrim.x != 0.0){
-    //   center = 0.5 * (screenPt(mPt).xy - pointPrim.xy) + pointPrim.xy;
-    //   vec2 rPt = abs(screenPt(mPt).xy - center);
-    //   d = sdBox(uv, center, rPt, editRadius);
-    // }
-
+    posString += '\td = sdBox(uv, 0.5 * (rect2 - rect1) + rect1, abs(rect2 - (0.5 * (rect2 - rect1) + rect1)), ' + radius + ',' + weight + ');\n';
+    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,0.003,abs(d)) );\n'
 
     startShader += posString;
     let fragShader = startShader + endShader;
@@ -478,12 +471,12 @@ class Rectangle extends PointPrim{
     //list of points
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
-    let newCircle = new Rectangle(resolution, options);
-    newCircle.pointPrim = pointPrim;
-    newCircle.id = id;
-    newCircle.pts = pts;
+    let newRect = new Rectangle(resolution, options);
+    newRect.pointPrim = pointPrim;
+    newRect.id = id;
+    newRect.pts = pts;
 
-    return newCircle;
+    return newRect;
   }
 
   create(resolution, options){

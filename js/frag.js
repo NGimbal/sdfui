@@ -106,12 +106,13 @@ float sdPoly( in vec2[256] v, in vec2 p )
     return s*sqrt(d);
 }
 
-float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r)
+//uv, p translation point, b 1/2 length, width, r radius, w weight
+float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r, in float w)
 {
     b -= r;
     uv = (uv-p);
     vec2 d = abs(uv)-b;
-    return length(max(d,vec2(0))) + min(max(d.x,d.y),0.0) - r;
+    return clamp(abs(length(max(d,vec2(0))) + min(max(d.x,d.y),0.0) - r) - w, 0.0, 1.0);
 }
 
 //https://www.shadertoy.com/view/4tc3DX
@@ -295,8 +296,9 @@ void main(){
       radius = distance(center, rPt);
       d = sdCircle(uv, center, radius);
     }
-
-    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight,abs(d)) );
+    //lineWeight by "annularize"
+    d = clamp(abs(d) - editWeight, 0.0, 1.0);
+    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,0.003,abs(d)) );
 
     #endif
     //Circle--------
@@ -308,15 +310,15 @@ void main(){
 
     vec2 center = screenPt(mPt).xy - rect * flipX;
 
-    d = sdBox(uv, center, rect, editRadius);
+    d = sdBox(uv, center, rect, editRadius, editWeight);
 
     if(pointPrim.x != 0.0){
       center = 0.5 * (screenPt(mPt).xy - pointPrim.xy) + pointPrim.xy;
       vec2 rPt = abs(screenPt(mPt).xy - center);
-      d = sdBox(uv, center, rPt, editRadius);
+      d = sdBox(uv, center, rPt, editRadius, editWeight);
     }
 
-    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight,abs(d)) );
+    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,0.003,abs(d)) );
 
     #endif
     //Rectangle--------
@@ -334,10 +336,6 @@ void main(){
         if (pos == vec2(0.)){ break; }
 
         if (oldPos != vec2(0.)){
-          // finalColor = min(finalColor, FillLine(uv, oldPos, pUv, vec2(editWeight, editWeight), editWeight));
-          // float line = LineDistField(uv, oldPos, pUv, vec2(editWeight), editWeight, 0.0);
-          // vec3 cCol = vec3(0.98, 0.215, 0.262);
-          // line = 1.0 - smoothstep(0.0, editWeight, line);
           float line = drawLine(uv, oldPos, pos, editWeight, 0.0);
           finalColor = mix(finalColor, strokeColor, line);
         }
@@ -351,9 +349,6 @@ void main(){
     }
 
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
-      // finalColor *= FillLineDash(uv, oldPos, screenPt(mPt), vec2(editWeight, editWeight), 1.0);
-      // vec3 cCol = vec3(0.98, 0.215, 0.262);
-      // line = 1.0 - smoothstep(0.0, editWeight, line);
       float line = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
       finalColor = mix(finalColor, strokeColor, line);
     }
@@ -390,7 +385,8 @@ void main(){
     d = opSmoothUnion(d, oldDist, 0.05);
 
     vec3 cCol = vec3(0.98, 0.215, 0.262);
-    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight+0.002,abs(d)));
+    d = clamp(abs(d) - editWeight, 0.0, 1.0);
+    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,0.003,abs(d)));
 
     #endif
     //PolyCircle--------
