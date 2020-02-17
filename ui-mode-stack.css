@@ -66,6 +66,12 @@
   margin-top:1vh;
 }
 
+#strokeWeight-range{
+  width:92%;
+  margin-top:1vh;
+}
+
+
 .stack{
   /* background-color: rgba(172, 172, 180, 0.25);
   box-shadow: 2px 2px 2px .5px rgba(136, 161, 180, 0.6); */

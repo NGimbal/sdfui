@@ -71,6 +71,7 @@ class GhostUI{
     //Clck could be a built in function - looks like it will generally be a simple toggle
     let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
     let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
+    let showPts = new UIModifier("showPts", "view", "r", false, {clck:showPtsClck, update:showPtsUpdate}, {pts:false});
 
     let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
 
@@ -80,14 +81,12 @@ class GhostUI{
     let snapGrid = new UIModifier("snapGrid", "snap", "g", false, {clck:SNAP.snapGridClck, mv:SNAP.snapGridMv, up:SNAP.snapGridUp}, {});
 
     //lineweight modifier is broken
-    let lineWeight = new UIModifier("lineWeight", "edit", "w", false, {clck:lineWeightClck, update:lineWeightUpdate}, {weight:0.002});
-    let endDraw = new UIModifier("endDraw", "edit", "Enter", false, {clck:endDrawClck, update:endDrawUpdate}, {});
-    let escDraw = new UIModifier("escDraw", "edit", "Escape", false, {clck:escDrawClck, update:escDrawUpdate}, {});
-    let showPts = new UIModifier("showPts", "edit", "r", false, {clck:showPtsClck, update:showPtsUpdate}, {pts:false});
+    let endDraw = new UIModifier("endDraw", "edit", "Enter", false, {clck:endDrawClck, update:endDrawUpdate}, {exit:false});
+    let escDraw = new UIModifier("escDraw", "edit", "Escape", false, {clck:escDrawClck, update:escDrawUpdate}, {exit:false});
 
     //MODES
-    let globalMods = [pauseShader, hideGrid, screenshot];
-    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, lineWeight, endDraw, escDraw, showPts];
+    let globalMods = [pauseShader, hideGrid, showPts, screenshot];
+    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
     drawMods = globalMods.concat(drawMods);
 
     let selMods = [pauseShader, hideGrid, screenshot];
@@ -99,10 +98,9 @@ class GhostUI{
     // let move
 
     //modeStack is successful
-    //only remaining question is do we have to implement a clone() function for UIMode?
-    this.modeStack = new StateStack(select, 5);
-    this.modeStack.push(draw);
-
+    //eventually modeStack will become part of FluentDoc
+    //not really important enough to worry about in the short term
+    this.modeStack = new StateStack(draw, 5);
     //default mode
     this.modeStack.curr().enter();
 
@@ -327,7 +325,13 @@ function drawEnter(){
 function drawExit(){
   HINT.snackHint("End Drawing!");
   console.log(this);
-  // this.toggle = false;
+  //This should be more global
+  let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
+  let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
+  let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
+
+  let selMods = [pauseShader, hideGrid, screenshot];
+  let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
 }
 
 function drawUpdate(fluentDoc){
@@ -387,11 +391,24 @@ function drawUpdate(fluentDoc){
     // fluentDoc.shaderUpdate = true;
   }
 
+  sel = document.getElementById("strokeWeight-range");
+  if(this.factors.strokeWeight != sel.value){
+    // console.log(sel.value);
+    // console.log(hexToRgb(sel.value));
+    this.factors.strokeWeight = sel.value;
+    fluentDoc.editOptions.weight = sel.value / 2000;
+    fluentDoc.currEditItem.options.weight = sel.value / 2000;
+    // fluentDoc.shaderUpdate = true;
+  }
+
   for(let m of this.modifiers){
     //each update will deal with m.toggle on an individual basis
     if(m.update){
       let newDoc = m.update(fluentDoc);
       if (newDoc) fluentDoc = newDoc;
+      if (m.factors.exit && m.factors.exit == true){
+        this.exit()
+      }
     }
   }
 
@@ -479,31 +496,6 @@ function showPtsClck(fluentDoc){
   HINT.toggleActive(this);
 }
 
-function lineWeightClck(e){
-  this.toggle = !this.toggle;
-  // console.log(this);
-  if(!this.button.input){
-    let weight = this.factors.weight;
-    let uiSlider = '<input type="range" min="1" max="20" value="' + weight + '" class="slider" id="myRange">';
-    // this.elem.style.width = '15vmin';
-    this.button.elem.classList.toggle("input-slider");
-    this.button.elem.innerHTML = uiSlider;
-    this.button.input = true;
-  }
-  else if(this.button.input){
-    //evaluates false when closing slider
-    if(e.srcElement.value){
-      this.factors.weight = parseInt(event.srcElement.value) / 2000;
-    }
-
-    if(e.target != this.button.elem) return;
-
-    this.button.elem.classList.toggle("input-slider");
-    window.setTimeout(function(){this.button.elem.innerHTML = this.button.innerHTML;}.bind(this), 100);
-    this.button.input = false;
-  }
-}
-
 function pauseShaderUpdate(fluentDoc){
   if(!this.toggle) return null;
 
@@ -532,6 +524,11 @@ function hideGridUpdate(fluentDoc){
 function endDrawUpdate(fluentDoc){
   if(!this.toggle) return null;
 
+  if(fluentDoc.currEditItem.pts.length == 0) {
+    this.factors.exit = true;
+    return null;
+  }
+
   fluentDoc.shader = fluentDoc.currEditItem.end(fluentDoc).shader;
   // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionParams(fluentDoc);
   // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
@@ -549,6 +546,11 @@ function endDrawUpdate(fluentDoc){
 
 function escDrawUpdate(fluentDoc){
   if(!this.toggle) return null;
+
+  if(fluentDoc.currEditItem.pts.length == 0) {
+    this.factors.exit = true;
+    return null;
+  }
 
   //remove all points from curr edit item before ending this polyline
   for (let p of fluentDoc.currEditItem.pts){
@@ -586,20 +588,6 @@ function screenshotUpdate(fluentDoc){
   fluentDoc.screenshot = true;
   this.toggle = !this.toggle;
   return fluentDoc;
-}
-
-//update the lineWeight
-function lineWeightUpdate(fluentDoc){
-  if (this.toggle == false) return null;
-  this.toggle = !this.toggle;
-
-  if (fluentDoc.editOptions.weight != this.factors.weight){
-    fluentDoc.editOptions.weight = this.factors.weight;
-    fluentDoc.currEditItem.options.weight = this.factors.weight;
-    return fluentDoc;
-  }
-
-  return null;
 }
 
 function modifyDefine(shader, define, val){

@@ -11,8 +11,11 @@ BakeFunctionAbsolute(fluentDoc) (optional)
 Clone()
 Create() //this returns a new prim of the same type
 
-//This is not implemented yet, could be used for selection
-Dist() //returns distance to primitive at a point
+//Not yet implemented
+Dist() //returns distance to primitive at a point for selection
+getSharer() //returns shader function for object
+SVG() //returns svg of polyline
+3dm() //returns RhinoCompute representation
 
 Members:
 StrokeColor : rgba
