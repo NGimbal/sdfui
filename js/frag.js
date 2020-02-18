@@ -107,6 +107,7 @@ float sdPoly( in vec2[256] v, in vec2 p )
 }
 
 //uv, p translation point, b 1/2 length, width, r radius, w weight
+//in other spots I've been applying stroke weight outside of function, may change to match
 float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r, in float w)
 {
     b -= r;
@@ -153,45 +154,16 @@ float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float 
     return dist;
 }
 
-// This makes a filled line in pixel units. A 1.0 thick line will be 1 pixel thick.
-float FillLinePix(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded) {
-    float scale = abs(dFdy(uv).y);
-    thick = (thick * 0.5 - 0.5) * scale;
-    float df = LineDistField(uv, pA, pB, vec2(thick), rounded, 0.0);
-    return saturate(df / scale);
-}
-
-// This makes an outlined line in pixel units. A 1.0 thick outline will be 1 pixel thick.
-float DrawOutlinePix(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float outlineThick) {
-    float scale = abs(dFdy(uv).y);
-    thick = (thick * 0.5 - 0.5) * scale;
-    rounded = (rounded * 0.5 - 0.5) * scale;
-    outlineThick = (outlineThick * 0.5 - 0.5) * scale;
-    float df = LineDistField(uv, pA, pB, vec2(thick), rounded, 0.0);
-    return saturate((abs(df + outlineThick) - outlineThick) / scale);
-}
-
-// This makes a line in UV units. A 1.0 thick line will span a whole 0..1 in UV space.
-float FillLine(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded) {
-    float df = LineDistField(uv, pA, pB, vec2(thick), rounded, 0.0);
-    return saturate(df / abs(dFdy(uv).y));
-}
-
 // This makes a dashed line in UV units. A 1.0 thick line will span a whole 0..1 in UV space.
 float FillLineDash(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded) {
     float df = LineDistField(uv, pA, pB, vec2(thick), rounded, 1.0);
     return saturate(df / abs(dFdy(uv).y));
 }
 
-// This makes an outlined line in UV units. A 1.0 thick outline will span 0..1 in UV space.
-float DrawOutline(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float outlineThick) {
-    float df = LineDistField(uv, pA, pB, vec2(thick), rounded, 0.0);
-    return saturate((abs(df + outlineThick) - outlineThick) / abs(dFdy(uv).y));
-}
-
 float drawLine(vec2 uv, vec2 pA, vec2 pB, float weight, float dash){
   float line = LineDistField(uv, pA, pB, vec2(weight), weight, dash);
-  line = 1.0 - smoothstep(0.0, editWeight, line);
+  line = 1.0 - smoothstep(0.0, 0.003, line);
+  line = clamp(abs(line) - weight, 0.0, 1.0);
   return line;
 }
 

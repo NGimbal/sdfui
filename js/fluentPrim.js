@@ -438,8 +438,8 @@ class Rectangle extends PointPrim{
 
     let rgb = this.options.stroke;
     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-    let radius = this.options.radius.toFixed(2);
-    let weight = this.options.weight.toFixed(2);
+    let radius = this.options.radius.toFixed(4);
+    let weight = this.options.weight.toFixed(4);
 
     posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
 
@@ -579,6 +579,7 @@ class PolyLine extends PolyPoint {
 
     let rgb = this.options.stroke;
     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+    let weight = this.options.weight.toFixed(4);
 
     for (let p of this.pts){
       view.setUint16(0, p.texData[0]);
@@ -605,7 +606,7 @@ class PolyLine extends PolyPoint {
       }else{
         posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
         // posString += '\tfinalColor = min(finalColor, vec3(FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +')));\n';
-        posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +'));\n'
+        posString += '\tfinalColor = mix( finalColor, ' + color + ', drawLine(tUv, oldPos, pos,'+ weight + ',0.0));\n'
 
         posString += '\toldPos = pos;\n';
 
@@ -684,6 +685,7 @@ class PolyLine extends PolyPoint {
 
     let rgb = this.options.stroke;
     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+    let weight = this.options.weight.toFixed(4);
 
     for (let p of this.pts){
 
@@ -736,7 +738,7 @@ class PolyLine extends PolyPoint {
         posString += '\n\tpos = texture2D(parameters, index).xy;\n';
 
         // posString += '\tfinalColor = min(finalColor, vec3(FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +')));\n';
-        posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +'));\n'
+        posString += '\tfinalColor = mix( finalColor, ' + color + ', drawLine(tUv, oldPos, pos,'+ weight +',0.0));\n'
 
         posString += '\toldPos = pos;\n';
 

@@ -74,6 +74,7 @@ class GhostUI{
     let showPts = new UIModifier("showPts", "view", "r", false, {clck:showPtsClck, update:showPtsUpdate}, {pts:false});
 
     let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
+    let printShader = new UIModifier("printShader", "export", "c", false, {clck:printShaderClck, update:printShaderUpdate}, {});
 
     let snapPt = new UIModifier("snapPt", "snap", "p", false, {clck:SNAP.snapPtClck, mv:SNAP.snapPtMv, up:SNAP.snapPtUp}, {dist:100});
     let snapRef = new UIModifier("snapRef", "snap", "s", false, {clck:SNAP.snapRefClck, mv:SNAP.snapRefMv, up:SNAP.snapRefUp}, {angle:30});
@@ -85,7 +86,7 @@ class GhostUI{
     let escDraw = new UIModifier("escDraw", "edit", "Escape", false, {clck:escDrawClck, update:escDrawUpdate}, {exit:false});
 
     //MODES
-    let globalMods = [pauseShader, hideGrid, showPts, screenshot];
+    let globalMods = [pauseShader, hideGrid, showPts, screenshot, printShader];
     let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
     drawMods = globalMods.concat(drawMods);
 
@@ -481,6 +482,11 @@ function screenshotClck(){
   HINT.pulseActive(this);
 }
 
+function printShaderClck(){
+  this.toggle = !this.toggle;
+  HINT.pulseActive(this);
+}
+
 function hideGridClck(){
   this.toggle = !this.toggle;
   HINT.pulseActive(this);
@@ -596,6 +602,14 @@ function screenshotUpdate(fluentDoc){
   if(!this.toggle) return null;
 
   fluentDoc.screenshot = true;
+  this.toggle = !this.toggle;
+  return fluentDoc;
+}
+
+function printShaderUpdate(fluentDoc){
+  if(!this.toggle) return null;
+
+  console.log(fluentDoc.shader);
   this.toggle = !this.toggle;
   return fluentDoc;
 }
