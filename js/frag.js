@@ -192,18 +192,16 @@ float drawLine(vec2 uv, vec2 pA, vec2 pB, float weight, float dash){
   return line;
 }
 
-// This just draws a point for debugging using a different technique that is less glorious.
-void DrawPoint(vec2 uv, vec2 p, inout vec3 col) {
-    col = mix(col, vec3(1.0, 0.25, 0.25), saturate(abs(dFdy(uv).y)*8.0/distance(uv, p)-2.0));
-}
-
 float sdCircle( vec2 uv, vec2 p, float r )
 {
   uv = uv - p;
   return length(uv) - r;
 }
 
-// Eventually factor this out by transforming point in javascript
+void DrawPoint(vec2 uv, vec2 p, inout vec3 col) {
+    col = mix(col, vec3(1.0, 0.25, 0.25), 1.0 - smoothstep(0.0,0.003,clamp(sdCircle(uv, p, 0.009), 0.0,1.0)));
+}
+
 // Transform screen space pt to shader space
 vec2 screenPt(vec2 p) {
   vec2 pos = p;
@@ -234,21 +232,21 @@ float fillMask(float d){
 
 //Filters take d and uv and return modified d
 //smooth Line Filter
-float line(vec2 uv, float d){
-  d = clamp(abs(d) - editWeight, 0.0, 1.0);
+float line(vec2 uv, float d, float w){
+  d = clamp(abs(d) - w, 0.0, 1.0);
   d = 1.0 - smoothstep(0.0,0.003,abs(d));
   return d;
 }
 
 //Pencil Filter
-float pencil(vec2 uv, float d){
+float pencil(vec2 uv, float d, float w){
   d = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.02, abs(d) - 0.002 ), 2.0));
   return d;
 }
 
 //Crayon Filter
-float crayon(vec2 uv, float d){
-  float dMask = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.013, abs(d) - (editWeight / 2.0)), 2.0));
+float crayon(vec2 uv, float d, float w){
+  float dMask = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.013, abs(d) - (w / 2.0)), 2.0));
   d = clamp(abs(d) - editWeight, 0.0, 1.0);
   d = dMask * (1.0 - smoothstep(0.0,0.003,abs(d))) * (1.0 - smoothstep(0.4, 0.397, 0.5 + 0.5 * simplex(80.0 * uv)));
   return d;
@@ -316,17 +314,17 @@ void main(){
 
     //No filter
     #if FILTER == 0
-    finalColor = mix(finalColor, strokeColor, line(uv, d));
+    finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
     #endif
 
     //Colored Penci
     #if FILTER == 1
-    finalColor = mix(finalColor, strokeColor, pencil(uv, d));
+    finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
     #endif
 
     //Crayon
     #if FILTER == 2
-    finalColor = mix(finalColor, strokeColor, crayon(uv, d));
+    finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
     #endif
 
     #endif
@@ -348,17 +346,17 @@ void main(){
     }
 
     #if FILTER == 0
-    finalColor = mix(finalColor, strokeColor, line(uv, d));
+    finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
     #endif
 
     //Colored Penci
     #if FILTER == 1
-    finalColor = mix(finalColor, strokeColor, pencil(uv, d));
+    finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
     #endif
 
     //Crayon
     #if FILTER == 2
-    finalColor = mix(finalColor, strokeColor, crayon(uv, d));
+    finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
     #endif
 
     #endif
@@ -381,17 +379,17 @@ void main(){
           float d = drawLine(uv, oldPos, pos, editWeight, 0.0);
 
           #if FILTER == 0
-          finalColor = mix(finalColor, strokeColor, line(uv, d));
+          finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
           #endif
 
           //Colored Penci
           #if FILTER == 1
-          finalColor = mix(finalColor, strokeColor, pencil(uv, d));
+          finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
           #endif
 
           //Crayon
           #if FILTER == 2
-          finalColor = mix(finalColor, strokeColor, crayon(uv, d));
+          finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
           #endif
         }
 
@@ -408,17 +406,17 @@ void main(){
       float d = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
 
       #if FILTER == 0
-      finalColor = mix(finalColor, strokeColor, line(uv, d));
+      finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
       #endif
 
       //Colored Penci
       #if FILTER == 1
-      finalColor = mix(finalColor, strokeColor, pencil(uv, d));
+      finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
       #endif
 
       //Crayon
       #if FILTER == 2
-      finalColor = mix(finalColor, strokeColor, crayon(uv, d));
+      finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
       #endif
     }
     #endif
@@ -456,17 +454,17 @@ void main(){
     vec3 cCol = vec3(0.98, 0.215, 0.262);
 
     #if FILTER == 0
-    finalColor = mix(finalColor, strokeColor, line(uv, d));
+    finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
     #endif
 
     //Colored Penci
     #if FILTER == 1
-    finalColor = mix(finalColor, strokeColor, pencil(uv, d));
+    finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
     #endif
 
     //Crayon
     #if FILTER == 2
-    finalColor = mix(finalColor, strokeColor, crayon(uv, d));
+    finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
     #endif
 
     #endif

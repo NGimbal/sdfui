@@ -601,13 +601,15 @@ class PolyLine extends PolyPoint {
         oldPosY = floatY;
 
         posString += '\n\tvec2 pos = vec2(0.0);\n';
+        posString += '\n\tfloat d = 0.0;\n';
         posString += '\n\tvec2 oldPos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
 
         continue;
       }else{
         posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
-        // posString += '\tfinalColor = min(finalColor, vec3(FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +')));\n';
-        posString += '\tfinalColor = mix( finalColor, ' + color + ', drawLine(tUv, oldPos, pos,'+ weight + ',0.0));\n'
+        posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);\n';
+
+        posString += '\tfinalColor = mix(finalColor, ' + color + ', line(tUv, d, '+weight+'));\n';
 
         posString += '\toldPos = pos;\n';
 
@@ -721,6 +723,7 @@ class PolyLine extends PolyPoint {
         indexX = (cTexel % dataSize) / dataSize + texelOffset;
         indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
         posString += '\n\tvec2 pos = vec2(0.0);\n';
+        posString += '\n\tfloat d = 0.0;\n';
 
         posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');\n';
         //I do think these need to be modified by screenPt
@@ -738,8 +741,12 @@ class PolyLine extends PolyPoint {
         posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');\n';
         posString += '\n\tpos = texture2D(parameters, index).xy;\n';
 
+        posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);\n';
+
+        posString += '\tfinalColor = mix(finalColor, ' + color + ', line(tUv, d, '+weight+'));\n';
+
         // posString += '\tfinalColor = min(finalColor, vec3(FillLine(tUv, oldPos, pos, vec2('+ this.weight +', '+ this.weight +'), '+ this.weight +')));\n';
-        posString += '\tfinalColor = mix( finalColor, ' + color + ', drawLine(tUv, oldPos, pos,'+ weight +',0.0));\n'
+        // posString += '\tfinalColor = mix( finalColor, ' + color + ', drawLine(tUv, oldPos, pos,'+ weight +',0.0));\n'
 
         posString += '\toldPos = pos;\n';
 
