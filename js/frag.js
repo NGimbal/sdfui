@@ -58,47 +58,6 @@ vec2 hash( vec2 p ) // replace this by something better
 	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
 }
 
-//https://www.shadertoy.com/view/WdtGWN
-// Based on IQ's gradient noise formula.
-
-// vec2 to vec2 hash.
-vec2 hash22(vec2 p) {
-
-    // Faster, but doesn't disperse things quite as nicely. However, when framerate
-    // is an issue, and it often is, this is a good one to use. Basically, it's a tweaked
-    // amalgamation I put together, based on a couple of other random algorithms I've
-    // seen around... so use it with caution, because I make a tonne of mistakes. :)
-    float n = sin(dot(p, vec2(27, 57)));
-    return fract(vec2(262144, 32768)*n)*2. - 1.;
-
-    // Animated.
-    //p = fract(vec2(262144, 32768)*n);
-    //return sin(p*6.2831853 + iTime);
-
-}
-
-float n2D3G( in vec2 p ){
-
-    vec2 i = floor(p); p -= i;
-
-    vec4 v;
-    v.x = dot(hash22(i), p);
-    v.y = dot(hash22(i + vec2(1, 0)), p - vec2(1, 0));
-    v.z = dot(hash22(i + vec2(0, 1)), p - vec2(0, 1));
-    v.w = dot(hash22(i + 1.), p - 1.);
-
-#if 1
-    // Quintic interpolation.
-    p = p*p*p*(p*(p*6. - 15.) + 10.);
-#else
-    // Cubic interpolation.
-    p = p*p*(3. - 2.*p);
-#endif
-
-    return mix(mix(v.x, v.y, p.x), mix(v.z, v.w, p.x), p.y);
-    //return v.x + p.x*(v.y - v.x) + p.y*(v.z - v.x) + p.x*p.y*(v.x - v.y - v.z + v.w);
-}
-
 float simplex( in vec2 p )
 {
     const float K1 = 0.366025404; // (sqrt(3)-1)/2;
@@ -173,15 +132,15 @@ float sdPoly( in vec2[256] v, in vec2 p )
     return s*sqrt(d);
 }
 
-//uv, p translation point, b 1/2 length, width, r radius, w weight
-//in other spots I've been applying stroke weight outside of function, may change to match
-float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r, in float w)
+//uv, p translation point, b 1/2 length, width, r radius
+float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r)
 {
     b -= r;
     uv = (uv-p);
     vec2 d = abs(uv)-b;
-    return clamp(abs(length(max(d,vec2(0))) + min(max(d.x,d.y),0.0) - r) - w, 0.0, 1.0);
+    return length(max(d,vec2(0))) + min(max(d.x,d.y),0.0) - r;
 }
+
 
 //https://www.shadertoy.com/view/4tc3DX
 float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
@@ -229,12 +188,8 @@ float FillLineDash(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded) {
 
 float drawLine(vec2 uv, vec2 pA, vec2 pB, float weight, float dash){
   float line = LineDistField(uv, pA, pB, vec2(weight), weight, dash);
-  line = 1.0 - smoothstep(0.0, 0.003, line);
+  // line = 1.0 - smoothstep(0.0, 0.003, line);
   return line;
-}
-
-float fillMask(float d){
-  return clamp(d, 0.0, 1.0);
 }
 
 // This just draws a point for debugging using a different technique that is less glorious.
@@ -271,6 +226,32 @@ vec2 screenPt(vec2 p) {
 float opSmoothUnion( float d1, float d2, float k ) {
     float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1.0 );
     return mix( d2, d1, h ) - k*h*(1.0-h);
+}
+
+float fillMask(float d){
+  return clamp(d, 0.0, 1.0);
+}
+
+//Filters take d and uv and return modified d
+//smooth Line Filter
+float line(vec2 uv, float d){
+  d = clamp(abs(d) - editWeight, 0.0, 1.0);
+  d = 1.0 - smoothstep(0.0,0.003,abs(d));
+  return d;
+}
+
+//Pencil Filter
+float pencil(vec2 uv, float d){
+  d = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.02, abs(d) - 0.002 ), 2.0));
+  return d;
+}
+
+//Crayon Filter
+float crayon(vec2 uv, float d){
+  float dMask = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.013, abs(d) - (editWeight / 2.0)), 2.0));
+  d = clamp(abs(d) - editWeight, 0.0, 1.0);
+  d = dMask * (1.0 - smoothstep(0.0,0.003,abs(d))) * (1.0 - smoothstep(0.4, 0.397, 0.5 + 0.5 * simplex(80.0 * uv)));
+  return d;
 }
 
 //$INSERT FUNCTION$------
@@ -318,9 +299,6 @@ void main(){
     //current Mouse Position
     DrawPoint(uv, screenPt(mPt), finalColor);
 
-    //global opacity
-    // finalColor = mix(finalColor, vec3(1.0), editOpacity);
-
     //Circle--------
     #if EDIT_SHAPE == 3
     vec2 center = pointPrim.xy;
@@ -336,28 +314,19 @@ void main(){
     // vec3 fill = vec3(0.98, 0.35, 0.0);
     // finalColor = mix(finalColor, fill, 1.0-smoothstep(0.0,0.003, fillMask(d)));
 
-    //lineWeight by "annularize"
-    // d = clamp(abs(d) - editWeight, 0.0, 1.0);
-
     //No filter
     #if FILTER == 0
-    //apply line weight
-    d = clamp(abs(d) - editWeight, 0.0, 1.0);
-    finalColor = mix(finalColor, strokeColor, 1.0 - smoothstep(0.0,0.003,abs(d)));
+    finalColor = mix(finalColor, strokeColor, line(uv, d));
     #endif
 
     //Colored Penci
     #if FILTER == 1
-    float rawD = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.02, abs(d) - 0.002 ), 2.0));
-    finalColor = mix(finalColor, strokeColor, rawD);
+    finalColor = mix(finalColor, strokeColor, pencil(uv, d));
     #endif
 
     //Crayon
     #if FILTER == 2
-    float rawD = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.013, abs(d) - (editWeight / 2.0)), 2.0));
-    d = clamp(abs(d) - editWeight, 0.0, 1.0);
-    d = rawD * (1.0 - smoothstep(0.0,0.003,abs(d))) * (1.0 - smoothstep(0.4, 0.397, 0.5 + 0.5 * simplex(80.0 * uv)));
-    finalColor = mix(finalColor, strokeColor, d);
+    finalColor = mix(finalColor, strokeColor, crayon(uv, d));
     #endif
 
     #endif
@@ -370,20 +339,34 @@ void main(){
 
     vec2 center = screenPt(mPt).xy - rect * flipX;
 
-    d = sdBox(uv, center, rect, editRadius, editWeight);
+    d = sdBox(uv, center, rect, editRadius);
 
     if(pointPrim.x != 0.0){
       center = 0.5 * (screenPt(mPt).xy - pointPrim.xy) + pointPrim.xy;
       vec2 rPt = abs(screenPt(mPt).xy - center);
-      d = sdBox(uv, center, rPt, editRadius, editWeight);
+      d = sdBox(uv, center, rPt, editRadius);
     }
 
-    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,0.003,abs(d)) );
+    #if FILTER == 0
+    finalColor = mix(finalColor, strokeColor, line(uv, d));
+    #endif
+
+    //Colored Penci
+    #if FILTER == 1
+    finalColor = mix(finalColor, strokeColor, pencil(uv, d));
+    #endif
+
+    //Crayon
+    #if FILTER == 2
+    finalColor = mix(finalColor, strokeColor, crayon(uv, d));
+    #endif
+
     #endif
     //Rectangle--------
 
     //Polyline-------
     #if EDIT_SHAPE == 1
+    //Lines previously baked to the dataTexture
     for (float i = 0.; i < 16.; i++ ){
       float yIndex = i / 16. + texelOffset;
 
@@ -395,33 +378,20 @@ void main(){
         if (pos == vec2(0.)){ break; }
 
         if (oldPos != vec2(0.)){
-          //returns 1.0 on line
           float d = drawLine(uv, oldPos, pos, editWeight, 0.0);
+
           #if FILTER == 0
-          //apply line weight
-          //good to do do this outside of functions because raw dist
-          //is necessary for filtering
-          // this seems to be taken care of by the line sdFunction
-          //as per the observation above, this isn't really ideal
-          //would rather get the true distance back and then deal with this later
-          d = clamp(abs(d) - editWeight, 0.0, 1.0);
-          finalColor = mix(finalColor, strokeColor, d);
+          finalColor = mix(finalColor, strokeColor, line(uv, d));
           #endif
-          //Colored Pencil
+
+          //Colored Penci
           #if FILTER == 1
-          // line = clamp(abs(line) - editWeight, 0.0, 1.0);
-          d = repeat(d);
-          finalColor = mix(finalColor, strokeColor, d);
+          finalColor = mix(finalColor, strokeColor, pencil(uv, d));
           #endif
+
           //Crayon
           #if FILTER == 2
-          // float rawD = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.02, abs(d) - 0.002 ), 2.0));
-          // d = clamp(abs(d) - editWeight, 0.0, 1.0);
-          // d = rawD * (smoothstep(0.0,0.003,abs(d))) * (smoothstep(0.5, 0.497, 0.5 + 0.5 * simplex(90.0 * uv)));
-
-          // d = clamp(abs(d) - editWeight, 0.0, 1.0);
-          // d = line * smoothstep(1.0, 0.0, 0.5 + 0.5 * simplex(20.0 * uv));
-          finalColor = mix(finalColor, strokeColor, d);
+          finalColor = mix(finalColor, strokeColor, crayon(uv, d));
           #endif
         }
 
@@ -433,9 +403,23 @@ void main(){
       }
     }
 
+    //Next line while drawing
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
-      float line = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
-      finalColor = mix(finalColor, strokeColor, line);
+      float d = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
+
+      #if FILTER == 0
+      finalColor = mix(finalColor, strokeColor, line(uv, d));
+      #endif
+
+      //Colored Penci
+      #if FILTER == 1
+      finalColor = mix(finalColor, strokeColor, pencil(uv, d));
+      #endif
+
+      //Crayon
+      #if FILTER == 2
+      finalColor = mix(finalColor, strokeColor, crayon(uv, d));
+      #endif
     }
     #endif
     //Polyline-------
@@ -459,19 +443,31 @@ void main(){
         d = sdCircle(uv, pos, editRadius);
         d = opSmoothUnion(d, oldDist, 0.05);
 
-
         oldDist = d;
       }
     }
 
     d = sdCircle(uv, screenPt(mPt), editRadius);
+
     finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight,abs(d)) );
-    // }
+
     d = opSmoothUnion(d, oldDist, 0.05);
 
     vec3 cCol = vec3(0.98, 0.215, 0.262);
-    d = clamp(abs(d) - editWeight, 0.0, 1.0);
-    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,0.003,abs(d)));
+
+    #if FILTER == 0
+    finalColor = mix(finalColor, strokeColor, line(uv, d));
+    #endif
+
+    //Colored Penci
+    #if FILTER == 1
+    finalColor = mix(finalColor, strokeColor, pencil(uv, d));
+    #endif
+
+    //Crayon
+    #if FILTER == 2
+    finalColor = mix(finalColor, strokeColor, crayon(uv, d));
+    #endif
 
     #endif
     //PolyCircle--------
