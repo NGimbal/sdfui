@@ -6,8 +6,12 @@ const sdfLines =`
 //3 = Circle
 //4 = Rectangle
 //5 = Point
-
 #define EDIT_SHAPE 1
+//Filter
+//0 = None
+//1 = Pencil
+//2 = Crayon
+#define FILTER 0
 #define EDIT_VERTS 0
 #define BG_GRID 1
 #define SHOW_PTS 0
@@ -45,6 +49,71 @@ varying vec2 vUv;
 
 // Basically a triangle wave
 float repeat(float x) { return abs(fract(x*0.5+0.5)-0.5)*2.0; }
+
+//simplex noise by iq
+//https://www.shadertoy.com/view/Msf3WH
+vec2 hash( vec2 p ) // replace this by something better
+{
+	p = vec2( dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)) );
+	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
+}
+
+//https://www.shadertoy.com/view/WdtGWN
+// Based on IQ's gradient noise formula.
+
+// vec2 to vec2 hash.
+vec2 hash22(vec2 p) {
+
+    // Faster, but doesn't disperse things quite as nicely. However, when framerate
+    // is an issue, and it often is, this is a good one to use. Basically, it's a tweaked
+    // amalgamation I put together, based on a couple of other random algorithms I've
+    // seen around... so use it with caution, because I make a tonne of mistakes. :)
+    float n = sin(dot(p, vec2(27, 57)));
+    return fract(vec2(262144, 32768)*n)*2. - 1.;
+
+    // Animated.
+    //p = fract(vec2(262144, 32768)*n);
+    //return sin(p*6.2831853 + iTime);
+
+}
+
+float n2D3G( in vec2 p ){
+
+    vec2 i = floor(p); p -= i;
+
+    vec4 v;
+    v.x = dot(hash22(i), p);
+    v.y = dot(hash22(i + vec2(1, 0)), p - vec2(1, 0));
+    v.z = dot(hash22(i + vec2(0, 1)), p - vec2(0, 1));
+    v.w = dot(hash22(i + 1.), p - 1.);
+
+#if 1
+    // Quintic interpolation.
+    p = p*p*p*(p*(p*6. - 15.) + 10.);
+#else
+    // Cubic interpolation.
+    p = p*p*(3. - 2.*p);
+#endif
+
+    return mix(mix(v.x, v.y, p.x), mix(v.z, v.w, p.x), p.y);
+    //return v.x + p.x*(v.y - v.x) + p.y*(v.z - v.x) + p.x*p.y*(v.x - v.y - v.z + v.w);
+}
+
+float simplex( in vec2 p )
+{
+    const float K1 = 0.366025404; // (sqrt(3)-1)/2;
+    const float K2 = 0.211324865; // (3-sqrt(3))/6;
+
+	  vec2  i = floor( p + (p.x+p.y)*K1 );
+    vec2  a = p - i + (i.x+i.y)*K2;
+    float m = step(a.y,a.x);
+    vec2  o = vec2(m,1.0-m);
+    vec2  b = a - o + K2;
+    vec2  c = a - 1.0 + 2.0*K2;
+    vec3  h = max( 0.5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0.0 );
+    vec3  n = h*h*h*h*vec3( dot(a,hash(i+0.0)), dot(b,hash(i+o)), dot(c,hash(i+1.0)));
+    return dot( n, vec3(70.0) );
+}
 
 //https://www.shadertoy.com/view/XdVBWd
 //iq unsigned distance to bezier
@@ -90,8 +159,6 @@ float sdPoly( in vec2[256] v, in vec2 p )
     float s = 1.0;
     for( int i=0, j=num-1; i<num; j=i, i++ )
     {
-        // this doesnt work - will have to come up with more clever ways to optimize
-        // if (v[i] == vec2(0.)){break;}
         // distance
         vec2 e = v[j] - v[i];
         vec2 w =    p - v[i];
@@ -163,8 +230,11 @@ float FillLineDash(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded) {
 float drawLine(vec2 uv, vec2 pA, vec2 pB, float weight, float dash){
   float line = LineDistField(uv, pA, pB, vec2(weight), weight, dash);
   line = 1.0 - smoothstep(0.0, 0.003, line);
-  line = clamp(abs(line) - weight, 0.0, 1.0);
   return line;
+}
+
+float fillMask(float d){
+  return clamp(d, 0.0, 1.0);
 }
 
 // This just draws a point for debugging using a different technique that is less glorious.
@@ -251,13 +321,6 @@ void main(){
     //global opacity
     // finalColor = mix(finalColor, vec3(1.0), editOpacity);
 
-    //background grid
-    #if BG_GRID == 1
-    // Blue grid lines
-    finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.x) - 0.92)*4.0;
-    finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.y) - 0.92)*4.0;
-    #endif
-
     //Circle--------
     #if EDIT_SHAPE == 3
     vec2 center = pointPrim.xy;
@@ -268,9 +331,34 @@ void main(){
       radius = distance(center, rPt);
       d = sdCircle(uv, center, radius);
     }
+
+    //fill
+    // vec3 fill = vec3(0.98, 0.35, 0.0);
+    // finalColor = mix(finalColor, fill, 1.0-smoothstep(0.0,0.003, fillMask(d)));
+
     //lineWeight by "annularize"
+    // d = clamp(abs(d) - editWeight, 0.0, 1.0);
+
+    //No filter
+    #if FILTER == 0
+    //apply line weight
     d = clamp(abs(d) - editWeight, 0.0, 1.0);
-    finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,0.003,abs(d)) );
+    finalColor = mix(finalColor, strokeColor, 1.0 - smoothstep(0.0,0.003,abs(d)));
+    #endif
+
+    //Colored Penci
+    #if FILTER == 1
+    float rawD = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.02, abs(d) - 0.002 ), 2.0));
+    finalColor = mix(finalColor, strokeColor, rawD);
+    #endif
+
+    //Crayon
+    #if FILTER == 2
+    float rawD = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.013, abs(d) - (editWeight / 2.0)), 2.0));
+    d = clamp(abs(d) - editWeight, 0.0, 1.0);
+    d = rawD * (1.0 - smoothstep(0.0,0.003,abs(d))) * (1.0 - smoothstep(0.4, 0.397, 0.5 + 0.5 * simplex(80.0 * uv)));
+    finalColor = mix(finalColor, strokeColor, d);
+    #endif
 
     #endif
     //Circle--------
@@ -291,7 +379,6 @@ void main(){
     }
 
     finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,0.003,abs(d)) );
-
     #endif
     //Rectangle--------
 
@@ -308,8 +395,34 @@ void main(){
         if (pos == vec2(0.)){ break; }
 
         if (oldPos != vec2(0.)){
-          float line = drawLine(uv, oldPos, pos, editWeight, 0.0);
-          finalColor = mix(finalColor, strokeColor, line);
+          //returns 1.0 on line
+          float d = drawLine(uv, oldPos, pos, editWeight, 0.0);
+          #if FILTER == 0
+          //apply line weight
+          //good to do do this outside of functions because raw dist
+          //is necessary for filtering
+          // this seems to be taken care of by the line sdFunction
+          //as per the observation above, this isn't really ideal
+          //would rather get the true distance back and then deal with this later
+          d = clamp(abs(d) - editWeight, 0.0, 1.0);
+          finalColor = mix(finalColor, strokeColor, d);
+          #endif
+          //Colored Pencil
+          #if FILTER == 1
+          // line = clamp(abs(line) - editWeight, 0.0, 1.0);
+          d = repeat(d);
+          finalColor = mix(finalColor, strokeColor, d);
+          #endif
+          //Crayon
+          #if FILTER == 2
+          // float rawD = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.02, abs(d) - 0.002 ), 2.0));
+          // d = clamp(abs(d) - editWeight, 0.0, 1.0);
+          // d = rawD * (smoothstep(0.0,0.003,abs(d))) * (smoothstep(0.5, 0.497, 0.5 + 0.5 * simplex(90.0 * uv)));
+
+          // d = clamp(abs(d) - editWeight, 0.0, 1.0);
+          // d = line * smoothstep(1.0, 0.0, 0.5 + 0.5 * simplex(20.0 * uv));
+          finalColor = mix(finalColor, strokeColor, d);
+          #endif
         }
 
         #if SHOW_PTS == 1
@@ -381,6 +494,13 @@ void main(){
         DrawPoint(uv, pos, finalColor);
       }
     }
+    #endif
+
+    //background grid
+    #if BG_GRID == 1
+    // Blue grid lines
+    finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.x) - 0.92)*4.0;
+    finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.y) - 0.92)*4.0;
     #endif
 
     pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0);

@@ -348,11 +348,12 @@ class Circle extends PointPrim{
     let rgb = this.options.stroke;
 
     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+    let weight = this.options.weight;
 
     posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
     posString += '\tradius = distance(texture2D(parameters, index).xy, texture2D(parameters, index).zw);\n';
     posString += '\td = sdCircle(uv, texture2D(parameters, index).xy, radius);\n';
-    posString += '\td = clamp(abs(d) - editWeight, 0.0, 1.0);\n';
+    posString += '\td = clamp(abs(d) - '+ weight +', 0.0, 1.0);\n';
     posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,0.003,abs(d)) );\n'
 
     startShader += posString;

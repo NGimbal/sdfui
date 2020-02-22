@@ -59,6 +59,12 @@
 
 #primitive-select{
   width:96%;
+  margin-top:1vh;
+}
+
+#filter-select{
+  width:96%;
+  margin-top:1vh;
 }
 
 #strokeColor-select{

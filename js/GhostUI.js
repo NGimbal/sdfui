@@ -93,7 +93,7 @@ class GhostUI{
     let selMods = [pauseShader, hideGrid, screenshot];
 
     //if no drawing tools are selected, drawExit();
-    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, {currEditItem:"PolyLine", strokeColor:"#0063ae"});
+    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, {currEditItem:"PolyLine", strokeColor:"#0063ae", filter:"None"});
     let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
     // let edit = new UIMode("select", false, edit)
     // let
@@ -345,8 +345,6 @@ function drawUpdate(fluentDoc){
 
   let sel = document.getElementById("primitive-select");
 
-  //interesting blink if currEditItem is not finished before choosing new primitive
-  //might need to have some kind of shader pause toggle here to avoid that
   if(this.factors.currEditItem != sel.value){
     fluentDoc = fluentDoc.currEditItem.end(fluentDoc);
     fluentDoc.shaderUpdate = true;
@@ -375,6 +373,24 @@ function drawUpdate(fluentDoc){
         fluentDoc.currEditItem = new PRIM.Rectangle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
         fluentDoc.editItems.push(fluentDoc.currEditItem);
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "4");
+        break;
+    }
+    fluentDoc.shaderUpdate = true;
+  }
+
+  sel = document.getElementById("filter-select");
+
+  if(this.factors.filter != sel.value){
+    this.factors.filter = sel.value;
+    switch(sel.value){
+      case "None":
+        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "0");
+        break;
+      case "Pencil":
+        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "1");
+        break;
+      case "Crayon":
+        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "2");
         break;
     }
     fluentDoc.shaderUpdate = true;
