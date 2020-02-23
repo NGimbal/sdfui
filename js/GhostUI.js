@@ -355,6 +355,12 @@ function drawUpdate(fluentDoc){
         fluentDoc.editItems.push(fluentDoc.currEditItem);
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
         break;
+      case "Polygon":
+        this.factors.currEditItem = "Polygon";
+        fluentDoc.currEditItem = new PRIM.Polygon(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
+        fluentDoc.editItems.push(fluentDoc.currEditItem);
+        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "5");
+        break;
       case "PolyCircle":
         this.factors.currEditItem = "PolyCircle";
         fluentDoc.currEditItem = new PRIM.PolyCircle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
@@ -391,6 +397,9 @@ function drawUpdate(fluentDoc){
         break;
       case "Crayon":
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "2");
+        break;
+      case "SDF":
+        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "3");
         break;
     }
     fluentDoc.shaderUpdate = true;

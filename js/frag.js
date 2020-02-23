@@ -5,7 +5,7 @@ const sdfLines =`
 //2 = PolyCircle
 //3 = Circle
 //4 = Rectangle
-//5 = Point
+//5 = Polygon
 #define EDIT_SHAPE 1
 //Filter
 //0 = None
@@ -34,6 +34,8 @@ uniform sampler2D parameters;
 uniform vec3       mousePt;
 
 //editUniforms
+uniform int      editCTexel;
+
 uniform float      editWeight;
 uniform vec3       strokeColor;
 uniform float      editRadius;
@@ -111,13 +113,14 @@ vec2 udBezier(vec2 p0, vec2 p1, vec2 p2, vec2 p3, vec2 pos)
 
 // https://www.shadertoy.com/view/wdBXRW
 // iq signed distance to polygon
-float sdPoly( in vec2[256] v, in vec2 p )
+float sdPoly( in vec2[16] v, int cTex, in vec2 p)
 {
     const int num = v.length();
     float d = dot(p-v[0],p-v[0]);
     float s = 1.0;
-    for( int i=0, j=num-1; i<num; j=i, i++ )
+    for( int i=0, j=cTex-1; i<num; j=i, i++ )
     {
+        if (i == cTex) break;
         // distance
         vec2 e = v[j] - v[i];
         vec2 w =    p - v[i];
@@ -238,6 +241,15 @@ float line(vec2 uv, float d, float w){
   return d;
 }
 
+//smooth sdf Iso
+vec3 sdf(vec2 uv, float d){
+  vec3 col = vec3(1.0) - sign(d)*vec3(0.1,0.4,0.7);
+	col *= 1.0 - exp(-3.0*abs(d));
+	col *= 0.8 + 0.2*cos(150.0*d);
+	col = mix( col, vec3(1.0), 1.0-smoothstep(0.0,0.003,abs(d)));
+  return col;
+}
+
 //Pencil Filter
 float pencil(vec2 uv, float d, float w){
   d = repeat(3.0 * pow(1.0 - smoothstep(0.0, 0.02, abs(d) - 0.002 ), 2.0));
@@ -327,6 +339,11 @@ void main(){
     finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
     #endif
 
+    //sdf
+    #if FILTER == 3
+    finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
+    #endif
+
     #endif
     //Circle--------
 
@@ -359,6 +376,11 @@ void main(){
     finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
     #endif
 
+    //sdf
+    #if FILTER == 3
+    finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
+    #endif
+
     #endif
     //Rectangle--------
 
@@ -376,7 +398,7 @@ void main(){
         if (pos == vec2(0.)){ break; }
 
         if (oldPos != vec2(0.)){
-          float d = drawLine(uv, oldPos, pos, editWeight, 0.0);
+          d = drawLine(uv, oldPos, pos, editWeight, 0.0);
 
           #if FILTER == 0
           finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
@@ -391,6 +413,11 @@ void main(){
           #if FILTER == 2
           finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
           #endif
+
+          //sdf ideally this would show sdf of whole polyline not just each segment
+          #if FILTER == 3
+          finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
+          #endif
         }
 
         #if SHOW_PTS == 1
@@ -403,7 +430,7 @@ void main(){
 
     //Next line while drawing
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
-      float d = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
+      d = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
 
       #if FILTER == 0
       finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
@@ -418,9 +445,96 @@ void main(){
       #if FILTER == 2
       finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
       #endif
+
+      //sdf
+      #if FILTER == 3
+      finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
+      #endif
     }
     #endif
     //Polyline-------
+
+
+    //Polygon-------
+    #if EDIT_SHAPE == 5
+    //Lines previously baked to the dataTexture
+    int index = 0;
+    // vec2 verts[16];
+    vec2 first = texture2D(posTex, vec2(0./16. + texelOffset, 0./16. + texelOffset)).xy;
+    // float love = 0.0;
+    for (float i = 0.; i < 16.; i++ ){
+      float yIndex = i / 16. + texelOffset;
+
+      for (float j = 0.; j < 16.; j++ ){
+        float xIndex = j / 16.  + texelOffset;
+        vec2 vIndex = vec2(xIndex, yIndex);
+
+        vec2 pos = texture2D(posTex, vIndex).xy;
+
+        //add fist point to end and then break
+        if (pos == vec2(0.)){
+          // d = drawLine(uv, oldPos, first, editWeight, 0.0);
+          // finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
+          break;
+        }
+
+        if (oldPos != vec2(0.)){
+          d = drawLine(uv, oldPos, pos, editWeight, 0.0);
+
+          #if FILTER == 0
+          finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
+          #endif
+
+          //Colored Penci
+          #if FILTER == 1
+          finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
+          #endif
+
+          //Crayon
+          #if FILTER == 2
+          finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
+          #endif
+
+          //sdf
+          #if FILTER == 3
+          finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
+          #endif
+        }
+
+        #if SHOW_PTS == 1
+        DrawPoint(uv, pos, finalColor);
+        #endif
+
+        oldPos = pos;
+      }
+    }
+
+    //Next line while drawing
+    if (oldPos != vec2(0.) && mousePt.z != -1.0){
+      d = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
+      d = min(d, drawLine(uv, screenPt(mPt), first, editWeight, 1.0));
+
+      #if FILTER == 0
+      finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
+      #endif
+
+      //Colored Penci
+      #if FILTER == 1
+      finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
+      #endif
+
+      //Crayon
+      #if FILTER == 2
+      finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
+      #endif
+
+      //sdf
+      #if FILTER == 3
+      finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
+      #endif
+    }
+    #endif
+    //Polygon-------
 
     //PolyCircle-----
     #if EDIT_SHAPE == 2

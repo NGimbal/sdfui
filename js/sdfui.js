@@ -59,6 +59,8 @@ function main() {
     parameters: {value: fluentDoc.parameters.ptsTex},
     mousePt: {value: fluentDoc.mPt},
 
+    editCTexel : {value: fluentDoc.currEditItem.cTexel},
+
     editWeight : {value: fluentDoc.editOptions.weight},
     strokeColor: {value: new THREE.Vector3(0.0, 0.384, 0.682)},
     editRadius : {value: fluentDoc.editOptions.radius},
@@ -117,6 +119,7 @@ function render() {
   //update uniforms
   if(fluentDoc.currEditItem.ptsTex){
     screenMesh.material.uniforms.posTex.value = fluentDoc.currEditItem.ptsTex;
+    screenMesh.material.uniforms.editCTexel.value = fluentDoc.currEditItem.cTexel;
   }
   if(fluentDoc.currEditItem.pointPrim){
     screenMesh.material.uniforms.pointPrim.value = fluentDoc.currEditItem.pointPrim;
