@@ -122,7 +122,7 @@ class PolyPoint {
 
     //cTexel is incremented at beginning of AddPoint
     //that way after adding a point reading cTexel gives current texel referemce
-    this.cTexel = -1;
+    this.cTexel = -1.0;
 
     this.data = new Uint16Array(4 * this.dataSize * this.dataSize);
 
@@ -885,7 +885,6 @@ class Polygon extends PolyPoint {
       // console.log(getFloat16(view, 0));
       // console.log(getFloat16(view, 0) * window.innerWidth);
 
-      //this should be a property of GhostUI
       let dpr = window.devicePixelRatio;
 
       view.setUint16(0, p.texData[1]);
@@ -962,28 +961,6 @@ class Polygon extends PolyPoint {
     let posString = '\n';
     posString += '//$START-' + this.id + '\n';
 
-
-    // float sdPoly( in vec2[16] v, int cTex, in vec2 p)
-    // {
-    //     const int num = v.length();
-    //     float d = dot(p-v[0],p-v[0]);
-    //     float s = 1.0;
-    //     for( int i=0, j=cTex-1; i<num; j=i, i++ )
-    //     {
-    //         // distance
-    //         vec2 e = v[j] - v[i];
-    //         vec2 w =    p - v[i];
-    //         vec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );
-    //         d = min( d, dot(b,b) );
-    //
-    //         // winding number from http://geomalgorithms.com/a03-_inclusion.html
-    //         bvec3 cond = bvec3( p.y>=v[i].y, p.y<v[j].y, e.x*w.y>e.y*w.x );
-    //         if( all(cond) || all(not(cond)) ) s*=-1.0;
-    //     }
-    //
-    //     return s*sqrt(d);
-    // }
-
     let buffer = new ArrayBuffer(10);
     let view = new DataView(buffer);
 
@@ -1003,15 +980,15 @@ class Polygon extends PolyPoint {
     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
     let weight = this.options.weight.toFixed(4);
     let radius = this.options.radius.toFixed(4);
-    console.log("radius = " + radius);
+
     // p is a translation for polygon
     // eventually this will be a reference to another data texture
     posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
 
     posString += '\n\tvec2 tUv = uv - p;\n';
     posString += '\tfloat radius='+radius+';\n';
+    // scaling this way doesn't work
     // posString += '\ttUv = tUv/(1.0-radius);\n';
-    console.log(radius);
 
     let count = 0;
     for (let p of this.pts){
@@ -1030,6 +1007,7 @@ class Polygon extends PolyPoint {
         posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');\n';
 
         posString += '\tvec2 first = texture2D(parameters, index).xy;\n';
+        //scaling/rounding this way doesn't seem to work
         // posString += '\tfirst = (first/radius)*radius;\n';
 
         //get the last point in absolute terms

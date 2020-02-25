@@ -34,7 +34,7 @@ uniform sampler2D parameters;
 uniform vec3       mousePt;
 
 //editUniforms
-uniform int      editCTexel;
+uniform float      editCTexel;
 
 uniform float      editWeight;
 uniform vec3       strokeColor;
@@ -218,10 +218,6 @@ vec2 screenPt(vec2 p) {
   return pos;
 }
 
-//Shadow and Light
-//https://www.shadertoy.com/view/4dfXDn
-
-
 //Merge Operations
 //https://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 float opSmoothUnion( float d1, float d2, float k ) {
@@ -230,7 +226,7 @@ float opSmoothUnion( float d1, float d2, float k ) {
 }
 
 float fillMask(float d){
-  return clamp(d, 0.0, 1.0);
+  return 1.0 - clamp(d, 0.0, 1.0);
 }
 
 //Filters take d and uv and return modified d
@@ -293,14 +289,14 @@ void main(){
 
     float texelOffset = 0.5 * (1. / (16. * 16.));
 
+    vec2 pos = vec2(0.);
     vec2 oldPos = vec2(0.);
-    float oldDist = 1000.0;
 
     float d = 1000.0;
+    float oldDist = 1000.0;
 
     vec2 mPt = vec2(mousePt.x, mousePt.y);
 
-    vec2 pos = vec2(0.);
     // vec2 index = vec2(0.);
     float radius = 0.125;
 
@@ -454,14 +450,43 @@ void main(){
     #endif
     //Polyline-------
 
+    // float sdPoly( in vec2[16] v, int cTex, in vec2 p)
+    // {
+    //     const int num = v.length();
+    //     float d = dot(p-v[0],p-v[0]);
+    //     float s = 1.0;
+    //     for( int i=0, j=cTex-1; i<num; j=i, i++ )
+    //     {
+    //         if (i == cTex) break;
+    //         // distance
+    //         vec2 e = v[j] - v[i];
+    //         vec2 w =    p - v[i];
+    //         vec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );
+    //         d = min( d, dot(b,b) );
+    //
+    //         // winding number from http://geomalgorithms.com/a03-_inclusion.html
+    //         bvec3 cond = bvec3( p.y>=v[i].y, p.y<v[j].y, e.x*w.y>e.y*w.x );
+    //         if( all(cond) || all(not(cond)) ) s*=-1.0;
+    //     }
+    //
+    //     return s*sqrt(d);
+    // }
 
     //Polygon-------
     #if EDIT_SHAPE == 5
     //Lines previously baked to the dataTexture
-    int index = 0;
+    // int index = 0;
     // vec2 verts[16];
     vec2 first = texture2D(posTex, vec2(0./16. + texelOffset, 0./16. + texelOffset)).xy;
-    // float love = 0.0;
+
+    float iX = (mod(editCTexel, 16.) / 16.) + texelOffset;
+    float iY = (floor(editCTexel / 16.) / 16.0) + texelOffset;
+
+    vec2 last =  texture2D(posTex, vec2(iX, iY)).xy;
+    d = dot(uv - first, uv - first);
+    oldPos = last;
+    float s = 1.0;
+
     for (float i = 0.; i < 16.; i++ ){
       float yIndex = i / 16. + texelOffset;
 
@@ -469,45 +494,57 @@ void main(){
         float xIndex = j / 16.  + texelOffset;
         vec2 vIndex = vec2(xIndex, yIndex);
 
-        vec2 pos = texture2D(posTex, vIndex).xy;
+        pos = texture2D(posTex, vIndex).xy;
 
-        //add fist point to end and then break
+        //this break condition is not really working the way I'd expect...
         if (pos == vec2(0.)){
-          // d = drawLine(uv, oldPos, first, editWeight, 0.0);
-          // finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
           break;
         }
 
         if (oldPos != vec2(0.)){
-          d = drawLine(uv, oldPos, pos, editWeight, 0.0);
+          vec2 e = oldPos - pos;
+          vec2 w = uv - pos;
+          vec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );
+          d = min( d, dot(b,b) );
 
-          #if FILTER == 0
-          finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
-          #endif
+          // winding number from http://geomalgorithms.com/a03-_inclusion.html
+          bvec3 cond = bvec3( uv.y>=pos.y, uv.y<oldPos.y, e.x*w.y>e.y*w.x );
+          if( all(cond) || all(not(cond)) ) s*=-1.0;
 
-          //Colored Penci
-          #if FILTER == 1
-          finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
-          #endif
-
-          //Crayon
-          #if FILTER == 2
-          finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
-          #endif
-
-          //sdf
-          #if FILTER == 3
-          finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
-          #endif
+          oldPos = texture2D(posTex, vIndex).xy;
         }
 
-        #if SHOW_PTS == 1
-        DrawPoint(uv, pos, finalColor);
-        #endif
 
-        oldPos = pos;
+        // #if FILTER == 0
+        // finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
+        // #endif
+        //
+        // //Colored Penci
+        // #if FILTER == 1
+        // finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
+        // #endif
+        //
+        // //Crayon
+        // #if FILTER == 2
+        // finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
+        // #endif
+        //
+        // //sdf
+        // #if FILTER == 3
+        // finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
+        // #endif
+
+        // #if SHOW_PTS == 1
+        // DrawPoint(uv, pos, finalColor);
+        // #endif
+
       }
     }
+
+    d = s*sqrt(d);
+
+    d = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));
+    finalColor = mix(finalColor, strokeColor, d);
 
     //Next line while drawing
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
@@ -579,6 +616,11 @@ void main(){
     //Crayon
     #if FILTER == 2
     finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
+    #endif
+
+    //sdf
+    #if FILTER == 3
+    finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
     #endif
 
     #endif
