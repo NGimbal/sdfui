@@ -417,6 +417,18 @@ function drawUpdate(fluentDoc){
     // fluentDoc.shaderUpdate = true;
   }
 
+  sel = document.getElementById("fillColor-select");
+  if(this.factors.fillColor != sel.value){
+    // console.log(sel.value);
+    // console.log(hexToRgb(sel.value));
+    this.factors.fillColor = sel.value;
+    let rgb = hexToRgb(sel.value);
+    let newColor = new THREE.Vector3(rgb.r / 255, rgb.g / 255, rgb.b/255);
+    fluentDoc.editOptions.fill = newColor;
+    fluentDoc.currEditItem.options.fill = newColor;
+    // fluentDoc.shaderUpdate = true;
+  }
+
   sel = document.getElementById("strokeWeight-range");
   if(this.factors.strokeWeight != sel.value){
     // console.log(sel.value);
@@ -767,8 +779,8 @@ class FluentDoc{
     //this might want to get moved to UIMode some day...
     this.editOptions = {
       weight:0.003,
-      stroke:new THREE.Vector3(0.0, 0.384, 0.682),
-      fill:"0063ae",
+      stroke:new THREE.Vector3(0.0, 0.0, 0.0),
+      fill:new THREE.Vector3(0.0, 0.384, 0.682),
       fillToggle:false,
       radius:0.125
     }

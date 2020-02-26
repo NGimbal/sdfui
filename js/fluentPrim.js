@@ -685,8 +685,8 @@ class PolyLine extends PolyPoint {
     let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
     let dataSize = fluentDoc.parameters.dataSize;
 
-    let rgb = this.options.stroke;
-    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+    let rgbStroke = this.options.stroke;
+    let colorStroke = 'vec3(' + rgbStroke.x + ',' + rgbStroke.y + ',' + rgbStroke.z +')';
     let weight = this.options.weight.toFixed(4);
 
     let count = 0;
@@ -719,7 +719,7 @@ class PolyLine extends PolyPoint {
 
         posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);\n';
 
-        posString += '\tfinalColor = mix(finalColor, ' + color + ', line(tUv, d, '+weight+'));\n';
+        posString += '\tfinalColor = mix(finalColor, ' + colorStroke + ', line(tUv, d, '+weight+'));\n';
 
         posString += '\toldPos = pos;\n';
 
@@ -975,8 +975,10 @@ class Polygon extends PolyPoint {
     let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
     let dataSize = fluentDoc.parameters.dataSize;
 
-    let rgb = this.options.stroke;
-    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+    let rgbFill = this.options.fill;
+    let colorFill = 'vec3(' + rgbFill.x + ',' + rgbFill.y + ',' + rgbFill.z +')';
+    let rgbStroke = this.options.stroke;
+    let colorStroke = 'vec3(' + rgbStroke.x + ',' + rgbStroke.y + ',' + rgbStroke.z +')';
     let weight = this.options.weight.toFixed(4);
     let radius = this.options.radius.toFixed(4);
 
@@ -1067,12 +1069,12 @@ class Polygon extends PolyPoint {
     // posString += '\tfloat line = d;\n';
     posString += '\tfloat line = d;\n';
     posString += '\td = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));\n';
-    posString += '\tfinalColor = mix(finalColor, ' + color + ', d);\n';
+    posString += '\tfinalColor = mix(finalColor, ' + colorFill + ', d);\n';
 
     posString += '\tline = clamp(abs(line) - '+weight+', 0.0, 1.0);\n';
-    color = 'vec3(0.,0.,0.)';
+
     posString += '\tline = 1.0 - smoothstep(0.0,0.003,abs(line));\n';
-    posString += '\tfinalColor = mix(finalColor, ' + color + ', line);\n';
+    posString += '\tfinalColor = mix(finalColor, ' + colorStroke + ', line);\n';
 
     posString += '\n}\n';
     posString += '//$END-' + this.id + '\n';

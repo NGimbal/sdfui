@@ -38,6 +38,8 @@ uniform float      editCTexel;
 
 uniform float      editWeight;
 uniform vec3       strokeColor;
+uniform vec3       fillColor;
+
 uniform float      editRadius;
 
 //scale
@@ -520,10 +522,10 @@ void main(){
 
     d = s*sqrt(d);
 
-    // d = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));
-    // finalColor = mix(finalColor, strokeColor, d);
+    float fill = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));
 
     #if FILTER == 0
+    finalColor = mix(finalColor, fillColor, fill);
     finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
     #endif
 
