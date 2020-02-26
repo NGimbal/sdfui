@@ -212,9 +212,8 @@ vec2 screenPt(vec2 p) {
   pos -= 0.5;
   pos.x *= iResolution.x / iResolution.y;
 
-  // 1. represents scale if uv *= scale ends up making sense
-  pos.x = (pos.x * iResolution.x) / (iResolution.x / (hiDPR * 1.));
-  pos.y = (pos.y * iResolution.y) / (iResolution.y / (hiDPR * 1.));
+  pos.x = (pos.x * iResolution.x) / (iResolution.x * 0.5);
+  pos.y = (pos.y * iResolution.y) / (iResolution.y * 0.5);
   return pos;
 }
 
@@ -475,8 +474,6 @@ void main(){
     //Polygon-------
     #if EDIT_SHAPE == 5
     //Lines previously baked to the dataTexture
-    // int index = 0;
-    // vec2 verts[16];
     vec2 first = texture2D(posTex, vec2(0./16. + texelOffset, 0./16. + texelOffset)).xy;
 
     float iX = (mod(editCTexel, 16.) / 16.) + texelOffset;
@@ -514,61 +511,44 @@ void main(){
           oldPos = texture2D(posTex, vIndex).xy;
         }
 
-
-        // #if FILTER == 0
-        // finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
-        // #endif
-        //
-        // //Colored Penci
-        // #if FILTER == 1
-        // finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
-        // #endif
-        //
-        // //Crayon
-        // #if FILTER == 2
-        // finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
-        // #endif
-        //
-        // //sdf
-        // #if FILTER == 3
-        // finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
-        // #endif
-
-        // #if SHOW_PTS == 1
-        // DrawPoint(uv, pos, finalColor);
-        // #endif
+        #if SHOW_PTS == 1
+        DrawPoint(uv, pos, finalColor);
+        #endif
 
       }
     }
 
     d = s*sqrt(d);
 
-    d = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));
-    finalColor = mix(finalColor, strokeColor, d);
+    // d = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));
+    // finalColor = mix(finalColor, strokeColor, d);
+
+    #if FILTER == 0
+    finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
+    #endif
+
+    //Colored Penci
+    #if FILTER == 1
+    finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
+    #endif
+
+    //Crayon
+    #if FILTER == 2
+    finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
+    #endif
+
+    //sdf
+    #if FILTER == 3
+    finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
+    #endif
 
     //Next line while drawing
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
       d = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
       d = min(d, drawLine(uv, screenPt(mPt), first, editWeight, 1.0));
 
-      #if FILTER == 0
+
       finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
-      #endif
-
-      //Colored Penci
-      #if FILTER == 1
-      finalColor = mix(finalColor, strokeColor, pencil(uv, d, editWeight));
-      #endif
-
-      //Crayon
-      #if FILTER == 2
-      finalColor = mix(finalColor, strokeColor, crayon(uv, d, editWeight));
-      #endif
-
-      //sdf
-      #if FILTER == 3
-      finalColor = mix(finalColor, sdf(uv, d), 1.0 - clamp(d,0.0,1.0));
-      #endif
     }
     #endif
     //Polygon-------

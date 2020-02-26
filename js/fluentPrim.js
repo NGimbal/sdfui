@@ -81,9 +81,9 @@ class PointPrim{
     hFloatYFlip -= 0.5;
     hFloatX *= this.resolution.x / this.resolution.y;
 
-    //I think 1.0 is where scale should go for zoom
-    hFloatX = (hFloatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
-    hFloatYFlip = (hFloatYFlip * this.resolution.y) / (this.resolution.y / dpr * 1.0);
+    //where does dpr fit into this?
+    hFloatX = (hFloatX * this.resolution.x) / (this.resolution.x * 0.5);
+    hFloatYFlip = (hFloatYFlip * this.resolution.y) / (this.resolution.y * 0.5);
 
     if(this.pts.length == 0){
       this.pointPrim.x = hFloatX;
@@ -182,9 +182,8 @@ class PolyPoint {
     hFloatYFlip -= 0.5;
     hFloatX *= this.resolution.x / this.resolution.y;
     //I think 1.0 is where scale should go for zoom
-    hFloatX = (hFloatX * this.resolution.x) / (this.resolution.x / dpr * 1.0);
-    hFloatYFlip = (hFloatYFlip * this.resolution.y) / (this.resolution.y / dpr * 1.0);
-
+    hFloatX = (hFloatX * this.resolution.x) / (this.resolution.x / 2.0 * 1.0);
+    hFloatYFlip = (hFloatYFlip * this.resolution.y) / (this.resolution.y / 2.0 * 1.0);
 
     //use view.setFloat16() to set the digits in the DataView
     //then use view.getUint16 to retrieve and write to data Texture
