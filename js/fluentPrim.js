@@ -286,6 +286,8 @@ class Point{
     this.tag = _tag || "none";
 
     this.id = (+new Date).toString(36).slice(-8);
+
+    this.primType = "Point";
   }
   clone(){
     let x = this.x;
@@ -310,6 +312,8 @@ class Circle extends PointPrim{
     super(resolution, options);
 
     this.fragFunction = "";
+
+    this.primType = "Circle";
   }
 
   //going to add each of the 2 points to fluentDoc.params
@@ -366,6 +370,16 @@ class Circle extends PointPrim{
 
   // bakeFunctionAbsolute
 
+  //returns distance to a point
+  dist(point){
+    // let center = this.pts[0];
+    // console.log(center);
+    // let radius = center - this.pts[1];
+    // console.log(radius);
+    console.log(this);
+
+  }
+
   clone(){
     let resolution = this.resolution;
     let options = {...this.options};
@@ -377,7 +391,9 @@ class Circle extends PointPrim{
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
     let newCircle = new Circle(resolution, options);
+
     newCircle.pointPrim = pointPrim;
+
     newCircle.id = id;
     newCircle.pts = pts;
 
@@ -402,6 +418,8 @@ class Rectangle extends PointPrim{
     super(resolution, options);
 
     this.fragFunction = "";
+
+    this.primType = "Rectangle";
   }
 
   //going to add each of the 2 points to fluentDoc.params
@@ -499,6 +517,8 @@ class PolyLine extends PolyPoint {
     super(resolution, options, _dataSize);
 
     this.fragFunction = "";
+
+    this.primType = "PolyLine";
   }
 
   clone(){
@@ -796,6 +816,8 @@ class Polygon extends PolyPoint {
     super(resolution, options, _dataSize);
 
     this.fragFunction = "";
+
+    this.primType = "Polygon";
   }
 
   clone(){
@@ -1145,6 +1167,8 @@ class PolyCircle extends PolyPoint {
     super(resolution, options, _dataSize);
 
     this.fragFunction = "";
+
+    this.primType = "PolyCircle";
 
   }
 

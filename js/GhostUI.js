@@ -189,7 +189,20 @@ class GhostUI{
     }
 
     let newDoc = mode.update(fluentDoc);
-    if (newDoc) fluentDoc = newDoc;
+    if (newDoc && newDoc != "exit") fluentDoc = newDoc;
+    else if (newDoc == "exit"){
+      console.log("hi");
+
+      //enter, how to actually make this  a little more modular?
+      let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
+      let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
+      let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
+
+      let selMods = [pauseShader, hideGrid, screenshot];
+      let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
+      this.modeStack.push(select);
+      this.modeStack.curr().enter();
+    }
 
     this.fluentStack.modCurr(fluentDoc);
   }
@@ -291,12 +304,22 @@ function selExit(){
   console.log(this);
 }
 
-function selUpdate(){
-  console.log(this);
+function selUpdate(fluentDoc){
+  // console.log(this);
+  // console.log(fluentDoc);
+  for (let e of fluentDoc.editItems){
+    if (e.primType && e.primType == "Circle" && e.pts.length > 0){
+      console.log(e);
+      let radius = fluentDoc.pointDist(e.pts[0], e.pts[1]);
+      let center = e.pts[0];
+
+      console.log(fluentDoc.mPt)
+    }
+  }
 }
 
 function selMv(){
-  console.log(this);
+  // console.log(this);
 }
 //---SELECT---------------------------
 
@@ -325,14 +348,16 @@ function drawEnter(){
 
 function drawExit(){
   HINT.snackHint("End Drawing!");
-  console.log(this);
+  // console.log(this);
   //This should be more global
-  let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
-  let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
-  let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
-
-  let selMods = [pauseShader, hideGrid, screenshot];
-  let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
+  // let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
+  // let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
+  // let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
+  //
+  // let selMods = [pauseShader, hideGrid, screenshot];
+  // let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
+  // this.modeStack.push(select);
+  // this.modeStack.curr().enter();
 }
 
 function drawUpdate(fluentDoc){
@@ -346,38 +371,40 @@ function drawUpdate(fluentDoc){
   let sel = document.getElementById("primitive-select");
 
   if(this.factors.currEditItem != sel.value){
-    fluentDoc = fluentDoc.currEditItem.end(fluentDoc);
-    fluentDoc.shaderUpdate = true;
+    if(fluentDoc.currEditItem.pts.length > 0){
+      fluentDoc = fluentDoc.currEditItem.end(fluentDoc);
+      fluentDoc.shaderUpdate = true;
+    }
     switch(sel.value){
       case "PolyLine":
         this.factors.currEditItem = "PolyLine";
-        fluentDoc.currEditItem = new PRIM.PolyLine(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
-        fluentDoc.editItems.push(fluentDoc.currEditItem);
+        fluentDoc.editItems.push(new PRIM.PolyLine(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
+        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
         break;
       case "Polygon":
         this.factors.currEditItem = "Polygon";
-        fluentDoc.currEditItem = new PRIM.Polygon(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
-        fluentDoc.editItems.push(fluentDoc.currEditItem);
+        fluentDoc.editItems.push(new PRIM.Polygon(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
+        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "5");
         break;
       case "PolyCircle":
         this.factors.currEditItem = "PolyCircle";
-        fluentDoc.currEditItem = new PRIM.PolyCircle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
-        fluentDoc.editItems.push(fluentDoc.currEditItem);
+        fluentDoc.editItems.push(new PRIM.PolyCircle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
+        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "2");
         break;
       case "Circle":
         this.factors.currEditItem = "Circle";
-        fluentDoc.currEditItem = new PRIM.Circle(fluentDoc.resolution, fluentDoc.editOptions);
-        fluentDoc.editItems.push(fluentDoc.currEditItem);
+        fluentDoc.editItems.push(new PRIM.Circle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
+        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "3");
         break;
       case "Rectangle":
         // console.log("Rectangle not yet implemented!");
         this.factors.currEditItem = "Rectangle";
-        fluentDoc.currEditItem = new PRIM.Rectangle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
-        fluentDoc.editItems.push(fluentDoc.currEditItem);
+        fluentDoc.editItems.push(new PRIM.Rectangle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
+        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "4");
         break;
     }
@@ -455,7 +482,8 @@ function drawUpdate(fluentDoc){
       let newDoc = m.update(fluentDoc);
       if (newDoc) fluentDoc = newDoc;
       if (m.factors.exit && m.factors.exit == true){
-        this.exit()
+        this.exit();
+        return "exit";
       }
     }
   }
@@ -503,9 +531,10 @@ function drawUp(e, fluentDoc){
 
   if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
     fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
-    fluentDoc.editItemIndex++;
-    fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions);
-    fluentDoc.editItems.push(fluentDoc.currEditItem);
+    // fluentDoc.editItemIndex++;
+    fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions));
+    fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+
     fluentDoc.shaderUpdate = true;
   }
 
@@ -583,15 +612,10 @@ function endDrawUpdate(fluentDoc){
   }
 
   fluentDoc.shader = fluentDoc.currEditItem.end(fluentDoc).shader;
-  // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionParams(fluentDoc);
-  // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
   fluentDoc.shaderUpdate = true;
 
-  fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
-
-  fluentDoc.editItems.push(fluentDoc.currEditItem);
-
-  fluentDoc.editItemIndex++;
+  fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions));
+  fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
   this.toggle = !this.toggle;
   return fluentDoc;
@@ -785,7 +809,7 @@ class FluentDoc{
       radius:0.125
     }
 
-    this.editItemIndex = 0;
+    // this.editItemIndex = 0;
     this.currEditItem = new PRIM.PolyLine(this.resolution, this.editOptions, this.dataSize);
     this.editItems = [this.currEditItem];
 
@@ -865,12 +889,13 @@ class FluentDoc{
 
     //this may have to get a little more sofisticated...
     newDoc.editOptions = {...this.editOptions};
-    newDoc.editItemIndex = this.editItemIndex;
+    // newDoc.editItemIndex = this.editItemIndex;
 
-    let currEditItem = this.currEditItem.clone();
+    // let currEditItem = this.currEditItem.clone();
     let editItems = [];
     for (let item of this.editItems){editItems.push(item.clone());}
     newDoc.editItems = editItems;
+    let currEditItem = editItems[editItems.length - 1];
 
     newDoc.parameters = this.parameters.clone();
 
