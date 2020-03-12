@@ -309,11 +309,12 @@ function selUpdate(fluentDoc){
   // console.log(fluentDoc);
   for (let e of fluentDoc.editItems){
     if (e.primType && e.primType == "Circle" && e.pts.length > 0){
-      console.log(e);
-      let radius = fluentDoc.pointDist(e.pts[0], e.pts[1]);
-      let center = e.pts[0];
-
-      console.log(fluentDoc.mPt)
+      //what is the propoer distance formula here?
+      // console.log(e);
+      // let radius = fluentDoc.pointDist(e.pts[0], e.pts[1]);
+      // let center = e.pts[0];
+      //
+      // console.log(fluentDoc.mPt)
     }
   }
 }
@@ -485,9 +486,10 @@ function drawUpdate(fluentDoc){
         this.exit();
         return "exit";
       }
+
     }
   }
-
+  return fluentDoc;
 }
 
 function drawMv(e, fluentDoc){
@@ -636,8 +638,9 @@ function escDrawUpdate(fluentDoc){
     fluentDoc.pts.splice(index, 1);
     fluentDoc.tree.remove(p);
   }
-
-  fluentDoc.currEditItem = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
+  
+  fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
+  fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
   this.toggle = !this.toggle;
   return fluentDoc;
