@@ -638,7 +638,7 @@ function escDrawUpdate(fluentDoc){
     fluentDoc.pts.splice(index, 1);
     fluentDoc.tree.remove(p);
   }
-  
+
   fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
@@ -693,7 +693,7 @@ function modifyDefine(shader, define, val){
   return shader;
 }
 
-//Ring buffer of states
+//Ring buffer of states, type agnostic
 class StateStack{
   constructor(state, MAX){
     this.MAX = MAX || 10;
@@ -707,19 +707,17 @@ class StateStack{
     }
   }
 
-  //should the object be cloned here?
+  //return current state, object is not cloned here
   curr(){
     return this.stack[this.index];
   }
 
+  //current state is replaced by modified state object
   modCurr(newState){
     this.stack[this.index] = newState;
   }
 
-  pop(){
-
-  }
-
+  //push new state
   push(_state){
     //this is hacky, need to figure out what to do
     //1. we don't need to clone the state (unlikely in the case of fluentDoc)
@@ -739,6 +737,7 @@ class StateStack{
     //console.log(this);
   }
 
+  //return previous state, decrement index
   undo(){
     if (this.index == this.firstIndex){
       return this.curr();
@@ -747,11 +746,13 @@ class StateStack{
     return this.curr();
   }
 
+  //return next state, increment index
   redo(){
     this.incrementIndex();
     return this.curr();
   }
 
+  //increment index, wraps index
   incrementIndex(){
     this.index++;
     this.index = (this.index % this.MAX);
@@ -762,6 +763,7 @@ class StateStack{
     }
   }
 
+  //decrement index, wraps index
   decrementIndex(){
     this.index -= 1;
     if(this.index < 0){
@@ -770,12 +772,12 @@ class StateStack{
   }
 }
 
-//FluentDoc State
+//FluentDoc State state distince from ui state
 class FluentDoc{
-  // new fluent doc from elem
-  // should move shader logic in here
-  // maybe this class should get moved to sdfui
+  // new Doc contains elem, curr shader, kd tree of all pts, curr editItem, editItems
   constructor(elem, shader){
+    // should move shader logic in here
+    // maybe this class should get moved to sdfui
     this.elem = elem;
     this.resolution = new THREE.Vector2(elem.width, elem.height);
 
@@ -828,6 +830,7 @@ class FluentDoc{
     this.drawGrid();
   }
 
+  // simple distance function for kdTree
   pointDist(a, b){
     var dx = a.x - b.x;
     var dy = a.y - b.y;
@@ -870,7 +873,8 @@ class FluentDoc{
     //   }
     // }
   }
-  //
+
+  //clones FluentDoc, essential for document stack
   clone(){
     //elem is probably the only thing we want to retain a reference to
     //also elem probably doesn't have to be a property of fluentDoc
