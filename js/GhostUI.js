@@ -106,7 +106,7 @@ class GhostUI{
     this.modeStack.curr().enter();
 
     //should this be bound to docStack[] or this?
-    document.getElementById("draw-shapes").addEventListener('mouseup', this.mouseUp.bind(this));
+    document.getElementById("c").addEventListener('mouseup', this.mouseUp.bind(this));
     window.addEventListener('mousemove', this.mouseMove.bind(this));
 
     //cntrl+z
