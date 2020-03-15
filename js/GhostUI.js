@@ -14,7 +14,7 @@ class GhostUI{
   constructor(elem, shader){
     // "Out of the box" element and shader
     this.elem = elem;
-    this.shader = shader;
+    // this.shader = shader;
     //GLOBAL CONSTANTS
     //square datatexture
     this.dataSize = 16;
@@ -57,14 +57,26 @@ class GhostUI{
 
     console.log(endianNess());
 
+    let resolution = new THREE.Vector2(elem.width, elem.height);
+
+    let editOptions = {
+      currEditItem:"PolyLine",
+      strokeColor:"#0063ae",
+      filter:"None",
+      weight:0.003,
+      stroke:new THREE.Vector3(0.0, 0.0, 0.0),
+      fill:new THREE.Vector3(0.0, 0.384, 0.682),
+      fillToggle:false,
+      radius:0.125
+    };
 
     //DOCUMENT STATE
-    let fluentDoc = new FluentDoc(this.elem, this.shader);
-    this.fluentStack = new StateStack(fluentDoc, 10);
+    let fluentDoc = new FluentDoc(this.elem);
 
-    //MODE STATE
-    this.drawing = true;
-    this.editPolyLn = false;
+    fluentDoc.editItems.push(new PRIM.PolyLine(resolution, editOptions));
+    fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+
+    this.fluentStack = new StateStack(fluentDoc, 10);
 
     //MODIFIERS
     //Clck could be a built in function - looks like it will generally be a simple toggle
@@ -80,7 +92,6 @@ class GhostUI{
     let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", false, {clck:SNAP.snapGlobalClck, mv:SNAP.snapGlobalMv, up:SNAP.snapGlobalUp}, {angle:45});
     let snapGrid = new UIModifier("snapGrid", "snap", "g", false, {clck:SNAP.snapGridClck, mv:SNAP.snapGridMv, up:SNAP.snapGridUp}, {});
 
-    //lineweight modifier is broken
     let endDraw = new UIModifier("endDraw", "edit", "Enter", false, {clck:endDrawClck, update:endDrawUpdate}, {exit:false});
     let escDraw = new UIModifier("escDraw", "edit", "Escape", false, {clck:escDrawClck, update:escDrawUpdate}, {exit:false});
 
@@ -92,20 +103,17 @@ class GhostUI{
     let selMods = [pauseShader, hideGrid, screenshot];
 
     //if no drawing tools are selected, drawExit();
-    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, {currEditItem:"PolyLine", strokeColor:"#0063ae", filter:"None"});
+    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, editOptions);
     let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
     // let edit = new UIMode("select", false, edit)
     // let
 
-    //modeStack is successful
-    //eventually modeStack will become part of FluentDoc
-    //not really important enough to worry about in the short term
+    //stack of UIModes
     this.modeStack = new StateStack(draw, 5);
     //default mode
     this.modeStack.curr().enter();
 
-    //should this be bound to docStack[] or this?
-    document.getElementById("c").addEventListener('mouseup', this.mouseUp.bind(this));
+    elem.addEventListener('mouseup', this.mouseUp.bind(this));
     window.addEventListener('mousemove', this.mouseMove.bind(this));
 
     //cntrl+z
@@ -263,7 +271,6 @@ class GhostUI{
     this.fluentStack.modCurr(fluentDoc);
   }
 
-
   keyDown(e){
     let key = e.key;
 
@@ -276,19 +283,13 @@ class GhostUI{
       // console.log("Control Z!");
       let fluentDoc = this.fluentStack.undo();
       if (!fluentDoc) {
-        let newDoc = new FluentDoc(this.elem, this.shader);
+        let newDoc = new FluentDoc(this.elem);
         this.fluentStack.modCurr(newDoc);
       } else {
         fluentDoc.shaderUpdate = true;
       }
     }
   }
-}
-
-//this might as well just be taken care of in draw update
-function selectPrimitive(e){
-  let sel = document.getElementById("primitive-select");
-  console.log(sel.value);
 }
 
 //---SELECT---------------------------
@@ -308,7 +309,6 @@ function selUpdate(fluentDoc){
   // console.log(fluentDoc);
   for (let e of fluentDoc.editItems){
     if (e.primType && e.primType == "Circle" && e.pts.length > 0){
-      //what is the propoer distance formula here?
       // console.log(e);
       // let radius = fluentDoc.pointDist(e.pts[0], e.pts[1]);
       // let center = e.pts[0];
@@ -328,11 +328,6 @@ function drawEnter(){
   // pushPopModeHint(this.name, "Begin Drawing!");
   HINT.pushModeHint(this.name, "Begin Drawing!");
   this.initUIModeButtons();
-
-  //add event to primitive select element
-  //this is going to move somewhere...
-  let sel = document.getElementById("primitive-select");
-  sel.addEventListener("change", selectPrimitive);
 
   //turns on snapping to pts by default
   //function should take some default settings at some point
@@ -363,117 +358,86 @@ function drawExit(){
 function drawUpdate(fluentDoc){
   //exit draw condition
   //no primitive tool active
-  if(this.factors.currEditItem == null){
+  if(this.options.currEditItem == null){
     this.exit();
     return;
   }
 
   let sel = document.getElementById("primitive-select");
-
-  if(this.factors.currEditItem != sel.value){
+  // console.log(this.options);
+  if(this.options.currEditItem != sel.value){
     if(fluentDoc.currEditItem.pts.length > 0){
-      fluentDoc = fluentDoc.currEditItem.end(fluentDoc);
+      // fluentDoc = fluentDoc.currEditItem.end(fluentDoc, this.options);
       fluentDoc.shaderUpdate = true;
+      fluentDoc.currEditItem.needsUpdate = true;
     }
     switch(sel.value){
       case "PolyLine":
-        this.factors.currEditItem = "PolyLine";
-        fluentDoc.editItems.push(new PRIM.PolyLine(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
+        this.options.currEditItem = "PolyLine";
+        fluentDoc.editItems.push(new PRIM.PolyLine(fluentDoc.resolution, {...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
         break;
       case "Polygon":
-        this.factors.currEditItem = "Polygon";
-        fluentDoc.editItems.push(new PRIM.Polygon(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
+        this.options.currEditItem = "Polygon";
+        fluentDoc.editItems.push(new PRIM.Polygon(fluentDoc.resolution, {...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "5");
         break;
       case "PolyCircle":
-        this.factors.currEditItem = "PolyCircle";
-        fluentDoc.editItems.push(new PRIM.PolyCircle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
+        this.options.currEditItem = "PolyCircle";
+        fluentDoc.editItems.push(new PRIM.PolyCircle(fluentDoc.resolution, {...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "2");
         break;
       case "Circle":
-        this.factors.currEditItem = "Circle";
-        fluentDoc.editItems.push(new PRIM.Circle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
+        this.options.currEditItem = "Circle";
+        fluentDoc.editItems.push(new PRIM.Circle(fluentDoc.resolution, {...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "3");
         break;
       case "Rectangle":
-        // console.log("Rectangle not yet implemented!");
-        this.factors.currEditItem = "Rectangle";
-        fluentDoc.editItems.push(new PRIM.Rectangle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
+        this.options.currEditItem = "Rectangle";
+        fluentDoc.editItems.push(new PRIM.Rectangle(fluentDoc.resolution, {...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "4");
         break;
     }
-    fluentDoc.shaderUpdate = true;
   }
 
+  //honestly this could move to sdfui?
   sel = document.getElementById("filter-select");
-
-  if(this.factors.filter != sel.value){
-    this.factors.filter = sel.value;
-    switch(sel.value){
-      case "None":
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "0");
-        break;
-      case "Pencil":
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "1");
-        break;
-      case "Crayon":
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "2");
-        break;
-      case "SDF":
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "3");
-        break;
-    }
-    fluentDoc.shaderUpdate = true;
-  }
+  this.options.filter = sel.value;
 
   sel = document.getElementById("strokeColor-select");
-  if(this.factors.strokeColor != sel.value){
-    // console.log(sel.value);
-    // console.log(hexToRgb(sel.value));
-    this.factors.strokeColor = sel.value;
+  if(this.options.strokeColor != sel.value){
+
     let rgb = hexToRgb(sel.value);
     let newColor = new THREE.Vector3(rgb.r / 255, rgb.g / 255, rgb.b/255);
-    fluentDoc.editOptions.stroke = newColor;
-    fluentDoc.currEditItem.options.stroke = newColor;
-    // fluentDoc.shaderUpdate = true;
+    this.options.stroke = newColor;
+    fluentDoc.currEditItem.properties.stroke = newColor;
   }
 
   sel = document.getElementById("fillColor-select");
-  if(this.factors.fillColor != sel.value){
-    // console.log(sel.value);
-    // console.log(hexToRgb(sel.value));
-    this.factors.fillColor = sel.value;
+
+  if(this.options.fillColor != sel.value){
     let rgb = hexToRgb(sel.value);
     let newColor = new THREE.Vector3(rgb.r / 255, rgb.g / 255, rgb.b/255);
-    fluentDoc.editOptions.fill = newColor;
-    fluentDoc.currEditItem.options.fill = newColor;
-    // fluentDoc.shaderUpdate = true;
+    //curr UI options
+    this.options.fill = newColor;
+    //curr edit item properties
+    fluentDoc.currEditItem.properties.fill = newColor;
   }
 
   sel = document.getElementById("strokeWeight-range");
-  if(this.factors.strokeWeight != sel.value){
-    // console.log(sel.value);
-    // console.log(hexToRgb(sel.value));
-    this.factors.strokeWeight = sel.value;
-    fluentDoc.editOptions.weight = sel.value / 2000;
-    fluentDoc.currEditItem.options.weight = sel.value / 2000;
-    // fluentDoc.shaderUpdate = true;
+  if(this.options.strokeWeight != sel.value){
+    //curr UI options
+    this.options.weight = sel.value / 2000;
+    //curr edit item properties
+    fluentDoc.currEditItem.properties.weight = sel.value / 2000;
   }
 
   sel = document.getElementById("radius-range");
-  if(this.factors.strokeWeight != sel.value){
-    // console.log(sel.value);
-    // console.log(hexToRgb(sel.value));
-    this.factors.radius = sel.value;
-    fluentDoc.editOptions.radius = sel.value / 100;
-    fluentDoc.currEditItem.options.radius = sel.value / 100;
-    // fluentDoc.shaderUpdate = true;
+  if(this.options.strokeWeight != sel.value){
+    //curr UI options
+    this.options.radius = sel.value / 100;
+    //curr edit item properties
+    fluentDoc.currEditItem.properties.radius = sel.value / 100;
   }
 
   for(let m of this.modifiers){
@@ -481,7 +445,7 @@ function drawUpdate(fluentDoc){
     if(m.update){
       let newDoc = m.update(fluentDoc);
       if (newDoc) fluentDoc = newDoc;
-      if (m.factors.exit && m.factors.exit == true){
+      if (m.options.exit && m.options.exit == true){
         this.exit();
         return "exit";
       }
@@ -530,20 +494,11 @@ function drawUp(e, fluentDoc){
   fluentDoc.pts.push(plPt);
   fluentDoc.tree.insert(plPt);
 
-  // old paradigm
-  // if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
-  //   fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
-  //   fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions));
-  //   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-  //
-  //   fluentDoc.shaderUpdate = true;
-  // }
-
   if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
     // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
     fluentDoc.currEditItem.needsUpdate = true;
 
-    fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions));
+    fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, {...fluentDoc.currEditItem.properties}));
     fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
     fluentDoc.shaderUpdate = true;
@@ -598,17 +553,18 @@ function pauseShaderUpdate(fluentDoc){
   return fluentDoc;
 }
 
+//could be a ui state thing
 function hideGridUpdate(fluentDoc){
   if(!this.toggle) return null;
 
   let valString = "0";
 
-  if (!this.factors.grid) valString = "1";
+  if (!this.options.grid) valString = "1";
 
-  fluentDoc.shader = modifyDefine(fluentDoc.shader, "BG_GRID", valString);
+  // fluentDoc.shader = modifyDefine(fluentDoc.shader, "BG_GRID", valString);
   fluentDoc.shaderUpdate = true;
 
-  this.factors.grid = !this.factors.grid;
+  this.options.grid = !this.options.grid;
 
   this.toggle = !this.toggle;
   return fluentDoc;
@@ -619,18 +575,21 @@ function endDrawUpdate(fluentDoc){
 
   //get out of Draw UIMode
   if(fluentDoc.currEditItem.pts.length == 0) {
-    this.factors.exit = true;
+    this.options.exit = true;
     return null;
   }
 
   // So this is the old paradigm, now baking will happen in sdfui at rendering level
   // fluentDoc.shader = fluentDoc.currEditItem.end(fluentDoc).shader;
-  // fluentDoc.shaderUpdate = true;
+  fluentDoc.shaderUpdate = true;
 
   //this is new paradigm
   fluentDoc.currEditItem.needsUpdate = true;
 
-  fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions));
+  let options = {...fluentDoc.currEditItem.properties};
+  console.log(options);
+
+  fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, options));
   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
   this.toggle = !this.toggle;
@@ -641,7 +600,7 @@ function escDrawUpdate(fluentDoc){
   if(!this.toggle) return null;
 
   if(fluentDoc.currEditItem.pts.length == 0) {
-    this.factors.exit = true;
+    this.options.exit = true;
     return null;
   }
 
@@ -667,12 +626,12 @@ function showPtsUpdate(fluentDoc){
 
   let valString = "0";
 
-  if (!this.factors.pts) valString = "1";
+  if (!this.options.pts) valString = "1";
 
-  fluentDoc.shader = modifyDefine(fluentDoc.shader, "SHOW_PTS", valString);
+  // fluentDoc.shader = modifyDefine(fluentDoc.shader, "SHOW_PTS", valString);
   fluentDoc.shaderUpdate = true;
 
-  this.factors.pts = !this.factors.pts;
+  this.options.pts = !this.options.pts;
 
   this.toggle = !this.toggle;
   return fluentDoc;
@@ -689,7 +648,7 @@ function screenshotUpdate(fluentDoc){
 function printShaderUpdate(fluentDoc){
   if(!this.toggle) return null;
 
-  console.log(fluentDoc.shader);
+  // console.log(fluentDoc.shader);
   this.toggle = !this.toggle;
   return fluentDoc;
 }
@@ -796,14 +755,14 @@ class StateStack{
 //FluentDoc State state distince from ui state
 class FluentDoc{
   // new Doc contains elem, curr shader, kd tree of all pts, curr editItem, editItems
-  constructor(elem, shader){
+  constructor(elem){
     // should move shader logic in here
     // maybe this class should get moved to sdfui
     this.elem = elem;
     this.resolution = new THREE.Vector2(elem.width, elem.height);
 
     //uniforms might want to get moved here
-    this.shader = shader;
+    // this.shader = shader;
     this.shaderUpdate = false;
     this.shaderPause = false;
     this.screenshot = false;
@@ -825,22 +784,9 @@ class FluentDoc{
     //all clickable / snappable points
     this.tree = new kdTree(this.pts, this.pointDist, ["x", "y"]);
 
-    //current editItem
-    //this might want to get moved to UIMode some day...
-    this.editOptions = {
-      weight:0.003,
-      stroke:new THREE.Vector3(0.0, 0.0, 0.0),
-      fill:new THREE.Vector3(0.0, 0.384, 0.682),
-      fillToggle:false,
-      radius:0.125
-    }
-
     // this.editItemIndex = 0;
-    this.currEditItem = new PRIM.PolyLine(this.resolution, this.editOptions, this.dataSize);
-    this.editItems = [this.currEditItem];
-
-    //document registry of paramters
-    this.parameters = new PRIM.PolyPoint(this.resolution, this.editOptions, 128);
+    this.currEditItem;
+    this.editItems = [];
 
     this.drawGrid();
   }
@@ -893,9 +839,9 @@ class FluentDoc{
   clone(){
     //elem is probably the only thing we want to retain a reference to
     //also elem probably doesn't have to be a property of fluentDoc
-    var shader = (' ' + this.shader).slice(1);
+    // var shader = (' ' + this.shader).slice(1);
 
-    let newDoc = new FluentDoc(this.elem, shader);
+    let newDoc = new FluentDoc(this.elem);
 
     newDoc.shaderPause = this.shaderPause;
     newDoc.shaderUpdate = this.shaderUpdate;
@@ -919,7 +865,7 @@ class FluentDoc{
     newDoc.editItems = editItems;
     let currEditItem = editItems[editItems.length - 1];
 
-    newDoc.parameters = this.parameters.clone();
+    // newDoc.parameters = this.parameters.clone();
 
     newDoc.currEditItem = currEditItem;
     newDoc.editItems = editItems;
@@ -933,7 +879,7 @@ class FluentDoc{
 class UIMode{
   //bool, [], functions
   // constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
-  constructor(name, modifiers, enter, exit, update, _events, _factors){
+  constructor(name, modifiers, enter, exit, update, _events, _options){
     this.name = name;
     // this.toggle = toggle;
     this.modifiers = modifiers;
@@ -949,7 +895,7 @@ class UIMode{
     if(_events.dwn) this.dwn = _events.dwn;
     if(_events.scrll) this.scrll = _events.scrll;
 
-    this.factors = _factors || {factor:1.0};
+    this.options = _options || {factor:1.0};
   }
 
   initUIModeButtons(){
@@ -972,7 +918,7 @@ class UIMode{
 //I think there are ways of handling problems that might arise later
 class UIModifier{
   //clck
-  constructor(name, tag, keyCut, toggle, events, _factors){
+  constructor(name, tag, keyCut, toggle, events, _options){
     this.name = name;
     //tag e.g. snap, edit, view, export
     this.tag = tag;
@@ -999,7 +945,7 @@ class UIModifier{
       this.scrll = events.scrll.bind(this);
     }
 
-    this.factors = _factors || {};
+    this.options = _options || {};
 
     this.button = null;
   }

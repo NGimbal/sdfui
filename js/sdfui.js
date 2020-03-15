@@ -10,12 +10,13 @@ import {sdfPrimFrag} from './frag.js';
 import {sdfPrimVert} from './vert.js';
 
 var material, uniforms;
-var fragShader;
-var parameters;
+var dataShader;
 var canvas, renderer, camera, ui, scene, plane, screenMesh;
 
 function main() {
   canvas = document.querySelector('#c');
+  let resolution = new THREE.Vector2(canvas.width, canvas.height);
+
   const context = canvas.getContext( 'webgl2', { alpha: false, antialias: false } );
 
   if (!context){
@@ -42,19 +43,24 @@ function main() {
 
   resizeRendererToDisplaySize(renderer);
 
+  //the copy of ui Options in parameters will trigger shader recompilation
+  //basically a record of what has actually been instantiated in the shader
+  //versus the ui state
+  let parameters = new PRIM.PolyPoint(resolution, {...ui.modeStack.curr().options}, 128);
+
   uniforms = {
     iTime: { value: 0 },
     iResolution:  { value: new THREE.Vector3(canvas.width, canvas.height, 1) },
     pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
     posTex: { value: fluentDoc.currEditItem.ptsTex},
     posTexRes: {value: new THREE.Vector2(16.0, 16.0)},
-    parameters: {value: fluentDoc.parameters.ptsTex},
+    parameters: {value: parameters},
     mousePt: {value: fluentDoc.mPt},
     editCTexel : {value: fluentDoc.currEditItem.cTexel},
-    editWeight : {value: fluentDoc.editOptions.weight},
+    editWeight : {value: ui.modeStack.curr().options.weight},
     strokeColor: {value: new THREE.Vector3(0.0, 0.0, 0.0)},
     fillColor: {value: new THREE.Vector3(0.0, 0.384, 0.682)},
-    editRadius : {value: fluentDoc.editOptions.radius},
+    editRadius : {value: ui.modeStack.curr().options.radius},
     //global scale variables
     scale: {value: fluentDoc.scale},
     hiDPR: {value: window.devicePixelRatio}
@@ -63,16 +69,16 @@ function main() {
   scene = new THREE.Scene();
   plane = new THREE.PlaneBufferGeometry(2, 2);
 
-  fragShader = sdfPrimFrag;
-  let vertShader = sdfPrimVert;
+  let fragmentShader = sdfPrimFrag;
+  let vertexShader = sdfPrimVert;
 
   material = new THREE.ShaderMaterial({
     uniforms,
-    vertShader,
-    fragShader
+    vertexShader,
+    fragmentShader
   });
 
-  parameters = new PRIM.PolyPoint(this.resolution, this.editOptions, 128);
+  dataShader = new PRIM.DataShader(fragmentShader, parameters);
 
   screenMesh = new THREE.Mesh(plane, material);
   scene.add(screenMesh);
@@ -115,39 +121,89 @@ function render() {
     screenMesh.material.uniforms.pointPrim.value = fluentDoc.currEditItem.pointPrim;
   }
 
+  let uiOptions = ui.modeStack.curr().options;
+
   screenMesh.material.uniforms.mousePt.value = fluentDoc.mPt;
-  screenMesh.material.uniforms.editWeight.value = fluentDoc.editOptions.weight;
-  screenMesh.material.uniforms.strokeColor.value = fluentDoc.editOptions.stroke;
-  screenMesh.material.uniforms.fillColor.value = fluentDoc.editOptions.fill;
-  screenMesh.material.uniforms.editRadius.value = fluentDoc.editOptions.radius;
+  screenMesh.material.uniforms.editWeight.value = uiOptions.weight;
+  screenMesh.material.uniforms.strokeColor.value = uiOptions.stroke;
+  screenMesh.material.uniforms.fillColor.value = uiOptions.fill;
+  screenMesh.material.uniforms.editRadius.value = uiOptions.radius;
 
   screenMesh.material.uniforms.needsUpdate = true;
 
-  if (fluentDoc.shaderUpdate){
+  let shaderUpdate = false;
+
+  if (uiOptions.currEditItem != dataShader.parameters.properties.currEditItem){
+    dataShader.parameters.properties.currEditItem = uiOptions.currEditItem;
+    switch(uiOptions.currEditItem){
+      case "PolyLine":
+        dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "1");
+        break;
+      case "Polygon":
+        dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "5");
+        break;
+      case "PolyCircle":
+        dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "2");
+        break;
+      case "Circle":
+        dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "3");
+        break;
+      case "Rectangle":
+        dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "4");
+        break;
+    }
+    shaderUpdate = true;
+  }
+
+  if (uiOptions.filter != dataShader.parameters.properties.filter){
+    dataShader.parameters.properties.filter = uiOptions.filter;
+    switch(uiOptions.filter){
+      case "None":
+        dataShader.shader = modifyDefine(dataShader.shader, "FILTER", "0");
+        break;
+      case "Pencil":
+        dataShader.shader = modifyDefine(dataShader.shader, "FILTER", "1");
+        break;
+      case "Crayon":
+        dataShader.shader = modifyDefine(dataShader.shader, "FILTER", "2");
+        break;
+      case "SDF":
+        dataShader.shader = modifyDefine(dataShader.shader, "FILTER", "3");
+        break;
+    }
+    shaderUpdate = true;
+  }
+
+  //keep shader update for now
+  if (fluentDoc.shaderUpdate || shaderUpdate){
     console.log("shader update!")
     let vertexShader = sdfPrimVert;
-    //it's probably not necessary to recompile shader when resizing
+
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
 
     //annoying that this is set in so many places
     //in the future refactor resolution so it always just reads element size
     fluentDoc.resolution = new THREE.Vector2(canvas.width, canvas.height);
     fluentDoc.currEditItem.resolution = fluentDoc.resolution;
-    fluentDoc.parameters.resolution = fluentDoc.resolution;
-
-    //first this is going to come out of fluentDoc
-    uniforms.parameters.value = fluentDoc.parameters.ptsTex;
 
     //disentangle
     for (let item of fluentDoc.editItems){
-      if(item.needsUpdate) fragShader = item.end(fragShader, parameters);
-      console.log(fragShader);
+      if(item.needsUpdate){
+        dataShader = item.end(dataShader.shader, dataShader.parameters);
+        item.needsUpdate = false;
+      }
+      // console.log(dataShader);
     }
+
+    dataShader.parameters.resolution = fluentDoc.resolution;
+    uniforms.parameters.value = dataShader.parameters.ptsTex;
+
+    let fragmentShader = dataShader.shader;
 
     material = new THREE.ShaderMaterial({
       uniforms,
       vertexShader,
-      fluentDoc.shader,
+      fragmentShader,
     });
 
     screenMesh.material = material;
@@ -157,7 +213,8 @@ function render() {
 
   renderer.render(scene, camera);
 
-  //is this a workaround?
+  //this is necessary because saving has to happen right after render
+  //while framebuffer still has data
   //could actually do this in screenshotUpdate
   if(fluentDoc.screenshot){
     canvas.toBlob((blob) => {
@@ -189,6 +246,21 @@ const saveBlob = (function(){
      a.click();
   };
 }());
+
+function modifyDefine(shader, define, val){
+  //change #define
+  let insString = "#define " + define + " ";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex+2);
+
+  startShader += val + "\n";
+  shader = startShader + endShader;
+
+  return shader;
+}
 
 //Run-----------------------------------------------------------
 main();

@@ -53,9 +53,9 @@ import * as HINT from './fluentHints.js';
 
 //simple class for returning shader and polypoint
 class DataShader{
-  constructor(shader, data){
+  constructor(shader, parameters){
     this.shader = shader;
-    this.data = data;
+    this.parameters = parameters;
   }
 }
 
@@ -63,14 +63,14 @@ class DataShader{
 //PointPrim is for primitives that take 2 xy values + options
 //PolyPoint is a datastructure that holds many xy values
 class PointPrim{
-  constructor(resolution, options){
+  constructor(resolution, properties){
     this.resolution = resolution;
 
     //input is 1 to 20 divided by 2500
-    this.weight = options.weight || .002;
-    this.options = {...options};
+    // this.weight = options.weight || .002;
+    // this.options = {...options};
     this.pointPrim = new THREE.Vector4(0.0, 0.0, 0.0, 0.0);
-
+    this.properties = properties;
     //list of points
     this.pts=[];
 
@@ -118,15 +118,14 @@ class PointPrim{
 class PolyPoint {
 
   //creates empty PolyPoint object
-  constructor(resolution, options, _dataSize){
+  constructor(resolution, properties, _dataSize){
     this.resolution = resolution;
-
+    this.properties = properties;
     this.dataSize = _dataSize || 16;
-
     //input is 1 to 20 divided by 2000
-    this.weight = options.weight || .002,
+    // this.weight = options.weight || .002,
     //this can probably be relegated to the actual primitives? idk
-    this.options = {...options};
+    // this.options = {...options};
     //list of points
     this.pts=[];
 
@@ -148,10 +147,10 @@ class PolyPoint {
   clone(){
     let resolution = this.resolution.clone();
     let weight = this.weight;
-    let options  = {...this.options};
+    let properties  = {...this.properties};
     let dataSize = this.dataSize;
 
-    let newPolyPoint = new PolyPoint(resolution, options, dataSize);
+    let newPolyPoint = new PolyPoint(resolution, properties, dataSize);
 
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
@@ -319,8 +318,8 @@ class Point{
 }
 
 class Circle extends PointPrim{
-  constructor(resolution, options){
-    super(resolution, options);
+  constructor(resolution, properties){
+    super(resolution, properties);
 
     this.fragFunction = "";
 
@@ -344,7 +343,6 @@ class Circle extends PointPrim{
     let indexX = (cTexel % dataSize) / dataSize + texelOffset;
     let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
 
-
     //eventually address these functions using id in place of d
     //then perform scene merge operation when modifying finalColor
     let insString = "//$INSERT CALL$------";
@@ -360,10 +358,10 @@ class Circle extends PointPrim{
     //create function call
     let posString = '\n';
 
-    let rgb = this.options.stroke;
+    let rgb = this.properties.stroke;
 
     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-    let weight = this.options.weight;
+    let weight = this.properties.weight;
 
     posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
     posString += '\tradius = distance(texture2D(parameters, index).xy, texture2D(parameters, index).zw);\n';
@@ -393,17 +391,19 @@ class Circle extends PointPrim{
 
   clone(){
     let resolution = this.resolution;
-    let options = {...this.options};
     let pointPrim = this.pointPrim.clone();
+    let properties = {...this.properties};
     //may need to clone this in a better way
     let id = this.id;
 
     //list of points
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
-    let newCircle = new Circle(resolution, options);
+    let newCircle = new Circle(resolution, properties);
 
     newCircle.pointPrim = pointPrim;
+
+    newCircle.needsUpdate = this.needsUpdate;
 
     newCircle.id = id;
     newCircle.pts = pts;
@@ -411,25 +411,21 @@ class Circle extends PointPrim{
     return newCircle;
   }
 
-  create(resolution, options){
-    return new Circle(resolution, options);
+  create(resolution, properties){
+    return new Circle(resolution, properties);
   }
 
   end(shader, parameters){
-    let dataShader = new DataShader(shader, parameters);
     if(this.pts.length == 0) return dataShader;
 
-    dataShader.shader = this.bakeFunctionCall(shader);
-    return dataShader;
+    return this.bakeFunctionCall(shader, parameters);
   }
-
-
 }
 
 //maybe create a PointPrim class like PolyPoint
 class Rectangle extends PointPrim{
-  constructor(resolution, options){
-    super(resolution, options);
+  constructor(resolution, properties){
+    super(resolution, properties);
 
     this.fragFunction = "";
 
@@ -468,10 +464,10 @@ class Rectangle extends PointPrim{
     //create function call
     let posString = '\n';
 
-    let rgb = this.options.stroke;
+    let rgb = this.properties.stroke;
     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-    let radius = this.options.radius.toFixed(4);
-    let weight = this.options.weight.toFixed(4);
+    let radius = this.properties.radius.toFixed(4);
+    let weight = this.properties.weight.toFixed(4);
 
     posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
 
@@ -493,43 +489,43 @@ class Rectangle extends PointPrim{
 
   clone(){
     let resolution = this.resolution;
-    // let weight = this.weight;
-    let options = {...this.options};
+
     let pointPrim = this.pointPrim.clone();
     //may need to clone this in a better way
     let id = this.id;
+    let properties = {...this.properties};
 
     //list of points
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
-    let newRect = new Rectangle(resolution, options);
+    let newRect = new Rectangle(resolution, properties);
     newRect.pointPrim = pointPrim;
     newRect.id = id;
     newRect.pts = pts;
 
+    newRect.needsUpdate = this.needsUpdate;
+
     return newRect;
   }
 
-  create(resolution, options){
-    return new Rectangle(resolution, options);
+  create(resolution, properties){
+    return new Rectangle(resolution, properties);
   }
 
   end(shader, parameters){
-    let dataShader = new DataShader(shader, parameters);
 
     if(this.pts.length == 0) return dataShader;
 
-    dataShader.shader = this.bakeFunctionCall(shader);
-    return dataShader;
+    return this.bakeFunctionCall(shader, parameters);
   }
 }
 
 class PolyLine extends PolyPoint {
 
-  constructor(resolution, options, _dataSize){
+  constructor(resolution, properties, _dataSize){
     //super is how PolyPoint class is constructed
     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
-    super(resolution, options, _dataSize);
+    super(resolution, properties, _dataSize);
 
     this.fragFunction = "";
 
@@ -539,10 +535,10 @@ class PolyLine extends PolyPoint {
   clone(){
     let resolution = this.resolution.clone();
     let weight = this.weight;
-    let options = {...this.options};
+    let properties = {...this.properties};
     let dataSize = this.dataSize;
 
-    let newPolyLine = new PolyLine(resolution, options, dataSize);
+    let newPolyLine = new PolyLine(resolution, properties, dataSize);
 
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
@@ -557,12 +553,12 @@ class PolyLine extends PolyPoint {
     newPolyLine.data = data;
     newPolyLine.ptsTex = ptsTex;
 
-    let id = this.id;
+    newPolyLine.needsUpdate = this.needsUpdate;
+
+    let id = (' ' + this.id).slice(1);
     newPolyLine.id = id;
 
-    //is there a bug here? should I clone id this way?
-    var fragFunction = (' ' + this.fragFunction).slice(1);
-
+    let fragFunction = (' ' + this.fragFunction).slice(1);
     newPolyLine.fragFunction = fragFunction;
 
     return newPolyLine;
@@ -571,7 +567,7 @@ class PolyLine extends PolyPoint {
   //takes shader as argument, modifies string, returns modified shader
   //the inputs to these functions e.g. position will be parameterized
   //needs review
-  bakeFunctionAbsolute(shader, parameters){
+  bakeFunctionAbsolute(shader){
     // let shader = fluentDoc.shader;
 
     //insert new function
@@ -613,9 +609,9 @@ class PolyLine extends PolyPoint {
     let oldPosX = 0;
     let oldPosY = 0;
 
-    let rgb = this.options.stroke;
+    let rgb = this.properties.stroke;
     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-    let weight = this.options.weight.toFixed(4);
+    let weight = this.properties.weight.toFixed(4);
 
     for (let p of this.pts){
       view.setUint16(0, p.texData[0]);
@@ -721,9 +717,9 @@ class PolyLine extends PolyPoint {
     let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
     let dataSize = parameters.dataSize;
 
-    let rgbStroke = this.options.stroke;
+    let rgbStroke = this.properties.stroke;
     let colorStroke = 'vec3(' + rgbStroke.x + ',' + rgbStroke.y + ',' + rgbStroke.z +')';
-    let weight = this.options.weight.toFixed(4);
+    let weight = this.properties.weight.toFixed(4);
 
     let count = 0;
 
@@ -780,7 +776,7 @@ class PolyLine extends PolyPoint {
   //takes shader as argument, modifies string, returns modified shader
   //creates function calls that calls function already created
   //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionCall(shader){
+  bakeFunctionCall(shader, parameters){
     // let shader = fluentDoc.shader;
     let insString = "//$INSERT CALL$------";
     let insIndex = shader.indexOf(insString);
@@ -810,8 +806,8 @@ class PolyLine extends PolyPoint {
     return fragShader;
   }
 
-  create(resolution, options, _dataSize){
-    return new PolyLine(resolution, options, _dataSize);
+  create(resolution, properties, _dataSize){
+    return new PolyLine(resolution, properties, _dataSize);
   }
 
   //should clone and probably push to state stack prior to this
@@ -820,7 +816,7 @@ class PolyLine extends PolyPoint {
     if(this.pts.length == 0) return dataShader;
 
     dataShader = this.bakeFunctionParams(shader, parameters);
-    dataShader.shader = this.bakeFunctionCall(dataShader.shader);
+    dataShader.shader = this.bakeFunctionCall(dataShader.shader, dataShader.parameters);
 
     return dataShader;
   }
@@ -828,10 +824,10 @@ class PolyLine extends PolyPoint {
 
 class Polygon extends PolyPoint {
 
-  constructor(resolution, options, _dataSize){
+  constructor(resolution, properties, _dataSize){
     //super is how PolyPoint class is constructed
     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
-    super(resolution, options, _dataSize);
+    super(resolution, properties, _dataSize);
 
     this.fragFunction = "";
 
@@ -841,38 +837,39 @@ class Polygon extends PolyPoint {
   clone(){
     let resolution = this.resolution.clone();
     let weight = this.weight;
-    let options = {...this.options};
+    let properties = {...this.properties};
     let dataSize = this.dataSize;
 
-    let newPolyLine = new Polygon(resolution, options, dataSize);
+    let newPolygon = new Polygon(resolution, properties, dataSize);
 
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
     let cTexel = this.cTexel;
 
-    newPolyLine.pts = pts;
-    newPolyLine.cTexel = cTexel;
+    newPolygon.pts = pts;
+    newPolygon.cTexel = cTexel;
 
     let data = new Uint16Array(this.data);
     let ptsTex = new THREE.DataTexture(data, dataSize, dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
 
-    newPolyLine.data = data;
-    newPolyLine.ptsTex = ptsTex;
+    newPolygon.data = data;
+    newPolygon.ptsTex = ptsTex;
 
-    let id = this.id;
-    newPolyLine.id = id;
+    newPolygon.needsUpdate = this.needsUpdate;
+
+    let id = (' ' + this.id).slice(1);
+    newPolygon.id = id;
 
     //is there a bug here? should I clone id this way?
     var fragFunction = (' ' + this.fragFunction).slice(1);
 
-    newPolyLine.fragFunction = fragFunction;
+    newPolygon.fragFunction = fragFunction;
 
-    return newPolyLine;
+    return newPolygon;
   }
 
   //takes shader as argument, modifies string, returns modified shader
-  //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionAbsolute(shader){
+  bakeFunctionAbsolute(shader, parameters){
     // let shader = fluentDoc.shader;
 
     //insert new function
@@ -914,9 +911,9 @@ class Polygon extends PolyPoint {
     let oldPosX = 0;
     let oldPosY = 0;
 
-    let rgb = this.options.stroke;
+    let rgb = this.properties.stroke;
     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-    let weight = this.options.weight.toFixed(4);
+    let weight = this.properties.weight.toFixed(4);
 
     for (let p of this.pts){
       view.setUint16(0, p.texData[0]);
@@ -1015,12 +1012,12 @@ class Polygon extends PolyPoint {
     let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
     let dataSize = parameters.dataSize;
 
-    let rgbFill = this.options.fill;
+    let rgbFill = this.properties.fill;
     let colorFill = 'vec3(' + rgbFill.x + ',' + rgbFill.y + ',' + rgbFill.z +')';
-    let rgbStroke = this.options.stroke;
+    let rgbStroke = this.properties.stroke;
     let colorStroke = 'vec3(' + rgbStroke.x + ',' + rgbStroke.y + ',' + rgbStroke.z +')';
-    let weight = this.options.weight.toFixed(4);
-    let radius = this.options.radius.toFixed(4);
+    let weight = this.properties.weight.toFixed(4);
+    let radius = this.properties.radius.toFixed(4);
 
     // p is a translation for polygon
     // eventually this will be a reference to another data texture
@@ -1133,7 +1130,7 @@ class Polygon extends PolyPoint {
   //takes shader as argument, modifies string, returns modified shader
   //creates function calls that calls function already created
   //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionCall(shader){
+  bakeFunctionCall(shader, parameters){
     // let shader = fluentDoc.shader;
     let insString = "//$INSERT CALL$------";
     let insIndex = shader.indexOf(insString);
@@ -1163,8 +1160,8 @@ class Polygon extends PolyPoint {
     return fragShader;
   }
 
-  create(resolution, options, _dataSize){
-    return new Polygon(resolution, options, _dataSize);
+  create(resolution, _dataSize){
+    return new Polygon(resolution, _dataSize);
   }
 
   //should clone and probably push to state stack prior to this
@@ -1173,7 +1170,7 @@ class Polygon extends PolyPoint {
     if(this.pts.length == 0) return dataShader;
 
     dataShader = this.bakeFunctionParams(shader, parameters);
-    dataShader.shader = this.bakeFunctionCall(dataShader.shader);
+    dataShader.shader = this.bakeFunctionCall(dataShader.shader, dataShader.parameters);
 
     return dataShader;
   }
@@ -1181,10 +1178,10 @@ class Polygon extends PolyPoint {
 
 class PolyCircle extends PolyPoint {
 
-  constructor(resolution, options, _dataSize){
+  constructor(resolution, properties, _dataSize){
     //super is how PolyPoint class is constructed
     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
-    super(resolution, options, _dataSize);
+    super(resolution, properties, _dataSize);
 
     this.fragFunction = "";
 
@@ -1195,10 +1192,10 @@ class PolyCircle extends PolyPoint {
   clone(){
     let resolution = this.resolution.clone();
     let weight = this.weight;
-    let options = {...this.options};
+    let properties = {...this.properties};
     let dataSize = this.dataSize;
 
-    let newPolyCircle = new PolyCircle(resolution, options, dataSize);
+    let newPolyCircle = new PolyCircle(resolution, properties, dataSize);
 
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
@@ -1212,6 +1209,8 @@ class PolyCircle extends PolyPoint {
 
     newPolyCircle.data = data;
     newPolyCircle.ptsTex = ptsTex;
+
+    newPolyCircle.needsUpdate = this.needsUpdate;
 
     let id = this.id;
     newPolyCircle.id = id;
@@ -1269,9 +1268,9 @@ class PolyCircle extends PolyPoint {
         let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
         let dataSize = parameters.dataSize;
 
-        let rgb = this.options.stroke;
+        let rgb = this.properties.stroke;
         let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-        let radius = this.options.radius;
+        let radius = this.properties.radius;
 
         for (let p of this.pts){
           //there is a more efficient way of doing this
@@ -1313,26 +1312,21 @@ class PolyCircle extends PolyPoint {
         }
         posString += '\n';
 
-        // posString += '\n\tvec3 cCol = vec3(0.0, 0.384, 0.682);';
-        posString += '\n\tfinalColor = mix( finalColor, ' + color + ' , 1.0-smoothstep(0.0,'+ this.weight + '+0.002,abs(d)));';
+        posString += '\n\tfinalColor = mix( finalColor, ' + color + ' , 1.0-smoothstep(0.0,'+ this.properties.weight + '+0.002,abs(d)));';
 
-        // posString += '\tfinalColor = mix(finalColor, vec3(1.0), editOpacity);\n}\n';
         posString += '\n}\n';
         posString += '//$END-' + this.id + '\n';
-        // console.log(posString);
+
         this.fragShaer = posString;
-        // console.log(posString);
 
         startShader += posString;
 
         let fragShader = startShader + endShader;
 
-        // console.log(fragShader);
-
         return new DataShader(fragShader, parameters);
   }
 
-  bakeFunctionCall(shader){
+  bakeFunctionCall(shader, parameters){
     // let shader = fluentDoc.shader;
     let insString = "//$INSERT CALL$------";
     let insIndex = shader.indexOf(insString);
@@ -1357,23 +1351,21 @@ class PolyCircle extends PolyPoint {
 
     let fragShader = startShader + endShader;
 
-    // console.log(fragShader);
-
     return fragShader;
   }
 
-  create(resolution, options, _dataSize){
-    return new PolyCircle(resolution, options, _dataSize);
+  create(resolution, properties, _dataSize){
+    return new PolyCircle(resolution, properties, _dataSize);
   }
 
-  //should clone and probably push to state stack prior to this
   end(shader, parameters){
-    let dataShader = new DataShader(shader, parameters);
-    if(this.pts.length == 0) return shader;
+    //should return null or something to prevent recompiling shader
+    if(this.pts.length == 0) return new DataShader(shader, parameters);
 
-    dataShader = this.bakeFunctionParams(shader, parameters);
-    dataShader.shader = this.bakeFunctionCall(dataShader.shader);
-    return shader;
+    let dataShader = this.bakeFunctionParams(shader, parameters);
+    dataShader.shader = this.bakeFunctionCall(dataShader.shader, dataShader.parameters);
+
+    return dataShader;
   }
 }
 

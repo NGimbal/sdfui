@@ -37,7 +37,7 @@ function snapPtMv(e, fluentDoc){
 
   let ptNear = fluentDoc.tree.nearest(evPt, 1);
 
-  if (ptNear.length > 0 && ptNear[0][1] < this.factors.dist){
+  if (ptNear.length > 0 && ptNear[0][1] < this.options.dist){
     ptNear = ptNear[0][0];
     fluentDoc.mPt.x = ptNear.x / fluentDoc.resolution.x;
     fluentDoc.mPt.y = (fluentDoc.resolution.y - ptNear.y) / fluentDoc.resolution.y;
@@ -73,7 +73,7 @@ function snapRefMv(e, fluentDoc){
 
     let angle = Math.atan2(det, dot) * (180 / Math.PI);
 
-    let snapA = (Math.round(angle / this.factors.angle) * this.factors.angle);
+    let snapA = (Math.round(angle / this.options.angle) * this.options.angle);
 
     snapA = (snapA * (Math.PI / 180) + lnPrev.angle());
 
@@ -120,7 +120,7 @@ function snapGlobalMv(e, fluentDoc){
     let angle = lnCurr.angle()* (180 / Math.PI);
 
     //global angle
-    let gAngle = this.factors.angle;
+    let gAngle = this.options.angle;
 
     let snapA = (Math.round(angle / gAngle) * gAngle);
     snapA = (snapA * (Math.PI / 180));
