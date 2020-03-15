@@ -3,13 +3,15 @@
 //import * as THREE from 'https://unpkg.com/three@0.108.0/build/three.module.js';
 import * as THREE from './libjs/three.module.js';
 
+import * as PRIM from './fluentPrim.js';
 import {GhostUI, Button} from './GhostUI.js';
 
 import {sdfPrimFrag} from './frag.js';
 import {sdfPrimVert} from './vert.js';
 
-
 var material, uniforms;
+var fragShader;
+var parameters;
 var canvas, renderer, camera, ui, scene, plane, screenMesh;
 
 function main() {
@@ -61,16 +63,17 @@ function main() {
   scene = new THREE.Scene();
   plane = new THREE.PlaneBufferGeometry(2, 2);
 
-  let fragmentShader = fluentDoc.shader;
-  let vertexShader = sdfPrimVert;
+  fragShader = sdfPrimFrag;
+  let vertShader = sdfPrimVert;
 
   material = new THREE.ShaderMaterial({
     uniforms,
-    vertexShader,
-    fragmentShader
+    vertShader,
+    fragShader
   });
 
-  //console.log(material);
+  parameters = new PRIM.PolyPoint(this.resolution, this.editOptions, 128);
+
   screenMesh = new THREE.Mesh(plane, material);
   scene.add(screenMesh);
 
@@ -97,8 +100,6 @@ function render() {
 
   resizeRendererToDisplaySize(renderer);
 
-  //global update to run functions that have been cued by a button press
-  //takes care of functions that need to run before mousemv
   ui.update();
 
   const canvas = renderer.domElement;
@@ -128,22 +129,25 @@ function render() {
     //it's probably not necessary to recompile shader when resizing
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
 
-    //first this is going to come out of fluentDoc
-    uniforms.parameters.value = fluentDoc.parameters.ptsTex;
-
     //annoying that this is set in so many places
     //in the future refactor resolution so it always just reads element size
     fluentDoc.resolution = new THREE.Vector2(canvas.width, canvas.height);
     fluentDoc.currEditItem.resolution = fluentDoc.resolution;
     fluentDoc.parameters.resolution = fluentDoc.resolution;
 
-    //this also needs to get out of fragmentShader
-    let fragmentShader = fluentDoc.shader;
+    //first this is going to come out of fluentDoc
+    uniforms.parameters.value = fluentDoc.parameters.ptsTex;
+
+    //disentangle
+    for (let item of fluentDoc.editItems){
+      if(item.needsUpdate) fragShader = item.end(fragShader, parameters);
+      console.log(fragShader);
+    }
 
     material = new THREE.ShaderMaterial({
       uniforms,
       vertexShader,
-      fragmentShader,
+      fluentDoc.shader,
     });
 
     screenMesh.material = material;

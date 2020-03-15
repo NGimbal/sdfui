@@ -5,7 +5,6 @@ import * as SNAP from './fluentSnap.js';
 import * as HINT from './fluentHints.js';
 import * as PRIM from './fluentPrim.js';
 
-
 //GhostUI coordinates all UI functions, keeps FluentDocStack, and UI State
 //Implements UIMode and UIModifiers
 //UIMode is a collection of UIModifiers along with enter & exit functions
@@ -106,7 +105,7 @@ class GhostUI{
     this.modeStack.curr().enter();
 
     //should this be bound to docStack[] or this?
-    document.getElementById("draw-shapes").addEventListener('mouseup', this.mouseUp.bind(this));
+    document.getElementById("c").addEventListener('mouseup', this.mouseUp.bind(this));
     window.addEventListener('mousemove', this.mouseMove.bind(this));
 
     //cntrl+z
@@ -531,9 +530,19 @@ function drawUp(e, fluentDoc){
   fluentDoc.pts.push(plPt);
   fluentDoc.tree.insert(plPt);
 
+  // old paradigm
+  // if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
+  //   fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
+  //   fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions));
+  //   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+  //
+  //   fluentDoc.shaderUpdate = true;
+  // }
+
   if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
-    fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
-    // fluentDoc.editItemIndex++;
+    // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
+    fluentDoc.currEditItem.needsUpdate = true;
+
     fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions));
     fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
@@ -608,13 +617,18 @@ function hideGridUpdate(fluentDoc){
 function endDrawUpdate(fluentDoc){
   if(!this.toggle) return null;
 
+  //get out of Draw UIMode
   if(fluentDoc.currEditItem.pts.length == 0) {
     this.factors.exit = true;
     return null;
   }
 
-  fluentDoc.shader = fluentDoc.currEditItem.end(fluentDoc).shader;
-  fluentDoc.shaderUpdate = true;
+  // So this is the old paradigm, now baking will happen in sdfui at rendering level
+  // fluentDoc.shader = fluentDoc.currEditItem.end(fluentDoc).shader;
+  // fluentDoc.shaderUpdate = true;
+
+  //this is new paradigm
+  fluentDoc.currEditItem.needsUpdate = true;
 
   fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions));
   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
@@ -631,6 +645,7 @@ function escDrawUpdate(fluentDoc){
     return null;
   }
 
+  //pts could be in GhostUI
   //remove all points from curr edit item before ending this polyline
   for (let p of fluentDoc.currEditItem.pts){
     var index = fluentDoc.pts.findIndex(i => i.id === p.id);
@@ -646,6 +661,7 @@ function escDrawUpdate(fluentDoc){
   return fluentDoc;
 }
 
+//this will eventually just operate on the shader
 function showPtsUpdate(fluentDoc){
   if(!this.toggle) return null;
 
@@ -826,12 +842,6 @@ class FluentDoc{
     //document registry of paramters
     this.parameters = new PRIM.PolyPoint(this.resolution, this.editOptions, 128);
 
-    //establishes grid offsets
-    //actually don't think this instantiation is necessary
-    // this.gridOffX = 0.0;
-    // this.gridOffY = 0.0;
-    // this.scaleX = 0.0;
-    // this.scaleyY = 0.0;
     this.drawGrid();
   }
 

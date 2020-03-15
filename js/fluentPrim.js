@@ -51,6 +51,14 @@ import * as THREE from './libjs/three.module.js';
 import * as SNAP from './fluentSnap.js';
 import * as HINT from './fluentHints.js';
 
+//simple class for returning shader and polypoint
+class DataShader{
+  constructor(shader, data){
+    this.shader = shader;
+    this.data = data;
+  }
+}
+
 //Two primitive types, PointPrim and PolyPoint
 //PointPrim is for primitives that take 2 xy values + options
 //PolyPoint is a datastructure that holds many xy values
@@ -270,8 +278,8 @@ class PolyPoint {
   }
 }
 
-//Simple point class (for insertion into kdTree)
-//Holds information for kdTree / UI and for fragment shader
+//Simple point class for insertion into kdTree
+//Holds information for kdTree / UI
 class Point{
   constructor(x, y, _texRef, _texData, _shapeID, _tag){
     this.x = x;
@@ -320,17 +328,18 @@ class Circle extends PointPrim{
   }
 
   //going to add each of the 2 points to fluentDoc.params
-  bakeFunctionCall(fluentDoc){
-    let shader = fluentDoc.shader;
+  // bakeFunctionCall(shader, parameters)
+  bakeFunctionCall(shader, parameters){
+    // let shader = fluentDoc.shader;
 
     //bakes pointPrim data the fluentDoc.parameters
     let p = this.pointPrim;
-    fluentDoc.parameters.addPointPrim(p.x, p.y,p.z, p.w, "Circle");
+    parameters.addPointPrim(p.x, p.y,p.z, p.w, "Circle");
 
-    let cTexel = fluentDoc.parameters.cTexel;
-    let dataSize = fluentDoc.parameters.dataSize;
+    let cTexel = parameters.cTexel;
+    let dataSize = parameters.dataSize;
 
-    let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
+    let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
 
     let indexX = (cTexel % dataSize) / dataSize + texelOffset;
     let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
@@ -367,8 +376,7 @@ class Circle extends PointPrim{
 
     // console.log(fragShader);
 
-    return fragShader;
-
+    return new DataShader(fragShader, parameters);
   }
 
   // bakeFunctionAbsolute
@@ -407,12 +415,15 @@ class Circle extends PointPrim{
     return new Circle(resolution, options);
   }
 
-  end(fluentDoc){
-    if(this.pts.length == 0) return fluentDoc;
-    // fluentDoc.editItemIndex++;
-    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
-    return fluentDoc;
+  end(shader, parameters){
+    let dataShader = new DataShader(shader, parameters);
+    if(this.pts.length == 0) return dataShader;
+
+    dataShader.shader = this.bakeFunctionCall(shader);
+    return dataShader;
   }
+
+
 }
 
 //maybe create a PointPrim class like PolyPoint
@@ -426,17 +437,17 @@ class Rectangle extends PointPrim{
   }
 
   //going to add each of the 2 points to fluentDoc.params
-  bakeFunctionCall(fluentDoc){
-    let shader = fluentDoc.shader;
+  bakeFunctionCall(shader, parameters){
+    // let shader = fluentDoc.shader;
 
     //bakes pointPrim data the fluentDoc.parameters
     let p = this.pointPrim;
-    fluentDoc.parameters.addPointPrim(p.x, p.y,p.z, p.w, "blah");
+    parameters.addPointPrim(p.x, p.y,p.z, p.w, "blah");
 
-    let cTexel = fluentDoc.parameters.cTexel;
-    let dataSize = fluentDoc.parameters.dataSize;
+    let cTexel = parameters.cTexel;
+    let dataSize = parameters.dataSize;
 
-    let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
+    let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
 
     let indexX = (cTexel % dataSize) / dataSize + texelOffset;
     let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
@@ -475,8 +486,7 @@ class Rectangle extends PointPrim{
 
     // console.log(fragShader);
 
-    return fragShader;
-
+    return new DataShader(fragShader, parameters);
   }
 
   // bakeFunctionAbsolute
@@ -504,11 +514,13 @@ class Rectangle extends PointPrim{
     return new Rectangle(resolution, options);
   }
 
-  end(fluentDoc){
-    if(this.pts.length == 0) return fluentDoc;
-    // fluentDoc.editItemIndex++;
-    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
-    return fluentDoc;
+  end(shader, parameters){
+    let dataShader = new DataShader(shader, parameters);
+
+    if(this.pts.length == 0) return dataShader;
+
+    dataShader.shader = this.bakeFunctionCall(shader);
+    return dataShader;
   }
 }
 
@@ -558,8 +570,9 @@ class PolyLine extends PolyPoint {
 
   //takes shader as argument, modifies string, returns modified shader
   //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionAbsolute(fluentDoc){
-    let shader = fluentDoc.shader;
+  //needs review
+  bakeFunctionAbsolute(shader, parameters){
+    // let shader = fluentDoc.shader;
 
     //insert new function
     let insString = "//$INSERT FUNCTION$------";
@@ -651,14 +664,14 @@ class PolyLine extends PolyPoint {
 
     let fragShader = startShader + endShader;
 
-    return fragShader;
+    return new DataShader(fragShader, parameters);
   }
 
   //takes shader as argument, modifies string, returns modified shader
   //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionParams(fluentDoc){
+  bakeFunctionParams(shader, parameters){
 
-    let shader = fluentDoc.shader;
+    // let shader = fluentDoc.shader;
 
     //insert new function
     let insString = "//$INSERT FUNCTION$------";
@@ -705,8 +718,8 @@ class PolyLine extends PolyPoint {
     //this should be a property of GhostUI
     let dpr = window.devicePixelRatio;
 
-    let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
-    let dataSize = fluentDoc.parameters.dataSize;
+    let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+    let dataSize = parameters.dataSize;
 
     let rgbStroke = this.options.stroke;
     let colorStroke = 'vec3(' + rgbStroke.x + ',' + rgbStroke.y + ',' + rgbStroke.z +')';
@@ -716,8 +729,8 @@ class PolyLine extends PolyPoint {
 
     for (let p of this.pts){
 
-      fluentDoc.parameters.addPoint(p.x, p.y, p.tag);
-      let cTexel = fluentDoc.parameters.cTexel;
+      parameters.addPoint(p.x, p.y, p.tag);
+      let cTexel = parameters.cTexel;
 
       if(count == 0){
         //what are x, y texel indices?
@@ -761,14 +774,14 @@ class PolyLine extends PolyPoint {
 
     // console.log(fragShader);
 
-    return fragShader;
+    return new DataShader(fragShader, parameters);
   }
 
   //takes shader as argument, modifies string, returns modified shader
   //creates function calls that calls function already created
   //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionCall(fluentDoc){
-    let shader = fluentDoc.shader;
+  bakeFunctionCall(shader){
+    // let shader = fluentDoc.shader;
     let insString = "//$INSERT CALL$------";
     let insIndex = shader.indexOf(insString);
     insIndex += insString.length;
@@ -802,12 +815,14 @@ class PolyLine extends PolyPoint {
   }
 
   //should clone and probably push to state stack prior to this
-  end(fluentDoc){
-    if(this.pts.length == 0) return fluentDoc;
-    fluentDoc.shader = this.bakeFunctionParams(fluentDoc);
-    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
-    // fluentDoc.editItemIndex++;
-    return fluentDoc;
+  end(shader, parameters){
+    let dataShader = new DataShader(shader, parameters);
+    if(this.pts.length == 0) return dataShader;
+
+    dataShader = this.bakeFunctionParams(shader, parameters);
+    dataShader.shader = this.bakeFunctionCall(dataShader.shader);
+
+    return dataShader;
   }
 }
 
@@ -857,8 +872,8 @@ class Polygon extends PolyPoint {
 
   //takes shader as argument, modifies string, returns modified shader
   //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionAbsolute(fluentDoc){
-    let shader = fluentDoc.shader;
+  bakeFunctionAbsolute(shader){
+    // let shader = fluentDoc.shader;
 
     //insert new function
     let insString = "//$INSERT FUNCTION$------";
@@ -949,14 +964,14 @@ class Polygon extends PolyPoint {
 
     let fragShader = startShader + endShader;
 
-    return fragShader;
+    return new DataShader(shader, parameters);
   }
 
   //takes shader as argument, modifies string, returns modified shader
   //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionParams(fluentDoc){
+  bakeFunctionParams(shader, parameters){
 
-    let shader = fluentDoc.shader;
+    // let shader = fluentDoc.shader;
 
     //insert new function
     let insString = "//$INSERT FUNCTION$------";
@@ -997,8 +1012,8 @@ class Polygon extends PolyPoint {
     //this should be a property of GhostUI
     let dpr = window.devicePixelRatio;
 
-    let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
-    let dataSize = fluentDoc.parameters.dataSize;
+    let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+    let dataSize = parameters.dataSize;
 
     let rgbFill = this.options.fill;
     let colorFill = 'vec3(' + rgbFill.x + ',' + rgbFill.y + ',' + rgbFill.z +')';
@@ -1019,9 +1034,9 @@ class Polygon extends PolyPoint {
     let count = 0;
     for (let p of this.pts){
 
-      fluentDoc.parameters.addPoint(p.x, p.y, p.tag);
+      parameters.addPoint(p.x, p.y, p.tag);
 
-      let cTexel = fluentDoc.parameters.cTexel;
+      let cTexel = parameters.cTexel;
 
       if(count == 0){
         //what are x, y texel indices?
@@ -1112,14 +1127,14 @@ class Polygon extends PolyPoint {
 
     // console.log(fragShader);
 
-    return fragShader;
+    return new DataShader(fragShader, parameters);
   }
 
   //takes shader as argument, modifies string, returns modified shader
   //creates function calls that calls function already created
   //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionCall(fluentDoc){
-    let shader = fluentDoc.shader;
+  bakeFunctionCall(shader){
+    // let shader = fluentDoc.shader;
     let insString = "//$INSERT CALL$------";
     let insIndex = shader.indexOf(insString);
     insIndex += insString.length;
@@ -1153,12 +1168,14 @@ class Polygon extends PolyPoint {
   }
 
   //should clone and probably push to state stack prior to this
-  end(fluentDoc){
-    if(this.pts.length == 0) return fluentDoc;
-    fluentDoc.shader = this.bakeFunctionParams(fluentDoc);
-    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
-    // fluentDoc.editItemIndex++;
-    return fluentDoc;
+  end(shader, parameters){
+    let dataShader = new DataShader(shader, parameters);
+    if(this.pts.length == 0) return dataShader;
+
+    dataShader = this.bakeFunctionParams(shader, parameters);
+    dataShader.shader = this.bakeFunctionCall(dataShader.shader);
+
+    return dataShader;
   }
 }
 
@@ -1206,8 +1223,8 @@ class PolyCircle extends PolyPoint {
     return newPolyCircle;
   }
 
-  bakeFunctionParams(fluentDoc){
-        let shader = fluentDoc.shader;
+  bakeFunctionParams(shader, parameters){
+        // let shader = fluentDoc.shader;
 
         //insert new function
         let insString = "//$INSERT FUNCTION$------";
@@ -1249,8 +1266,8 @@ class PolyCircle extends PolyPoint {
 
         let dpr = window.devicePixelRatio;
 
-        let texelOffset = 0.5 * (1.0 / (fluentDoc.parameters.dataSize * fluentDoc.parameters.dataSize));
-        let dataSize = fluentDoc.parameters.dataSize;
+        let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+        let dataSize = parameters.dataSize;
 
         let rgb = this.options.stroke;
         let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
@@ -1259,8 +1276,8 @@ class PolyCircle extends PolyPoint {
         for (let p of this.pts){
           //there is a more efficient way of doing this
           //should have an addPoint from point thing
-          fluentDoc.parameters.addPoint(p.x, p.y, p.tag);
-          let cTexel = fluentDoc.parameters.cTexel;
+          parameters.addPoint(p.x, p.y, p.tag);
+          let cTexel = parameters.cTexel;
 
           //should factor out oldPosX and oldPosY but too tired now
           if(first){
@@ -1302,7 +1319,7 @@ class PolyCircle extends PolyPoint {
         // posString += '\tfinalColor = mix(finalColor, vec3(1.0), editOpacity);\n}\n';
         posString += '\n}\n';
         posString += '//$END-' + this.id + '\n';
-        console.log(posString);
+        // console.log(posString);
         this.fragShaer = posString;
         // console.log(posString);
 
@@ -1312,11 +1329,11 @@ class PolyCircle extends PolyPoint {
 
         // console.log(fragShader);
 
-        return fragShader;
+        return new DataShader(fragShader, parameters);
   }
 
-  bakeFunctionCall(fluentDoc){
-    let shader = fluentDoc.shader;
+  bakeFunctionCall(shader){
+    // let shader = fluentDoc.shader;
     let insString = "//$INSERT CALL$------";
     let insIndex = shader.indexOf(insString);
     insIndex += insString.length;
@@ -1350,13 +1367,14 @@ class PolyCircle extends PolyPoint {
   }
 
   //should clone and probably push to state stack prior to this
-  end(fluentDoc){
-    if(this.pts.length == 0) return fluentDoc;
-    // fluentDoc.editItemIndex++;
-    fluentDoc.shader = this.bakeFunctionParams(fluentDoc);
-    fluentDoc.shader = this.bakeFunctionCall(fluentDoc);
-    return fluentDoc;
+  end(shader, parameters){
+    let dataShader = new DataShader(shader, parameters);
+    if(this.pts.length == 0) return shader;
+
+    dataShader = this.bakeFunctionParams(shader, parameters);
+    dataShader.shader = this.bakeFunctionCall(dataShader.shader);
+    return shader;
   }
 }
 
-export {Point, Circle, Rectangle, PolyPoint, PolyLine, Polygon, PolyCircle};
+export {DataShader, Point, Circle, Rectangle, PolyPoint, PolyLine, Polygon, PolyCircle};
