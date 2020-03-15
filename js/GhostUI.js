@@ -772,6 +772,11 @@ class StateStack{
   }
 }
 
+//What I want to do is remove parameters and shader from FluentDoc
+//and create a bakeParameters and bakeShader function in FluentDoc
+//the only input to those functions should be the list of edit items, and the shader
+//would be cool to know if a primitive needs an update
+
 //FluentDoc State state distince from ui state
 class FluentDoc{
   // new Doc contains elem, curr shader, kd tree of all pts, curr editItem, editItems
@@ -823,10 +828,10 @@ class FluentDoc{
 
     //establishes grid offsets
     //actually don't think this instantiation is necessary
-    this.gridOffX = 0.0;
-    this.gridOffY = 0.0;
-    this.scaleX = 0.0;
-    this.scaleyY = 0.0;
+    // this.gridOffX = 0.0;
+    // this.gridOffY = 0.0;
+    // this.scaleX = 0.0;
+    // this.scaleyY = 0.0;
     this.drawGrid();
   }
 

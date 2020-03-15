@@ -5,17 +5,12 @@ import * as THREE from './libjs/three.module.js';
 
 import {GhostUI, Button} from './GhostUI.js';
 
-import {sdfLines} from './frag.js';
+import {sdfPrimFrag} from './frag.js';
 import {sdfPrimVert} from './vert.js';
 
 
 var material, uniforms;
 var canvas, renderer, camera, ui, scene, plane, screenMesh;
-
-const state = {
-  time: 0,
-  pauseR: false,
-};
 
 function main() {
   canvas = document.querySelector('#c');
@@ -40,9 +35,7 @@ function main() {
      1, // far
   );
 
-  //gotta do this otherwise GhostUI doesn't get the proper dimensions
-
-  ui = new GhostUI(canvas, sdfLines);
+  ui = new GhostUI(canvas, sdfPrimFrag);
   let fluentDoc = ui.fluentStack.curr();
 
   resizeRendererToDisplaySize(renderer);
@@ -50,22 +43,16 @@ function main() {
   uniforms = {
     iTime: { value: 0 },
     iResolution:  { value: new THREE.Vector3(canvas.width, canvas.height, 1) },
-    //initialized to 0 - how does this get set?
-    //in a lot of ways this uniforms should be a member of fluentDoc
     pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
     posTex: { value: fluentDoc.currEditItem.ptsTex},
     posTexRes: {value: new THREE.Vector2(16.0, 16.0)},
-
     parameters: {value: fluentDoc.parameters.ptsTex},
     mousePt: {value: fluentDoc.mPt},
-
     editCTexel : {value: fluentDoc.currEditItem.cTexel},
-
     editWeight : {value: fluentDoc.editOptions.weight},
     strokeColor: {value: new THREE.Vector3(0.0, 0.0, 0.0)},
     fillColor: {value: new THREE.Vector3(0.0, 0.384, 0.682)},
     editRadius : {value: fluentDoc.editOptions.radius},
-
     //global scale variables
     scale: {value: fluentDoc.scale},
     hiDPR: {value: window.devicePixelRatio}
@@ -119,6 +106,7 @@ function render() {
 
   //update uniforms
   if(fluentDoc.currEditItem.ptsTex){
+    //next this is going to come out of polyPointPrim
     screenMesh.material.uniforms.posTex.value = fluentDoc.currEditItem.ptsTex;
     screenMesh.material.uniforms.editCTexel.value = fluentDoc.currEditItem.cTexel;
   }
@@ -126,20 +114,21 @@ function render() {
     screenMesh.material.uniforms.pointPrim.value = fluentDoc.currEditItem.pointPrim;
   }
 
-  screenMesh.material.uniforms.parameters.value = fluentDoc.parameters.ptsTex;
   screenMesh.material.uniforms.mousePt.value = fluentDoc.mPt;
   screenMesh.material.uniforms.editWeight.value = fluentDoc.editOptions.weight;
   screenMesh.material.uniforms.strokeColor.value = fluentDoc.editOptions.stroke;
   screenMesh.material.uniforms.fillColor.value = fluentDoc.editOptions.fill;
   screenMesh.material.uniforms.editRadius.value = fluentDoc.editOptions.radius;
 
-  // screenMesh.material.uniforms.editOpacity.value = fluentDoc.editOpacity;
-
   screenMesh.material.uniforms.needsUpdate = true;
 
   if (fluentDoc.shaderUpdate){
     console.log("shader update!")
+    let vertexShader = sdfPrimVert;
+    //it's probably not necessary to recompile shader when resizing
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
+
+    //first this is going to come out of fluentDoc
     uniforms.parameters.value = fluentDoc.parameters.ptsTex;
 
     //annoying that this is set in so many places
@@ -148,7 +137,7 @@ function render() {
     fluentDoc.currEditItem.resolution = fluentDoc.resolution;
     fluentDoc.parameters.resolution = fluentDoc.resolution;
 
-    let vertexShader = sdfPrimVert;
+    //this also needs to get out of fragmentShader
     let fragmentShader = fluentDoc.shader;
 
     material = new THREE.ShaderMaterial({
@@ -175,7 +164,6 @@ function render() {
 }
 
 function animate(time){
-  state.time = time * 0.001; //convert to seconds
   //currently can't unpause for some reason
   let fluentDoc = ui.fluentStack.curr();
   if(!fluentDoc.shaderPause){ render(); }

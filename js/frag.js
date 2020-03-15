@@ -1,4 +1,4 @@
-const sdfLines =`
+const sdfPrimFrag =`
 //Eventually this should go point, circle, rect, polyline,polycircle
 //0 = Nothing
 //1 = PolyLine
@@ -639,4 +639,4 @@ void main(){
 }
 
 `;
-export {sdfLines};
+export {sdfPrimFrag};

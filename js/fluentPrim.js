@@ -66,6 +66,8 @@ class PointPrim{
     //list of points
     this.pts=[];
 
+    //does this shader need to be recompiled
+    this.needsUpdate = true;
     this.id = (+new Date).toString(36).slice(-8);
   }
 
@@ -131,6 +133,7 @@ class PolyPoint {
     this.ptsTex.magFilter = THREE.NearestFilter;
     this.ptsTex.minFilter = THREE.NearestFilter;
 
+    this.needsUpdate = true;
     this.id = (+new Date).toString(36).slice(-8);
   }
 
