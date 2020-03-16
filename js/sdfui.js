@@ -13,9 +13,11 @@ var material, uniforms;
 var dataShader;
 var canvas, renderer, camera, ui, scene, plane, screenMesh;
 
+var resolution;
+
 function main() {
   canvas = document.querySelector('#c');
-  let resolution = new THREE.Vector2(canvas.width, canvas.height);
+  resolution = new THREE.Vector3(window.innerWidth, window.innerHeight, 1.0);
 
   const context = canvas.getContext( 'webgl2', { alpha: false, antialias: false } );
 
@@ -38,7 +40,7 @@ function main() {
      1, // far
   );
 
-  ui = new GhostUI(canvas, sdfPrimFrag);
+  ui = new GhostUI();
   let fluentDoc = ui.fluentStack.curr();
 
   resizeRendererToDisplaySize(renderer);
@@ -46,22 +48,28 @@ function main() {
   //the copy of ui Options in parameters will trigger shader recompilation
   //basically a record of what has actually been instantiated in the shader
   //versus the ui state
-  let parameters = new PRIM.PolyPoint(resolution, {...ui.modeStack.curr().options}, 128);
+  let parameters = new PRIM.PolyPoint({...ui.modeStack.curr().options}, 128);
 
   uniforms = {
-    iTime: { value: 0 },
-    iResolution:  { value: new THREE.Vector3(canvas.width, canvas.height, 1) },
+    iResolution:  { value: resolution},
+    //uniform for rect, circle, primitives based on two points
     pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
+    //uniform for curr edit polypoint prims, should be factroed out
     posTex: { value: fluentDoc.currEditItem.ptsTex},
+    //resolution for curr edit poly point prims
     posTexRes: {value: new THREE.Vector2(16.0, 16.0)},
+    //global points texture
     parameters: {value: parameters},
+    //current mouse position
     mousePt: {value: fluentDoc.mPt},
+    //index of texel being currently edited
     editCTexel : {value: fluentDoc.currEditItem.cTexel},
+    //current edit options
     editWeight : {value: ui.modeStack.curr().options.weight},
     strokeColor: {value: new THREE.Vector3(0.0, 0.0, 0.0)},
     fillColor: {value: new THREE.Vector3(0.0, 0.384, 0.682)},
     editRadius : {value: ui.modeStack.curr().options.radius},
-    //global scale variables
+    //global scale variables, mostly unused
     scale: {value: fluentDoc.scale},
     hiDPR: {value: window.devicePixelRatio}
   };
@@ -78,6 +86,8 @@ function main() {
     fragmentShader
   });
 
+  //simple data structure for combination of fragment shader and texture
+  //both are generated from the list / tree of primitives in the scene
   dataShader = new PRIM.DataShader(fragmentShader, parameters);
 
   screenMesh = new THREE.Mesh(plane, material);
@@ -86,6 +96,7 @@ function main() {
   requestAnimationFrame(animate);
 }
 
+//gotta resize the screen sometimes
 function resizeRendererToDisplaySize(renderer) {
   const canvas = renderer.domElement;
   const width = canvas.clientWidth;
@@ -96,19 +107,21 @@ function resizeRendererToDisplaySize(renderer) {
   if (needResize) {
     renderer.setSize(width, height, false);
 
+    //this is convoluted
     ui.fluentStack.curr().shaderUpdate = true;
   }
 
   return needResize;
 }
 
+//render the scene
 function render() {
 
   resizeRendererToDisplaySize(renderer);
 
   ui.update();
 
-  const canvas = renderer.domElement;
+  // const canvas = renderer.domElement;
   let fluentDoc = ui.fluentStack.curr();
 
   //update uniforms
@@ -181,21 +194,13 @@ function render() {
 
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
 
-    //annoying that this is set in so many places
-    //in the future refactor resolution so it always just reads element size
-    fluentDoc.resolution = new THREE.Vector2(canvas.width, canvas.height);
-    fluentDoc.currEditItem.resolution = fluentDoc.resolution;
-
-    //disentangle
     for (let item of fluentDoc.editItems){
       if(item.needsUpdate){
         dataShader = item.end(dataShader.shader, dataShader.parameters);
         item.needsUpdate = false;
       }
-      // console.log(dataShader);
     }
 
-    dataShader.parameters.resolution = fluentDoc.resolution;
     uniforms.parameters.value = dataShader.parameters.ptsTex;
 
     let fragmentShader = dataShader.shader;
@@ -213,9 +218,8 @@ function render() {
 
   renderer.render(scene, camera);
 
-  //this is necessary because saving has to happen right after render
+  //this hack is necessary because saving has to happen
   //while framebuffer still has data
-  //could actually do this in screenshotUpdate
   if(fluentDoc.screenshot){
     canvas.toBlob((blob) => {
       saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
@@ -264,3 +268,5 @@ function modifyDefine(shader, define, val){
 
 //Run-----------------------------------------------------------
 main();
+
+export {resolution};

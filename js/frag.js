@@ -18,7 +18,6 @@ const sdfPrimFrag =`
 
 // https://www.shadertoy.com/view/4tc3DX
 uniform vec3      iResolution;           // viewport resolution (in pixels)
-uniform float     iTime;                 // shader playback time (in seconds)
 
 //simple uniform for 2 xy coordinate based prims
 uniform vec4       pointPrim;
@@ -178,7 +177,7 @@ float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float 
     // This is for animated dashed lines. Delete if you don't like dashes.
     float dashScale = 2.0*thick.y;
     // Make a distance function for the dashes
-    float dash = (repeat(dpx/dashScale + iTime)-0.5)*dashScale;
+    float dash = (repeat(dpx/dashScale + 0.0)-0.5)*dashScale;
     // Combine this distance function with the line's.
     dist = max(dist, dash-(1.0-dashOn*1.0)*10000.0);
 

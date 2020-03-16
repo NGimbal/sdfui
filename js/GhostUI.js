@@ -5,21 +5,18 @@ import * as SNAP from './fluentSnap.js';
 import * as HINT from './fluentHints.js';
 import * as PRIM from './fluentPrim.js';
 
+import * as SDFUI from './sdfui.js';
+
 //GhostUI coordinates all UI functions, keeps FluentDocStack, and UI State
 //Implements UIMode and UIModifiers
 //UIMode is a collection of UIModifiers along with enter & exit functions
 //UIModifier is a collection of functions that are fired by events within uiModes
 class GhostUI{
 
-  constructor(elem, shader){
+  constructor(){
     // "Out of the box" element and shader
-    this.elem = elem;
-    // this.shader = shader;
-    //GLOBAL CONSTANTS
-    //square datatexture
-    this.dataSize = 16;
-    //texel offset to access center of texel
-    this.oTexel = 1 / this.dataSize / 2.0;
+    // this.elem = elem;
+    // this.resolution = _resolution || new THREE.Vector2(window.innerWidth, window.innerHeight);
 
     //need to check endianess for half float usage
     // https://abdulapopoola.com/2019/01/20/check-endianness-with-javascript/
@@ -46,20 +43,17 @@ class GhostUI{
         this.endD = false;
         break;
       case 'Maybe mixed-endian?':
-        // what should the response be? fuck you?
-        // this.endianness = 2;
+        this.endD = true;
         break;
       default:
-        // what should the response be? fuck you?
-        // this.endianness = 2;
+        this.endD = true;
         break;
     }
 
     console.log(endianNess());
 
-    let resolution = new THREE.Vector2(elem.width, elem.height);
-
     let editOptions = {
+      // resolution: this.resolution,
       currEditItem:"PolyLine",
       strokeColor:"#0063ae",
       filter:"None",
@@ -70,10 +64,9 @@ class GhostUI{
       radius:0.125
     };
 
-    //DOCUMENT STATE
-    let fluentDoc = new FluentDoc(this.elem);
-
-    fluentDoc.editItems.push(new PRIM.PolyLine(resolution, editOptions));
+    //Doc State
+    let fluentDoc = new FluentDoc();
+    fluentDoc.editItems.push(new PRIM.PolyLine(SDFUI.resolution, editOptions));
     fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
     this.fluentStack = new StateStack(fluentDoc, 10);
@@ -106,14 +99,14 @@ class GhostUI{
     let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, editOptions);
     let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
     // let edit = new UIMode("select", false, edit)
-    // let
+    // let move
 
     //stack of UIModes
     this.modeStack = new StateStack(draw, 5);
-    //default mode
     this.modeStack.curr().enter();
 
-    elem.addEventListener('mouseup', this.mouseUp.bind(this));
+    //could pass elem around but...
+    document.querySelector('#c').addEventListener('mouseup', this.mouseUp.bind(this));
     window.addEventListener('mousemove', this.mouseMove.bind(this));
 
     //cntrl+z
@@ -227,7 +220,7 @@ class GhostUI{
   }
 
   mouseMove(e) {
-
+    let resolution = SDFUI.resolution;
     let evPt = {
       x: e.clientX,
       y: e.clientY
@@ -236,8 +229,8 @@ class GhostUI{
     let fluentDoc = this.fluentStack.curr().clone();
 
     //default action to show mouse target point
-    fluentDoc.mPt.x = evPt.x / fluentDoc.elem.width;
-    fluentDoc.mPt.y = (fluentDoc.elem.height - evPt.y) / fluentDoc.elem.height;
+    fluentDoc.mPt.x = evPt.x / resolution.x;
+    fluentDoc.mPt.y = (resolution.y - evPt.y) / resolution.y;
 
     let mode = this.modeStack.curr();
 
@@ -283,7 +276,7 @@ class GhostUI{
       // console.log("Control Z!");
       let fluentDoc = this.fluentStack.undo();
       if (!fluentDoc) {
-        let newDoc = new FluentDoc(this.elem);
+        let newDoc = new FluentDoc();
         this.fluentStack.modCurr(newDoc);
       } else {
         fluentDoc.shaderUpdate = true;
@@ -336,9 +329,6 @@ function drawEnter(){
 
   var index = this.modifiers.findIndex(i => i.name === "showPts");
   this.modifiers[index].clck();
-
-  // var index = this.modifiers.findIndex(i => i.name === "drawPLine");
-  // this.modifiers[index].clck();
 }
 
 function drawExit(){
@@ -355,52 +345,51 @@ function drawExit(){
   // this.modeStack.curr().enter();
 }
 
+//happens on every frame of draw mode
 function drawUpdate(fluentDoc){
-  //exit draw condition
-  //no primitive tool active
+  let resolution = SDFUI.resolution;
+  //exit draw condition - no primitive tool active
   if(this.options.currEditItem == null){
     this.exit();
     return;
   }
 
   let sel = document.getElementById("primitive-select");
-  // console.log(this.options);
+
   if(this.options.currEditItem != sel.value){
     if(fluentDoc.currEditItem.pts.length > 0){
-      // fluentDoc = fluentDoc.currEditItem.end(fluentDoc, this.options);
       fluentDoc.shaderUpdate = true;
       fluentDoc.currEditItem.needsUpdate = true;
     }
     switch(sel.value){
       case "PolyLine":
         this.options.currEditItem = "PolyLine";
-        fluentDoc.editItems.push(new PRIM.PolyLine(fluentDoc.resolution, {...this.options}));
+        fluentDoc.editItems.push(new PRIM.PolyLine(resolution, {...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
       case "Polygon":
         this.options.currEditItem = "Polygon";
-        fluentDoc.editItems.push(new PRIM.Polygon(fluentDoc.resolution, {...this.options}));
+        fluentDoc.editItems.push(new PRIM.Polygon(resolution, {...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
       case "PolyCircle":
         this.options.currEditItem = "PolyCircle";
-        fluentDoc.editItems.push(new PRIM.PolyCircle(fluentDoc.resolution, {...this.options}));
+        fluentDoc.editItems.push(new PRIM.PolyCircle(resolution, {...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
       case "Circle":
         this.options.currEditItem = "Circle";
-        fluentDoc.editItems.push(new PRIM.Circle(fluentDoc.resolution, {...this.options}));
+        fluentDoc.editItems.push(new PRIM.Circle(resolution, {...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
       case "Rectangle":
         this.options.currEditItem = "Rectangle";
-        fluentDoc.editItems.push(new PRIM.Rectangle(fluentDoc.resolution, {...this.options}));
+        fluentDoc.editItems.push(new PRIM.Rectangle(resolution, {...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
     }
   }
 
-  //honestly this could move to sdfui?
   sel = document.getElementById("filter-select");
   this.options.filter = sel.value;
 
@@ -458,10 +447,9 @@ function drawUpdate(fluentDoc){
 function drawMv(e, fluentDoc){
 
   for (let m of this.modifiers){
-    if(!m.mv) continue;
-    if(!m.toggle) continue;
-    if(m.update) continue;
-    let modState = m.mv(e, fluentDoc);
+    if(!m.mv || !m.toggle || m.update) continue;
+
+    let modState = m.mv(e, fluentDoc, this.options);
     if(!modState) continue;
     else fluentDoc = modState;
   }
@@ -469,6 +457,7 @@ function drawMv(e, fluentDoc){
 }
 
 function drawUp(e, fluentDoc){
+  let resolution = SDFUI.resolution;
 
   for (let m of this.modifiers){
     if(!m.up) continue;
@@ -483,12 +472,12 @@ function drawUp(e, fluentDoc){
     tag: "none",
   }
 
-  addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
-  addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+  addPt.x = fluentDoc.mPt.x * resolution.x;
+  addPt.y = resolution.y - (fluentDoc.mPt.y * resolution.y);
   addPt.tag = "plPoint";
 
   //could have this return true / false to determine wether point should be pushed to tree
-  let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
+  let plPt = fluentDoc.currEditItem.addPoint(resolution, addPt.x, addPt.y, addPt.tag);
 
   //important to keep a simple array of pts for reconstructingree
   fluentDoc.pts.push(plPt);
@@ -498,7 +487,7 @@ function drawUp(e, fluentDoc){
     // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
     fluentDoc.currEditItem.needsUpdate = true;
 
-    fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, {...fluentDoc.currEditItem.properties}));
+    fluentDoc.editItems.push(fluentDoc.currEditItem.create(resolution, this.options));
     fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
     fluentDoc.shaderUpdate = true;
@@ -579,17 +568,17 @@ function endDrawUpdate(fluentDoc){
     return null;
   }
 
-  // So this is the old paradigm, now baking will happen in sdfui at rendering level
-  // fluentDoc.shader = fluentDoc.currEditItem.end(fluentDoc).shader;
+  // so this is the disentangled paradigm
   fluentDoc.shaderUpdate = true;
 
   //this is new paradigm
   fluentDoc.currEditItem.needsUpdate = true;
 
+  //this is a little goofy but there should be no problem with it
   let options = {...fluentDoc.currEditItem.properties};
   console.log(options);
 
-  fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, options));
+  fluentDoc.editItems.push(fluentDoc.currEditItem.create(SDFUI.resolution, options));
   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
   this.toggle = !this.toggle;
@@ -613,7 +602,7 @@ function escDrawUpdate(fluentDoc){
     fluentDoc.tree.remove(p);
   }
 
-  fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
+  fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.currEditItem.create(SDFUI.resolution, {...fluentDoc.currEditItem.properties});
   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
   this.toggle = !this.toggle;
@@ -755,11 +744,11 @@ class StateStack{
 //FluentDoc State state distince from ui state
 class FluentDoc{
   // new Doc contains elem, curr shader, kd tree of all pts, curr editItem, editItems
-  constructor(elem){
+  constructor(){
     // should move shader logic in here
     // maybe this class should get moved to sdfui
-    this.elem = elem;
-    this.resolution = new THREE.Vector2(elem.width, elem.height);
+    // this.elem = elem;
+    // this.resolution = new THREE.Vector2(elem.width, elem.height);
 
     //uniforms might want to get moved here
     // this.shader = shader;
@@ -801,19 +790,21 @@ class FluentDoc{
   //Establishes grid aligned with the shader
   //Will be useful for document units
   drawGrid(){
-    let scaleX = (this.resolution.x / this.scale) * (this.resolution.y / this.resolution.x);
-    let scaleY = this.resolution.y / this.scale;
+    let resolution = SDFUI.resolution;
+
+    let scaleX = (resolution.x / this.scale) * (resolution.y / resolution.x);
+    let scaleY = resolution.y / this.scale;
 
     this.gridScaleX = scaleX;
     this.gridScaleY = scaleY;
 
     //There has got to be a more elegant way to do this...
     //Is the remainder odd or even?
-    let r = ((this.resolution.x / scaleX) - (this.resolution.x / scaleX) % 1) % 2;
+    let r = ((resolution.x / scaleX) - (resolution.x / scaleX) % 1) % 2;
     //If even, add scaleX * 0.5;
     r = Math.abs(r - 1);
     // let offX = (((this.resolution.x / scaleX) % 2) * scaleX) * 0.5 + scaleX * 0.5;
-    let offX = (((this.resolution.x / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
+    let offX = (((resolution.x / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
 
     let offY = scaleY * 0.5;
 
@@ -841,7 +832,7 @@ class FluentDoc{
     //also elem probably doesn't have to be a property of fluentDoc
     // var shader = (' ' + this.shader).slice(1);
 
-    let newDoc = new FluentDoc(this.elem);
+    let newDoc = new FluentDoc();
 
     newDoc.shaderPause = this.shaderPause;
     newDoc.shaderUpdate = this.shaderUpdate;

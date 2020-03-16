@@ -2,6 +2,8 @@
 import * as THREE from './libjs/three.module.js';
 import * as HINT from './fluentHints.js';
 
+import * as SDFUI from './sdfui.js';
+
 //fluentSnap.js
 //Implements all snapping logic
 
@@ -25,10 +27,10 @@ function snapGridClck(e){
   this.button.elem.classList.toggle("snap-active");
 }
 
-//Returns cloned modified fluentDoc or null
+//Returns modified fluentDoc or null
 function snapPtMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  // let fluentDoc = _fluentDoc.clone();
+  let resolution = SDFUI.resolution;
 
   let evPt = {
     x: e.clientX,
@@ -39,8 +41,8 @@ function snapPtMv(e, fluentDoc){
 
   if (ptNear.length > 0 && ptNear[0][1] < this.options.dist){
     ptNear = ptNear[0][0];
-    fluentDoc.mPt.x = ptNear.x / fluentDoc.resolution.x;
-    fluentDoc.mPt.y = (fluentDoc.resolution.y - ptNear.y) / fluentDoc.resolution.y;
+    fluentDoc.mPt.x = ptNear.x / resolution.x;
+    fluentDoc.mPt.y = (resolution.y - ptNear.y) / resolution.y;
 
     return fluentDoc;
   }
@@ -49,10 +51,10 @@ function snapPtMv(e, fluentDoc){
   }
 }
 
-//Returns cloned modified fluentDoc or null
+//Returns modified fluentDoc or null
 function snapRefMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  // let fluentDoc = _fluentDoc.clone();
+  let resolution = SDFUI.resolution;
 
   let evPt = {
     x: e.clientX,
@@ -80,8 +82,8 @@ function snapRefMv(e, fluentDoc){
     let snapX = ptPrevEnd.x - lnCurr.length() * Math.cos(snapA);
     let snapY = ptPrevEnd.y - lnCurr.length() * Math.sin(snapA);
 
-    fluentDoc.mPt.x = snapX / fluentDoc.elem.width;
-    fluentDoc.mPt.y = (fluentDoc.elem.height - snapY) / fluentDoc.elem.height;
+    fluentDoc.mPt.x = snapX / resolution.x;
+    fluentDoc.mPt.y = (resolution.y - snapY) / resolution.y;
 
     return fluentDoc;
   }
@@ -90,10 +92,10 @@ function snapRefMv(e, fluentDoc){
   }
 }
 
-//Returns cloned modified fluentDoc or null
+//Returns modified fluentDoc or null
 function snapGlobalMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  // let fluentDoc = _fluentDoc.clone();
+  let resolution = SDFUI.resolution;
 
   let evPt = {
     x: e.clientX,
@@ -128,8 +130,8 @@ function snapGlobalMv(e, fluentDoc){
     let snapX = prevPt.x - lnCurr.length() * Math.cos(snapA);
     let snapY = prevPt.y - lnCurr.length() * Math.sin(snapA);
 
-    fluentDoc.mPt.x = snapX / fluentDoc.elem.width;
-    fluentDoc.mPt.y = (fluentDoc.elem.height - snapY) / fluentDoc.elem.height;
+    fluentDoc.mPt.x = snapX / resolution.x;
+    fluentDoc.mPt.y = (resolution.y - snapY) / resolution.y;
 
     return fluentDoc;
   }
@@ -138,10 +140,10 @@ function snapGlobalMv(e, fluentDoc){
   }
 }
 
-//Returns cloned modified fluentDoc or null
+//Returns modified fluentDoc or null
 function snapGridMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  // let fluentDoc = _fluentDoc.clone();
+  let resolution = SDFUI.resolution;
 
   let evPt = {
     x: e.clientX,
@@ -153,16 +155,17 @@ function snapGridMv(e, fluentDoc){
   let x = Math.round((evPt.x - 0.5 * fluentDoc.gridScaleX) / fluentDoc.gridScaleX) * fluentDoc.gridScaleX + fluentDoc.gridOffX;
   let y = Math.round((evPt.y - 0.5 * fluentDoc.gridScaleY) / fluentDoc.gridScaleY) * fluentDoc.gridScaleY + fluentDoc.gridOffY;
 
-  fluentDoc.mPt.x = x / fluentDoc.elem.width;
-  fluentDoc.mPt.y = (fluentDoc.elem.height - y) / fluentDoc.elem.height;
+  fluentDoc.mPt.x = x / resolution.x;
+  fluentDoc.mPt.y = (resolution.y - y) / resolution.y;
 
   return fluentDoc;
 }
 
 //Returns cloned modified fluentDoc or null
-function snapPtUp(e, _fluentDoc){
+function snapPtUp(e, fluentDoc){
   if (this.toggle == false) return null;
-  let fluentDoc = _fluentDoc.clone();
+  // let fluentDoc = _fluentDoc.clone();
+  let resolution = SDFUI.resolution;
 
   let evPt = {
     x: e.clientX,
@@ -185,9 +188,10 @@ function snapPtUp(e, _fluentDoc){
 }
 
 //Returns cloned modified fluentDoc or null
-function snapRefUp(e, _fluentDoc){
-  let fluentDoc = _fluentDoc.clone();
+function snapRefUp(e, fluentDoc){
+  // let fluentDoc = _fluentDoc.clone();
   if (this.toggle == false) return null;
+  let resolution = SDFUI.resolution;
 
   let addPt = {
     x: 0,
@@ -197,8 +201,8 @@ function snapRefUp(e, _fluentDoc){
 
   if (fluentDoc.currEditItem.pts.length > 1){
     //would like for there to just be one point representation in js
-    fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
-    fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+    fluentDoc.addPt.x = fluentDoc.mPt.x * resolution.x;
+    fluentDoc.addPt.y = resolution.y - (fluentDoc.mPt.y * resolution.y);
     fluentDoc.addPt.tag = "plPoint";
 
     return fluentDoc;
@@ -209,9 +213,10 @@ function snapRefUp(e, _fluentDoc){
 }
 
 //Returns cloned modified fluentDoc or null
-function snapGlobalUp(e, _fluentDoc){
+function snapGlobalUp(e, fluentDoc){
   if (this.toggle == false) return null;
-  let fluentDoc = _fluentDoc.clone();
+  // let fluentDoc = _fluentDoc.clone();
+  let resolution = SDFUI.resolution;
 
   let addPt = {
     x: 0,
@@ -222,7 +227,7 @@ function snapGlobalUp(e, _fluentDoc){
   if (fluentDoc.currEditItem.pts.length > 1){
     //would like for there to just be one point representation in js
     fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
-    fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+    fluentDoc.addPt.y = resolution.y - (fluentDoc.mPt.y * resolution.y);
     fluentDoc.addPt.tag = "plPoint";
 
     return fluentDoc;
@@ -233,13 +238,15 @@ function snapGlobalUp(e, _fluentDoc){
 }
 
 //Returns cloned modified fluentDoc or null
-function snapGridUp(e, _fluentDoc){
+function snapGridUp(e, fluentDoc){
   if (this.toggle == false) return null;
-  let fluentDoc = _fluentDoc.clone();
+  // let fluentDoc = _fluentDoc.clone();
+  let resolution = SDFUI.resolution;
+
 
   //would like for there to just be one point representation in js
-  fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
-  fluentDoc.addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
+  fluentDoc.addPt.x = fluentDoc.mPt.x * resolution.x;
+  fluentDoc.addPt.y = resolution.y - (fluentDoc.mPt.y * resolution.y);
   fluentDoc.addPt.tag = "plPoint";
 
   return fluentDoc;

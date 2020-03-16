@@ -51,6 +51,8 @@ import * as THREE from './libjs/three.module.js';
 import * as SNAP from './fluentSnap.js';
 import * as HINT from './fluentHints.js';
 
+import * as SDFUI from './sdfui.js';
+
 //simple class for returning shader and polypoint
 class DataShader{
   constructor(shader, parameters){
@@ -63,9 +65,7 @@ class DataShader{
 //PointPrim is for primitives that take 2 xy values + options
 //PolyPoint is a datastructure that holds many xy values
 class PointPrim{
-  constructor(resolution, properties){
-    this.resolution = resolution;
-
+  constructor(properties){
     //input is 1 to 20 divided by 2500
     // this.weight = options.weight || .002;
     // this.options = {...options};
@@ -81,19 +81,21 @@ class PointPrim{
 
   //really just going to add 1 of 2 points to this.pts
   addPoint(x, y, tag){
-    let hFloatX = x / this.resolution.x;
-    let hFloatY = y / this.resolution.y;
-    let hFloatYFlip = (this.resolution.y - y) / this.resolution.y;
+    let resolution = SDFUI.resolution;
+
+    let hFloatX = x / resolution.x;
+    let hFloatY = y / resolution.y;
+    let hFloatYFlip = (resolution.y - y) / resolution.y;
 
     let dpr = window.devicePixelRatio;
 
     hFloatX -= 0.5;
     hFloatYFlip -= 0.5;
-    hFloatX *= this.resolution.x / this.resolution.y;
+    hFloatX *= resolution.x / resolution.y;
 
     //where does dpr fit into this?
-    hFloatX = (hFloatX * this.resolution.x) / (this.resolution.x * 0.5);
-    hFloatYFlip = (hFloatYFlip * this.resolution.y) / (this.resolution.y * 0.5);
+    hFloatX = (hFloatX * resolution.x) / (resolution.x * 0.5);
+    hFloatYFlip = (hFloatYFlip * resolution.y) / (resolution.y * 0.5);
 
     if(this.pts.length == 0){
       this.pointPrim.x = hFloatX;
@@ -118,8 +120,7 @@ class PointPrim{
 class PolyPoint {
 
   //creates empty PolyPoint object
-  constructor(resolution, properties, _dataSize){
-    this.resolution = resolution;
+  constructor(properties, _dataSize){
     this.properties = properties;
     this.dataSize = _dataSize || 16;
     //input is 1 to 20 divided by 2000
@@ -145,12 +146,11 @@ class PolyPoint {
   }
 
   clone(){
-    let resolution = this.resolution.clone();
     let weight = this.weight;
     let properties  = {...this.properties};
     let dataSize = this.dataSize;
 
-    let newPolyPoint = new PolyPoint(resolution, properties, dataSize);
+    let newPolyPoint = new PolyPoint(properties, dataSize);
 
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
@@ -176,13 +176,15 @@ class PolyPoint {
   //point x, y are stored as HalfFloat16
   //https://github.com/petamoriken/float16
   addPoint(x, y, tag){
+    let resolution = SDFUI.resolution;
+
     this.cTexel++;
 
     let index = this.cTexel * 4;
 
-    let hFloatX = x / this.resolution.x;
-    let hFloatY = y / this.resolution.y;
-    let hFloatYFlip = (this.resolution.y - y) / this.resolution.y;
+    let hFloatX = x / resolution.x;
+    let hFloatY = y / resolution.y;
+    let hFloatYFlip = (resolution.y - y) / resolution.y;
 
 
     let dpr = window.devicePixelRatio;
@@ -190,10 +192,10 @@ class PolyPoint {
     //The following matches the screenPt function in the fragment shader
     hFloatX -= 0.5;
     hFloatYFlip -= 0.5;
-    hFloatX *= this.resolution.x / this.resolution.y;
+    hFloatX *= resolution.x / resolution.y;
     //I think 1.0 is where scale should go for zoom
-    hFloatX = (hFloatX * this.resolution.x) / (this.resolution.x / 2.0 * 1.0);
-    hFloatYFlip = (hFloatYFlip * this.resolution.y) / (this.resolution.y / 2.0 * 1.0);
+    hFloatX = (hFloatX * resolution.x) / (resolution.x / 2.0 * 1.0);
+    hFloatYFlip = (hFloatYFlip * resolution.y) / (resolution.y / 2.0 * 1.0);
 
     //use view.setFloat16() to set the digits in the DataView
     //then use view.getUint16 to retrieve and write to data Texture
@@ -318,8 +320,8 @@ class Point{
 }
 
 class Circle extends PointPrim{
-  constructor(resolution, properties){
-    super(resolution, properties);
+  constructor(properties){
+    super(properties);
 
     this.fragFunction = "";
 
@@ -390,7 +392,6 @@ class Circle extends PointPrim{
   }
 
   clone(){
-    let resolution = this.resolution;
     let pointPrim = this.pointPrim.clone();
     let properties = {...this.properties};
     //may need to clone this in a better way
@@ -399,7 +400,7 @@ class Circle extends PointPrim{
     //list of points
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
-    let newCircle = new Circle(resolution, properties);
+    let newCircle = new Circle(properties);
 
     newCircle.pointPrim = pointPrim;
 
@@ -411,8 +412,8 @@ class Circle extends PointPrim{
     return newCircle;
   }
 
-  create(resolution, properties){
-    return new Circle(resolution, properties);
+  create(properties){
+    return new Circle(properties);
   }
 
   end(shader, parameters){
@@ -424,8 +425,8 @@ class Circle extends PointPrim{
 
 //maybe create a PointPrim class like PolyPoint
 class Rectangle extends PointPrim{
-  constructor(resolution, properties){
-    super(resolution, properties);
+  constructor(properties){
+    super(properties);
 
     this.fragFunction = "";
 
@@ -488,8 +489,6 @@ class Rectangle extends PointPrim{
   // bakeFunctionAbsolute
 
   clone(){
-    let resolution = this.resolution;
-
     let pointPrim = this.pointPrim.clone();
     //may need to clone this in a better way
     let id = this.id;
@@ -498,7 +497,7 @@ class Rectangle extends PointPrim{
     //list of points
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
-    let newRect = new Rectangle(resolution, properties);
+    let newRect = new Rectangle(properties);
     newRect.pointPrim = pointPrim;
     newRect.id = id;
     newRect.pts = pts;
@@ -508,8 +507,8 @@ class Rectangle extends PointPrim{
     return newRect;
   }
 
-  create(resolution, properties){
-    return new Rectangle(resolution, properties);
+  create(properties){
+    return new Rectangle(properties);
   }
 
   end(shader, parameters){
@@ -522,10 +521,10 @@ class Rectangle extends PointPrim{
 
 class PolyLine extends PolyPoint {
 
-  constructor(resolution, properties, _dataSize){
+  constructor(properties, _dataSize){
     //super is how PolyPoint class is constructed
     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
-    super(resolution, properties, _dataSize);
+    super(properties, _dataSize);
 
     this.fragFunction = "";
 
@@ -533,12 +532,11 @@ class PolyLine extends PolyPoint {
   }
 
   clone(){
-    let resolution = this.resolution.clone();
     let weight = this.weight;
     let properties = {...this.properties};
     let dataSize = this.dataSize;
 
-    let newPolyLine = new PolyLine(resolution, properties, dataSize);
+    let newPolyLine = new PolyLine(properties, dataSize);
 
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
@@ -806,8 +804,8 @@ class PolyLine extends PolyPoint {
     return fragShader;
   }
 
-  create(resolution, properties, _dataSize){
-    return new PolyLine(resolution, properties, _dataSize);
+  create(properties, _dataSize){
+    return new PolyLine(properties, _dataSize);
   }
 
   //should clone and probably push to state stack prior to this
@@ -824,10 +822,10 @@ class PolyLine extends PolyPoint {
 
 class Polygon extends PolyPoint {
 
-  constructor(resolution, properties, _dataSize){
+  constructor(properties, _dataSize){
     //super is how PolyPoint class is constructed
     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
-    super(resolution, properties, _dataSize);
+    super(properties, _dataSize);
 
     this.fragFunction = "";
 
@@ -835,12 +833,11 @@ class Polygon extends PolyPoint {
   }
 
   clone(){
-    let resolution = this.resolution.clone();
     let weight = this.weight;
     let properties = {...this.properties};
     let dataSize = this.dataSize;
 
-    let newPolygon = new Polygon(resolution, properties, dataSize);
+    let newPolygon = new Polygon(properties, dataSize);
 
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
@@ -1160,8 +1157,8 @@ class Polygon extends PolyPoint {
     return fragShader;
   }
 
-  create(resolution, _dataSize){
-    return new Polygon(resolution, _dataSize);
+  create(_dataSize){
+    return new Polygon(_dataSize);
   }
 
   //should clone and probably push to state stack prior to this
@@ -1178,10 +1175,10 @@ class Polygon extends PolyPoint {
 
 class PolyCircle extends PolyPoint {
 
-  constructor(resolution, properties, _dataSize){
+  constructor(properties, _dataSize){
     //super is how PolyPoint class is constructed
     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
-    super(resolution, properties, _dataSize);
+    super(properties, _dataSize);
 
     this.fragFunction = "";
 
@@ -1190,12 +1187,11 @@ class PolyCircle extends PolyPoint {
   }
 
   clone(){
-    let resolution = this.resolution.clone();
     let weight = this.weight;
     let properties = {...this.properties};
     let dataSize = this.dataSize;
 
-    let newPolyCircle = new PolyCircle(resolution, properties, dataSize);
+    let newPolyCircle = new PolyCircle(properties, dataSize);
 
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone());};
@@ -1354,8 +1350,8 @@ class PolyCircle extends PolyPoint {
     return fragShader;
   }
 
-  create(resolution, properties, _dataSize){
-    return new PolyCircle(resolution, properties, _dataSize);
+  create(properties, _dataSize){
+    return new PolyCircle(properties, _dataSize);
   }
 
   end(shader, parameters){
