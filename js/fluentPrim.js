@@ -1274,7 +1274,6 @@ class PolyCircle extends PolyPoint {
           parameters.addPoint(p.x, p.y, p.tag);
           let cTexel = parameters.cTexel;
 
-          //should factor out oldPosX and oldPosY but too tired now
           if(first){
             first = false;
             //what are x, y texel indices?

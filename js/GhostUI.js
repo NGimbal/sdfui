@@ -66,7 +66,7 @@ class GhostUI{
 
     //Doc State
     let fluentDoc = new FluentDoc();
-    fluentDoc.editItems.push(new PRIM.PolyLine(SDFUI.resolution, editOptions));
+    fluentDoc.editItems.push(new PRIM.PolyLine(editOptions));
     fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
     this.fluentStack = new StateStack(fluentDoc, 10);
@@ -280,6 +280,7 @@ class GhostUI{
         this.fluentStack.modCurr(newDoc);
       } else {
         fluentDoc.shaderUpdate = true;
+        fluentDoc.currEditItem.needsUpdate = true;
       }
     }
   }
@@ -333,16 +334,7 @@ function drawEnter(){
 
 function drawExit(){
   HINT.snackHint("End Drawing!");
-  // console.log(this);
-  //This should be more global
-  // let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
-  // let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
-  // let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
-  //
-  // let selMods = [pauseShader, hideGrid, screenshot];
-  // let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
-  // this.modeStack.push(select);
-  // this.modeStack.curr().enter();
+  // not implemented
 }
 
 //happens on every frame of draw mode
@@ -364,27 +356,27 @@ function drawUpdate(fluentDoc){
     switch(sel.value){
       case "PolyLine":
         this.options.currEditItem = "PolyLine";
-        fluentDoc.editItems.push(new PRIM.PolyLine(resolution, {...this.options}));
+        fluentDoc.editItems.push(new PRIM.PolyLine({...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
       case "Polygon":
         this.options.currEditItem = "Polygon";
-        fluentDoc.editItems.push(new PRIM.Polygon(resolution, {...this.options}));
+        fluentDoc.editItems.push(new PRIM.Polygon({...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
       case "PolyCircle":
         this.options.currEditItem = "PolyCircle";
-        fluentDoc.editItems.push(new PRIM.PolyCircle(resolution, {...this.options}));
+        fluentDoc.editItems.push(new PRIM.PolyCircle({...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
       case "Circle":
         this.options.currEditItem = "Circle";
-        fluentDoc.editItems.push(new PRIM.Circle(resolution, {...this.options}));
+        fluentDoc.editItems.push(new PRIM.Circle({...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
       case "Rectangle":
         this.options.currEditItem = "Rectangle";
-        fluentDoc.editItems.push(new PRIM.Rectangle(resolution, {...this.options}));
+        fluentDoc.editItems.push(new PRIM.Rectangle({...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
     }
@@ -474,10 +466,11 @@ function drawUp(e, fluentDoc){
 
   addPt.x = fluentDoc.mPt.x * resolution.x;
   addPt.y = resolution.y - (fluentDoc.mPt.y * resolution.y);
+
   addPt.tag = "plPoint";
 
   //could have this return true / false to determine wether point should be pushed to tree
-  let plPt = fluentDoc.currEditItem.addPoint(resolution, addPt.x, addPt.y, addPt.tag);
+  let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
 
   //important to keep a simple array of pts for reconstructingree
   fluentDoc.pts.push(plPt);
@@ -578,7 +571,7 @@ function endDrawUpdate(fluentDoc){
   let options = {...fluentDoc.currEditItem.properties};
   console.log(options);
 
-  fluentDoc.editItems.push(fluentDoc.currEditItem.create(SDFUI.resolution, options));
+  fluentDoc.editItems.push(fluentDoc.currEditItem.create(options));
   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
   this.toggle = !this.toggle;
@@ -597,12 +590,11 @@ function escDrawUpdate(fluentDoc){
   //remove all points from curr edit item before ending this polyline
   for (let p of fluentDoc.currEditItem.pts){
     var index = fluentDoc.pts.findIndex(i => i.id === p.id);
-
     fluentDoc.pts.splice(index, 1);
     fluentDoc.tree.remove(p);
   }
 
-  fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.currEditItem.create(SDFUI.resolution, {...fluentDoc.currEditItem.properties});
+  fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.currEditItem.create({...fluentDoc.currEditItem.properties});
   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
   this.toggle = !this.toggle;
@@ -610,6 +602,7 @@ function escDrawUpdate(fluentDoc){
 }
 
 //this will eventually just operate on the shader
+//should move this to sdfui
 function showPtsUpdate(fluentDoc){
   if(!this.toggle) return null;
 
@@ -736,10 +729,6 @@ class StateStack{
   }
 }
 
-//What I want to do is remove parameters and shader from FluentDoc
-//and create a bakeParameters and bakeShader function in FluentDoc
-//the only input to those functions should be the list of edit items, and the shader
-//would be cool to know if a primitive needs an update
 
 //FluentDoc State state distince from ui state
 class FluentDoc{

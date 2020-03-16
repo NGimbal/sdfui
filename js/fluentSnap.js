@@ -212,7 +212,7 @@ function snapRefUp(e, fluentDoc){
   }
 }
 
-//Returns cloned modified fluentDoc or null
+//Returns modified fluentDoc or null
 function snapGlobalUp(e, fluentDoc){
   if (this.toggle == false) return null;
   // let fluentDoc = _fluentDoc.clone();
@@ -225,8 +225,7 @@ function snapGlobalUp(e, fluentDoc){
   }
 
   if (fluentDoc.currEditItem.pts.length > 1){
-    //would like for there to just be one point representation in js
-    fluentDoc.addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
+    fluentDoc.addPt.x = fluentDoc.mPt.x * resolution.x;
     fluentDoc.addPt.y = resolution.y - (fluentDoc.mPt.y * resolution.y);
     fluentDoc.addPt.tag = "plPoint";
 

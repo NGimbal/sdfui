@@ -54,7 +54,7 @@ function main() {
     iResolution:  { value: resolution},
     //uniform for rect, circle, primitives based on two points
     pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
-    //uniform for curr edit polypoint prims, should be factroed out
+    //uniform for curr edit polypoint prims, should be factored out
     posTex: { value: fluentDoc.currEditItem.ptsTex},
     //resolution for curr edit poly point prims
     posTexRes: {value: new THREE.Vector2(16.0, 16.0)},
@@ -146,6 +146,7 @@ function render() {
 
   let shaderUpdate = false;
 
+  //change current edit item in shader
   if (uiOptions.currEditItem != dataShader.parameters.properties.currEditItem){
     dataShader.parameters.properties.currEditItem = uiOptions.currEditItem;
     switch(uiOptions.currEditItem){
@@ -168,6 +169,7 @@ function render() {
     shaderUpdate = true;
   }
 
+  //change filter in shader
   if (uiOptions.filter != dataShader.parameters.properties.filter){
     dataShader.parameters.properties.filter = uiOptions.filter;
     switch(uiOptions.filter){
@@ -189,7 +191,7 @@ function render() {
 
   //keep shader update for now
   if (fluentDoc.shaderUpdate || shaderUpdate){
-    console.log("shader update!")
+    console.log("shader update!");
     let vertexShader = sdfPrimVert;
 
     uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
