@@ -820,7 +820,6 @@ class FluentDoc{
     //elem is probably the only thing we want to retain a reference to
     //also elem probably doesn't have to be a property of fluentDoc
     // var shader = (' ' + this.shader).slice(1);
-
     let newDoc = new FluentDoc();
 
     newDoc.shaderPause = this.shaderPause;
