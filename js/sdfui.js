@@ -6,6 +6,10 @@ import * as THREE from './libjs/three.module.js';
 import * as PRIM from './fluentPrim.js';
 import {GhostUI, Button} from './GhostUI.js';
 
+import * as ACT from './actions.js';
+import { reducer } from './reducers.js';
+
+
 import {sdfPrimFrag} from './frag.js';
 import {sdfPrimVert} from './vert.js';
 
@@ -13,11 +17,29 @@ var material, uniforms;
 var dataShader;
 var canvas, renderer, camera, ui, scene, plane, screenMesh;
 
-var resolution;
+
+export const store = Redux.createStore(reducer);
+export var state = store.getState();
+export var resolution, mPt;
+
+//so am I doing it right?
+let listener = function (){
+  state = store.getState();
+  //update resolution variable
+  //should I check for shaderUpdate here?
+  resolution = state.resolution;
+  mPt = state.cursor;
+  return state;
+};
+
+store.subscribe(() => console.log(listener()));
+// store.subscribe(() => listener());
 
 function main() {
   canvas = document.querySelector('#c');
-  resolution = new THREE.Vector3(window.innerWidth, window.innerHeight, 1.0);
+  let res = new THREE.Vector3(window.innerWidth, window.innerHeight, 1.0);
+  //set the document resolution
+  store.dispatch(ACT.setResolution(res));
 
   const context = canvas.getContext( 'webgl2', { alpha: false, antialias: false } );
 
@@ -51,7 +73,7 @@ function main() {
   let parameters = new PRIM.PolyPoint({...ui.modeStack.curr().options}, 128);
 
   uniforms = {
-    iResolution:  { value: resolution},
+    iResolution:  { value: state.resolution},
     //uniform for rect, circle, primitives based on two points
     pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
     //uniform for curr edit polypoint prims, should be factored out
@@ -61,7 +83,7 @@ function main() {
     //global points texture
     parameters: {value: parameters},
     //current mouse position
-    mousePt: {value: fluentDoc.mPt},
+    mousePt: {value: state.cursor},
     //index of texel being currently edited
     editCTexel : {value: fluentDoc.currEditItem.cTexel},
     //current edit options
@@ -136,7 +158,7 @@ function render() {
 
   let uiOptions = ui.modeStack.curr().options;
 
-  screenMesh.material.uniforms.mousePt.value = fluentDoc.mPt;
+  screenMesh.material.uniforms.mousePt.value = state.cursor;
   screenMesh.material.uniforms.editWeight.value = uiOptions.weight;
   screenMesh.material.uniforms.strokeColor.value = uiOptions.stroke;
   screenMesh.material.uniforms.fillColor.value = uiOptions.fill;
@@ -270,5 +292,3 @@ function modifyDefine(shader, define, val){
 
 //Run-----------------------------------------------------------
 main();
-
-export {resolution};

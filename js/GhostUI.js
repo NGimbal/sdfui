@@ -7,6 +7,9 @@ import * as PRIM from './fluentPrim.js';
 
 import * as SDFUI from './sdfui.js';
 
+import { store } from './sdfui.js';
+import * as ACT from './actions.js';
+
 //GhostUI coordinates all UI functions, keeps FluentDocStack, and UI State
 //Implements UIMode and UIModifiers
 //UIMode is a collection of UIModifiers along with enter & exit functions
@@ -220,17 +223,24 @@ class GhostUI{
   }
 
   mouseMove(e) {
-    let resolution = SDFUI.resolution;
+    // let resolution = SDFUI.resolution;
+    // let resolution = SDFUI.store.getState().resolution;
+    let resolution = SDFUI.state.resolution;
     let evPt = {
       x: e.clientX,
       y: e.clientY
     };
 
+    evPt.x = evPt.x / resolution.x;
+    evPt.y = (resolution.y - evPt.y) / resolution.y;
+
+    store.dispatch({type:'SET_CURSOR', x:evPt.x, y:evPt.y});
+
     let fluentDoc = this.fluentStack.curr().clone();
 
     //default action to show mouse target point
-    fluentDoc.mPt.x = evPt.x / resolution.x;
-    fluentDoc.mPt.y = (resolution.y - evPt.y) / resolution.y;
+    fluentDoc.mPt.x = evPt.x;// / resolution.x;
+    fluentDoc.mPt.y = evPt.y;//(resolution.y - evPt.y) / resolution.y;
 
     let mode = this.modeStack.curr();
 
@@ -339,7 +349,9 @@ function drawExit(){
 
 //happens on every frame of draw mode
 function drawUpdate(fluentDoc){
-  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.resolution;
+  let resolution = SDFUI.state.resolution;
+
   //exit draw condition - no primitive tool active
   if(this.options.currEditItem == null){
     this.exit();
@@ -449,7 +461,9 @@ function drawMv(e, fluentDoc){
 }
 
 function drawUp(e, fluentDoc){
-  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.resolution;
+  let resolution = SDFUI.state.resolution;
+
 
   for (let m of this.modifiers){
     if(!m.up) continue;
@@ -475,6 +489,8 @@ function drawUp(e, fluentDoc){
   //important to keep a simple array of pts for reconstructingree
   fluentDoc.pts.push(plPt);
   fluentDoc.tree.insert(plPt);
+
+  store.dispatch({type:'ADD_PT', pt:plPt});
 
   if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
     // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
@@ -779,7 +795,9 @@ class FluentDoc{
   //Establishes grid aligned with the shader
   //Will be useful for document units
   drawGrid(){
-    let resolution = SDFUI.resolution;
+    // let resolution = SDFUI.resolution;
+    let resolution = SDFUI.state.resolution;
+
 
     let scaleX = (resolution.x / this.scale) * (resolution.y / resolution.x);
     let scaleY = resolution.y / this.scale;

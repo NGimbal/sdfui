@@ -30,7 +30,10 @@ function snapGridClck(e){
 //Returns modified fluentDoc or null
 function snapPtMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.state.resolution;
+  let resolution = SDFUI.state.resolution;
+
 
   let evPt = {
     x: e.clientX,
@@ -54,7 +57,9 @@ function snapPtMv(e, fluentDoc){
 //Returns modified fluentDoc or null
 function snapRefMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.resolution;
+  let resolution = SDFUI.state.resolution;
+
 
   let evPt = {
     x: e.clientX,
@@ -95,7 +100,9 @@ function snapRefMv(e, fluentDoc){
 //Returns modified fluentDoc or null
 function snapGlobalMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.resolution;
+  let resolution = SDFUI.state.resolution;
+
 
   let evPt = {
     x: e.clientX,
@@ -143,7 +150,9 @@ function snapGlobalMv(e, fluentDoc){
 //Returns modified fluentDoc or null
 function snapGridMv(e, fluentDoc){
   if (this.toggle == false) return null;
-  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.resolution;
+  let resolution = SDFUI.state.resolution;
+
 
   let evPt = {
     x: e.clientX,
@@ -165,7 +174,9 @@ function snapGridMv(e, fluentDoc){
 function snapPtUp(e, fluentDoc){
   if (this.toggle == false) return null;
   // let fluentDoc = _fluentDoc.clone();
-  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.resolution;
+  let resolution = SDFUI.state.resolution;
+
 
   let evPt = {
     x: e.clientX,
@@ -191,7 +202,9 @@ function snapPtUp(e, fluentDoc){
 function snapRefUp(e, fluentDoc){
   // let fluentDoc = _fluentDoc.clone();
   if (this.toggle == false) return null;
-  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.resolution;
+  let resolution = SDFUI.state.resolution;
+
 
   let addPt = {
     x: 0,
@@ -216,7 +229,9 @@ function snapRefUp(e, fluentDoc){
 function snapGlobalUp(e, fluentDoc){
   if (this.toggle == false) return null;
   // let fluentDoc = _fluentDoc.clone();
-  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.resolution;
+  let resolution = SDFUI.state.resolution;
+
 
   let addPt = {
     x: 0,
@@ -240,7 +255,8 @@ function snapGlobalUp(e, fluentDoc){
 function snapGridUp(e, fluentDoc){
   if (this.toggle == false) return null;
   // let fluentDoc = _fluentDoc.clone();
-  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.resolution;
+  let resolution = SDFUI.state.resolution;
 
 
   //would like for there to just be one point representation in js
