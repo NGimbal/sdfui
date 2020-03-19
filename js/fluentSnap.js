@@ -2,7 +2,7 @@
 import * as THREE from './libjs/three.module.js';
 import * as HINT from './fluentHints.js';
 
-import * as SDFUI from './sdfui.js';
+import { resolution } from './sdfui.js';
 
 //fluentSnap.js
 //Implements all snapping logic
@@ -32,7 +32,7 @@ function snapPtMv(e, fluentDoc){
   if (this.toggle == false) return null;
   // let resolution = SDFUI.resolution;
   // let resolution = SDFUI.state.resolution;
-  let resolution = SDFUI.state.resolution;
+  // let resolution = SDFUI.state.resolution;
 
 
   let evPt = {
@@ -41,9 +41,11 @@ function snapPtMv(e, fluentDoc){
   };
 
   let ptNear = fluentDoc.tree.nearest(evPt, 1);
-
+  
   if (ptNear.length > 0 && ptNear[0][1] < this.options.dist){
+
     ptNear = ptNear[0][0];
+
     fluentDoc.mPt.x = ptNear.x / resolution.x;
     fluentDoc.mPt.y = (resolution.y - ptNear.y) / resolution.y;
 
@@ -58,7 +60,7 @@ function snapPtMv(e, fluentDoc){
 function snapRefMv(e, fluentDoc){
   if (this.toggle == false) return null;
   // let resolution = SDFUI.resolution;
-  let resolution = SDFUI.state.resolution;
+  // let resolution = SDFUI.state.resolution;
 
 
   let evPt = {
@@ -101,7 +103,7 @@ function snapRefMv(e, fluentDoc){
 function snapGlobalMv(e, fluentDoc){
   if (this.toggle == false) return null;
   // let resolution = SDFUI.resolution;
-  let resolution = SDFUI.state.resolution;
+  // let resolution = SDFUI.state.resolution;
 
 
   let evPt = {
@@ -151,7 +153,7 @@ function snapGlobalMv(e, fluentDoc){
 function snapGridMv(e, fluentDoc){
   if (this.toggle == false) return null;
   // let resolution = SDFUI.resolution;
-  let resolution = SDFUI.state.resolution;
+  // let resolution = SDFUI.state.resolution;
 
 
   let evPt = {
@@ -175,7 +177,7 @@ function snapPtUp(e, fluentDoc){
   if (this.toggle == false) return null;
   // let fluentDoc = _fluentDoc.clone();
   // let resolution = SDFUI.resolution;
-  let resolution = SDFUI.state.resolution;
+  // let resolution = SDFUI.state.resolution;
 
 
   let evPt = {
@@ -203,7 +205,7 @@ function snapRefUp(e, fluentDoc){
   // let fluentDoc = _fluentDoc.clone();
   if (this.toggle == false) return null;
   // let resolution = SDFUI.resolution;
-  let resolution = SDFUI.state.resolution;
+  // let resolution = SDFUI.state.resolution;
 
 
   let addPt = {
@@ -230,7 +232,7 @@ function snapGlobalUp(e, fluentDoc){
   if (this.toggle == false) return null;
   // let fluentDoc = _fluentDoc.clone();
   // let resolution = SDFUI.resolution;
-  let resolution = SDFUI.state.resolution;
+  // let resolution = SDFUI.state.resolution;
 
 
   let addPt = {
@@ -256,7 +258,7 @@ function snapGridUp(e, fluentDoc){
   if (this.toggle == false) return null;
   // let fluentDoc = _fluentDoc.clone();
   // let resolution = SDFUI.resolution;
-  let resolution = SDFUI.state.resolution;
+  // let resolution = SDFUI.state.resolution;
 
 
   //would like for there to just be one point representation in js

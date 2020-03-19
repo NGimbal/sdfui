@@ -7,7 +7,6 @@ import * as PRIM from './fluentPrim.js';
 
 import * as SDFUI from './sdfui.js';
 
-import { store } from './sdfui.js';
 import * as ACT from './actions.js';
 
 //GhostUI coordinates all UI functions, keeps FluentDocStack, and UI State
@@ -223,18 +222,29 @@ class GhostUI{
   }
 
   mouseMove(e) {
-    // let resolution = SDFUI.resolution;
+    let resolution = SDFUI.resolution;
     // let resolution = SDFUI.store.getState().resolution;
-    let resolution = SDFUI.state.resolution;
+    // let resolution = SDFUI.state.resolution;
     let evPt = {
       x: e.clientX,
       y: e.clientY
     };
 
+    // //transforms window / js space to sdf / frag space
+    // //eventually want only shader representation of points.
+    evPt.x = ((evPt.x / resolution.x) - 0.5) * resolution.x/resolution.y;
+    evPt.y = ((resolution.y - evPt.y) / resolution.y) - 0.5;
+
+    evPt.x = (evPt.x * resolution.x) / (resolution.x * 0.5);
+    evPt.y = (evPt.y * resolution.y) / (resolution.y * 0.5);
+
+    SDFUI.store.dispatch(ACT.setCursor(evPt.x, evPt.y));
+
+    evPt.x = e.clientX;
+    evPt.y = e.clientY;
+
     evPt.x = evPt.x / resolution.x;
     evPt.y = (resolution.y - evPt.y) / resolution.y;
-
-    store.dispatch({type:'SET_CURSOR', x:evPt.x, y:evPt.y});
 
     let fluentDoc = this.fluentStack.curr().clone();
 
@@ -349,8 +359,8 @@ function drawExit(){
 
 //happens on every frame of draw mode
 function drawUpdate(fluentDoc){
-  // let resolution = SDFUI.resolution;
-  let resolution = SDFUI.state.resolution;
+  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.state.resolution;
 
   //exit draw condition - no primitive tool active
   if(this.options.currEditItem == null){
@@ -461,9 +471,8 @@ function drawMv(e, fluentDoc){
 }
 
 function drawUp(e, fluentDoc){
-  // let resolution = SDFUI.resolution;
-  let resolution = SDFUI.state.resolution;
-
+  let resolution = SDFUI.resolution;
+  // let resolution = SDFUI.state.resolution;
 
   for (let m of this.modifiers){
     if(!m.up) continue;
@@ -472,25 +481,14 @@ function drawUp(e, fluentDoc){
     fluentDoc = modState;
   }
 
-  let addPt = {
-    x: 0,
-    y: 0,
-    tag: "none",
-  }
-
-  addPt.x = fluentDoc.mPt.x * resolution.x;
-  addPt.y = resolution.y - (fluentDoc.mPt.y * resolution.y);
-
-  addPt.tag = "plPoint";
-
   //could have this return true / false to determine wether point should be pushed to tree
-  let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
+  let plPt = fluentDoc.currEditItem.addPoint(SDFUI.mPt.x, SDFUI.mPt.y, "plPoint");
 
   //important to keep a simple array of pts for reconstructingree
   fluentDoc.pts.push(plPt);
-  fluentDoc.tree.insert(plPt);
+  // fluentDoc.tree.insert(plPt);
 
-  store.dispatch({type:'ADD_PT', pt:plPt});
+  SDFUI.store.dispatch({type:'ADD_PT', pt:plPt});
 
   if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
     // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
@@ -795,8 +793,8 @@ class FluentDoc{
   //Establishes grid aligned with the shader
   //Will be useful for document units
   drawGrid(){
-    // let resolution = SDFUI.resolution;
-    let resolution = SDFUI.state.resolution;
+    let resolution = SDFUI.resolution;
+    // let resolution = SDFUI.state.resolution;
 
 
     let scaleX = (resolution.x / this.scale) * (resolution.y / resolution.x);

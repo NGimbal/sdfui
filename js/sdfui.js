@@ -20,18 +20,37 @@ var canvas, renderer, camera, ui, scene, plane, screenMesh;
 
 export const store = Redux.createStore(reducer);
 export var state = store.getState();
+
+
+function pointDist (a, b){
+    var dx = a.x - b.x;
+    var dy = a.y - b.y;
+    return dx*dx + dy*dy;
+}
+
 export var resolution, mPt;
 
-//so am I doing it right?
-let listener = function (){
+export var ptTree = new kdTree([], pointDist, ["x", "y"]);
+
+//This is how I'm letting other parts of the app
+//have quick access to parts of the state
+function listener(){
   state = store.getState();
   //update resolution variable
-  //should I check for shaderUpdate here?
-  resolution = state.resolution;
-  mPt = state.cursor;
+  resolution = state.grid.resolution;
+  //update mouse position variable
+  mPt = state.cursor.pos;
+  //update kdTree of points
+  for(let p of state.points){
+    if(p.pt.insert == true){
+      ptTree.insert(p.pt);
+      p.pt.insert = false;
+    }
+  }
   return state;
 };
 
+//substcribe to store changes - run listener to set relevant variables
 store.subscribe(() => console.log(listener()));
 // store.subscribe(() => listener());
 
@@ -73,7 +92,7 @@ function main() {
   let parameters = new PRIM.PolyPoint({...ui.modeStack.curr().options}, 128);
 
   uniforms = {
-    iResolution:  { value: state.resolution},
+    iResolution:  { value: {...resolution}},
     //uniform for rect, circle, primitives based on two points
     pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
     //uniform for curr edit polypoint prims, should be factored out
@@ -82,8 +101,8 @@ function main() {
     posTexRes: {value: new THREE.Vector2(16.0, 16.0)},
     //global points texture
     parameters: {value: parameters},
-    //current mouse position
-    mousePt: {value: state.cursor},
+    //current mouse position - surprised mPt works here
+    mousePt: {value: {...mPt}},
     //index of texel being currently edited
     editCTexel : {value: fluentDoc.currEditItem.cTexel},
     //current edit options
@@ -158,7 +177,8 @@ function render() {
 
   let uiOptions = ui.modeStack.curr().options;
 
-  screenMesh.material.uniforms.mousePt.value = state.cursor;
+  //surprised that mPt works here
+  screenMesh.material.uniforms.mousePt.value = mPt;
   screenMesh.material.uniforms.editWeight.value = uiOptions.weight;
   screenMesh.material.uniforms.strokeColor.value = uiOptions.stroke;
   screenMesh.material.uniforms.fillColor.value = uiOptions.fill;
@@ -216,7 +236,7 @@ function render() {
     console.log("shader update!");
     let vertexShader = sdfPrimVert;
 
-    uniforms.iResolution.value.set(canvas.width, canvas.height, 1);
+    uniforms.iResolution.value = {...resolution};
 
     for (let item of fluentDoc.editItems){
       if(item.needsUpdate){

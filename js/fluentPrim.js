@@ -51,7 +51,7 @@ import * as THREE from './libjs/three.module.js';
 import * as SNAP from './fluentSnap.js';
 import * as HINT from './fluentHints.js';
 
-import * as SDFUI from './sdfui.js';
+import { resolution } from './sdfui.js';
 
 //simple class for returning shader and polypoint
 class DataShader{
@@ -81,13 +81,13 @@ class PointPrim{
 
   //really just going to add 1 of 2 points to this.pts
   addPoint(x, y, tag){
-    let resolution = SDFUI.resolution;
+    // let resolution = SDFUI.resolution;
 
     let hFloatX = x / resolution.x;
     let hFloatY = y / resolution.y;
     let hFloatYFlip = (resolution.y - y) / resolution.y;
 
-    let dpr = window.devicePixelRatio;
+    // let dpr = window.devicePixelRatio;
 
     hFloatX -= 0.5;
     hFloatYFlip -= 0.5;
@@ -176,7 +176,52 @@ class PolyPoint {
   //point x, y are stored as HalfFloat16
   //https://github.com/petamoriken/float16
   addPoint(x, y, tag){
-    let resolution = SDFUI.resolution;
+    // let resolution = SDFUI.resolution;
+
+    this.cTexel++;
+
+    let index = this.cTexel * 4;
+    //use view.setFloat16() to set the digits in the DataView
+    //then use view.getUint16 to retrieve and write to data Texture
+    let buffer = new ArrayBuffer(64);
+    let view = new DataView(buffer);
+
+    view.getFloat16 = (...args) => getFloat16(view, ...args);
+    view.setFloat16 = (...args) => setFloat16(view, ...args);
+
+    //assume little endian
+    let endD = false;
+
+    view.setFloat16(0, x, endD);
+    view.setFloat16(16, y, endD);
+    //in the case of the point prims so far z and w have already been transformed as above
+    //maybe should turn that into a little function we can call...
+    view.setFloat16(32, 1.0, endD);
+    view.setFloat16(48, 1.0, endD);
+
+    this.ptsTex.image.data[index] = view.getUint16(0, endD);
+    this.ptsTex.image.data[index + 1] = view.getUint16(16, endD);
+    this.ptsTex.image.data[index + 2] = view.getUint16(32, endD);
+    this.ptsTex.image.data[index + 3] = view.getUint16(48, endD);
+
+    this.ptsTex.needsUpdate = true;
+
+    let _tag = tag || "none";
+    let texData = [view.getUint16(0, endD), view.getUint16(16, endD), view.getUint16(32, endD), view.getUint16(48, endD)];
+
+    let pt = new Point(x, y, this.cTexel, texData, this.id, _tag);
+
+    this.pts.push(pt);
+
+    return pt;
+  }
+
+  //takes x, y, and tag
+  //adds point to polyPoint
+  //point x, y are stored as HalfFloat16
+  //https://github.com/petamoriken/float16
+  transAddPoint(x, y, tag){
+    // let resolution = SDFUI.resolution;
 
     this.cTexel++;
 
@@ -283,8 +328,13 @@ class PolyPoint {
 //Holds information for kdTree / UI
 class Point{
   constructor(x, y, _texRef, _texData, _shapeID, _tag){
+    //shader aligned X, Y
+    //committing to shader align coords LATER (lol)
+    //vals are x = [0 - screenY / screenX]
+    //         y = [0 - 1.0]
     this.x = x;
     this.y = y;
+
     //texture coordinates can be reconstructed from this and dataSize
     this.texRef = _texRef || 0;
 
@@ -297,10 +347,26 @@ class Point{
     //for filtering point selection
     this.tag = _tag || "none";
 
+    this.insert = true;
+    this.update = false;
+    this.remove = false;
+
     this.id = (+new Date).toString(36).slice(-8);
 
     this.primType = "Point";
   }
+
+  setXY(x, y){
+    this.x = x || this.x;
+    this.y = y || this.y;
+    return this;
+  }
+
+  sceenXY(resolution){
+
+    return this;
+  }
+
   clone(){
     let x = this.x;
     let y = this.y;

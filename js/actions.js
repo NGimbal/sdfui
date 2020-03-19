@@ -1,5 +1,5 @@
 //actions.js
-import * as PRIM from './primitives.js';
+import * as PRIM from './fluentPrim.js';
 
 //ACTION TYPE CONSTANTS
 
@@ -42,11 +42,10 @@ export function setResolution(vec3){
 }
 
 //establishes grid offset
-export function setGrid(x, y){
+export function setGrid(vec3){
   return{
     type: SET_GRID,
-    x,
-    y
+    vec3
   }
 }
 

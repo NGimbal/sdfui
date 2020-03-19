@@ -206,18 +206,6 @@ void DrawPoint(vec2 uv, vec2 p, inout vec3 col) {
     col = mix(col, vec3(1.0, 0.25, 0.25), 1.0 - smoothstep(0.0,0.003,clamp(sdCircle(uv, p, 0.009), 0.0,1.0)));
 }
 
-// Transform screen space pt to shader space
-vec2 screenPt(vec2 p) {
-  vec2 pos = p;
-  //0 to 1 => -.5 to .5
-  pos -= 0.5;
-  pos.x *= iResolution.x / iResolution.y;
-
-  pos.x = (pos.x * iResolution.x) / (iResolution.x * 0.5);
-  pos.y = (pos.y * iResolution.y) / (iResolution.y * 0.5);
-  return pos;
-}
-
 //Merge Operations
 //https://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 float opSmoothUnion( float d1, float d2, float k ) {
@@ -303,15 +291,15 @@ void main(){
     d = sceneDist(uv, finalColor);
 
     //current Mouse Position
-    DrawPoint(uv, screenPt(mPt), finalColor);
+    DrawPoint(uv, mPt, finalColor);
 
     //Circle--------
     #if EDIT_SHAPE == 3
     vec2 center = pointPrim.xy;
-    d = sdCircle(uv, screenPt(mPt), 0.125);
+    d = sdCircle(uv, mPt, 0.125);
 
     if(center.x != 0.0){
-      vec2 rPt = screenPt(mPt).xy;
+      vec2 rPt = mPt.xy;
       radius = distance(center, rPt);
       d = sdCircle(uv, center, radius);
     }
@@ -348,13 +336,13 @@ void main(){
     vec2 rect = vec2(0.5, 0.25);
     vec2 flipX = vec2(-1.0, 1.0);
 
-    vec2 center = screenPt(mPt).xy - rect * flipX;
+    vec2 center = mPt.xy - rect * flipX;
 
     d = sdBox(uv, center, rect, editRadius);
 
     if(pointPrim.x != 0.0){
-      center = 0.5 * (screenPt(mPt).xy - pointPrim.xy) + pointPrim.xy;
-      vec2 rPt = abs(screenPt(mPt).xy - center);
+      center = 0.5 * (mPt.xy - pointPrim.xy) + pointPrim.xy;
+      vec2 rPt = abs(mPt.xy - center);
       d = sdBox(uv, center, rPt, editRadius);
     }
 
@@ -426,7 +414,7 @@ void main(){
 
     //Next line while drawing
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
-      d = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
+      d = drawLine(uv, oldPos, mPt, editWeight, 1.0);
 
       #if FILTER == 0
       finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
@@ -545,8 +533,8 @@ void main(){
 
     //Next line while drawing
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
-      d = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
-      d = min(d, drawLine(uv, screenPt(mPt), first, editWeight, 1.0));
+      d = drawLine(uv, oldPos, mPt, editWeight, 1.0);
+      d = min(d, drawLine(uv, mPt, first, editWeight, 1.0));
 
 
       finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
@@ -577,7 +565,7 @@ void main(){
       }
     }
 
-    d = sdCircle(uv, screenPt(mPt), editRadius);
+    d = sdCircle(uv, mPt, editRadius);
 
     finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight,abs(d)) );
 
