@@ -41,7 +41,7 @@ function snapPtMv(e, fluentDoc){
   };
 
   let ptNear = fluentDoc.tree.nearest(evPt, 1);
-  
+
   if (ptNear.length > 0 && ptNear[0][1] < this.options.dist){
 
     ptNear = ptNear[0][0];
@@ -154,7 +154,6 @@ function snapGridMv(e, fluentDoc){
   if (this.toggle == false) return null;
   // let resolution = SDFUI.resolution;
   // let resolution = SDFUI.state.resolution;
-
 
   let evPt = {
     x: e.clientX,

@@ -37,7 +37,7 @@ export var ptTree = new kdTree([], pointDist, ["x", "y"]);
 function listener(){
   state = store.getState();
   //update resolution variable
-  resolution = state.grid.resolution;
+  resolution = state.status.resolution;
   //update mouse position variable
   mPt = state.cursor.pos;
   //update kdTree of points
@@ -54,11 +54,35 @@ function listener(){
 store.subscribe(() => console.log(listener()));
 // store.subscribe(() => listener());
 
+function setGrid(scale){
+  let rX = resolution.x / resolution.y; //resolution.x
+  let rY = 1.0; //resolution.y
+  let scaleX = 2.0 / scale;
+  let scaleY = 2.0 / scale;
+
+  //There has got to be a more elegant way to do this...
+  //Is the remainder odd or even?
+  let r = ((rX / scaleX) - (rX / scaleX) % 1) % 2;
+  //If even, add scaleX * 0.5;
+  r = Math.abs(r - 1);
+
+  // let offX = (((rX / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
+  let offX = scaleX * 0.5;
+  let offY = scaleY * 0.5;
+
+  //scaleX, scaleY, offsetX, offsetY
+  let gridScale = new THREE.Vector4(scaleX, scaleY, offX, offY);
+
+  store.dispatch(ACT.cursorGrid(gridScale));
+}
+
 function main() {
   canvas = document.querySelector('#c');
   let res = new THREE.Vector3(window.innerWidth, window.innerHeight, 1.0);
   //set the document resolution
-  store.dispatch(ACT.setResolution(res));
+  store.dispatch(ACT.statusRes(res));
+  store.dispatch(ACT.cursorGridScale(48));
+  setGrid(state.cursor.scale);
 
   const context = canvas.getContext( 'webgl2', { alpha: false, antialias: false } );
 
@@ -92,7 +116,7 @@ function main() {
   let parameters = new PRIM.PolyPoint({...ui.modeStack.curr().options}, 128);
 
   uniforms = {
-    iResolution:  { value: {...resolution}},
+    iResolution:  { value: resolution},
     //uniform for rect, circle, primitives based on two points
     pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
     //uniform for curr edit polypoint prims, should be factored out
@@ -102,7 +126,7 @@ function main() {
     //global points texture
     parameters: {value: parameters},
     //current mouse position - surprised mPt works here
-    mousePt: {value: {...mPt}},
+    mousePt: {value: mPt},
     //index of texel being currently edited
     editCTexel : {value: fluentDoc.currEditItem.cTexel},
     //current edit options
@@ -147,7 +171,8 @@ function resizeRendererToDisplaySize(renderer) {
 
   if (needResize) {
     renderer.setSize(width, height, false);
-
+    store.dispatch(ACT.statusRes(new THREE.Vector3(width, height, 1.0)));
+    store.dispatch(ACT.cursorGridScale(48));
     //this is convoluted
     ui.fluentStack.curr().shaderUpdate = true;
   }

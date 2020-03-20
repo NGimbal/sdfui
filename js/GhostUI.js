@@ -238,7 +238,7 @@ class GhostUI{
     evPt.x = (evPt.x * resolution.x) / (resolution.x * 0.5);
     evPt.y = (evPt.y * resolution.y) / (resolution.y * 0.5);
 
-    SDFUI.store.dispatch(ACT.setCursor(evPt.x, evPt.y));
+    SDFUI.store.dispatch(ACT.cursorSet(evPt.x, evPt.y));
 
     evPt.x = e.clientX;
     evPt.y = e.clientY;
@@ -794,6 +794,7 @@ class FluentDoc{
   //Will be useful for document units
   drawGrid(){
     let resolution = SDFUI.resolution;
+
     // let resolution = SDFUI.state.resolution;
 
 
