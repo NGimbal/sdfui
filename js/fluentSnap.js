@@ -127,8 +127,11 @@ function snapGlobalMv(e, fluentDoc){
 
     //previous line
     let lnCurr = new THREE.Vector2().subVectors(prevPt, evPt);
+      // this.x = a.x - b.x;
+      // this.y = a.y - b.y;
 
     let angle = lnCurr.angle()* (180 / Math.PI);
+      // var angle = Math.atan2( - this.y, - this.x ) + Math.PI;
 
     //global angle
     let gAngle = this.options.angle;
@@ -138,6 +141,8 @@ function snapGlobalMv(e, fluentDoc){
 
     let snapX = prevPt.x - lnCurr.length() * Math.cos(snapA);
     let snapY = prevPt.y - lnCurr.length() * Math.sin(snapA);
+      //length
+      //Math.sqrt( this.x * this.x + this.y * this.y );
 
     fluentDoc.mPt.x = snapX / resolution.x;
     fluentDoc.mPt.y = (resolution.y - snapY) / resolution.y;
@@ -162,8 +167,8 @@ function snapGridMv(e, fluentDoc){
 
   //offset and scale deteremined in drawGrid()
   //current position, divided by grid.scaleX, round, times scaleX
-  let x = Math.round((evPt.x - 0.5 * fluentDoc.gridScaleX) / fluentDoc.gridScaleX) * fluentDoc.gridScaleX + fluentDoc.gridOffX;
-  let y = Math.round((evPt.y - 0.5 * fluentDoc.gridScaleY) / fluentDoc.gridScaleY) * fluentDoc.gridScaleY + fluentDoc.gridOffY;
+  let x = Math.floor((evPt.x - 0.5 * fluentDoc.gridScaleX) / fluentDoc.gridScaleX) * fluentDoc.gridScaleX + fluentDoc.gridOffX;
+  let y = Math.floor((evPt.y - 0.5 * fluentDoc.gridScaleY) / fluentDoc.gridScaleY) * fluentDoc.gridScaleY + fluentDoc.gridOffY;
 
   fluentDoc.mPt.x = x / resolution.x;
   fluentDoc.mPt.y = (resolution.y - y) / resolution.y;

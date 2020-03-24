@@ -28,7 +28,8 @@ function pointDist (a, b){
     return dx*dx + dy*dy;
 }
 
-export var resolution, mPt;
+export var resolution;
+export var mPt = new PRIM.Point(0, 0);
 
 export var ptTree = new kdTree([], pointDist, ["x", "y"]);
 
@@ -39,9 +40,9 @@ function listener(){
   //update resolution variable
   resolution = state.status.resolution;
   //update mouse position variable
-  mPt = state.cursor.pos;
+  mPt.setXY(state.cursor.pos.x, state.cursor.pos.y);
   //update kdTree of points
-  for(let p of state.points){
+  for(let p of state.scene.pts){
     if(p.pt.insert == true){
       ptTree.insert(p.pt);
       p.pt.insert = false;
@@ -49,6 +50,8 @@ function listener(){
   }
   return state;
 };
+
+
 
 //substcribe to store changes - run listener to set relevant variables
 store.subscribe(() => console.log(listener()));
@@ -71,16 +74,16 @@ function setGrid(scale){
   let offY = scaleY * 0.5;
 
   //scaleX, scaleY, offsetX, offsetY
-  let gridScale = new THREE.Vector4(scaleX, scaleY, offX, offY);
+  let gridScale = {x:scaleX, y:scaleY, z:offX, w:offY};
 
   store.dispatch(ACT.cursorGrid(gridScale));
 }
 
 function main() {
   canvas = document.querySelector('#c');
-  let res = new THREE.Vector3(window.innerWidth, window.innerHeight, 1.0);
+  //let res = new THREE.Vector3(window.innerWidth, window.innerHeight, 1.0);
   //set the document resolution
-  store.dispatch(ACT.statusRes(res));
+  store.dispatch(ACT.statusRes({x:window.innerWidth, y:window.innerHeight}));
   store.dispatch(ACT.cursorGridScale(48));
   setGrid(state.cursor.scale);
 
@@ -116,7 +119,7 @@ function main() {
   let parameters = new PRIM.PolyPoint({...ui.modeStack.curr().options}, 128);
 
   uniforms = {
-    iResolution:  { value: resolution},
+    iResolution:  { value: new THREE.Vector3(resolution.x, resolution.y, resolution.z)},
     //uniform for rect, circle, primitives based on two points
     pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
     //uniform for curr edit polypoint prims, should be factored out
@@ -170,8 +173,8 @@ function resizeRendererToDisplaySize(renderer) {
   const needResize = canvas.width !== width || canvas.height !== height;
 
   if (needResize) {
-    renderer.setSize(width, height, false);
-    store.dispatch(ACT.statusRes(new THREE.Vector3(width, height, 1.0)));
+    renderer.setSize(resolution.x, resolution.y, false);
+    store.dispatch(ACT.statusRes({x:width, y:height}));
     store.dispatch(ACT.cursorGridScale(48));
     //this is convoluted
     ui.fluentStack.curr().shaderUpdate = true;
@@ -261,7 +264,7 @@ function render() {
     console.log("shader update!");
     let vertexShader = sdfPrimVert;
 
-    uniforms.iResolution.value = {...resolution};
+    uniforms.iResolution.value = new THREE.Vector3(resolution.x, resolution.y, resolution.z);
 
     for (let item of fluentDoc.editItems){
       if(item.needsUpdate){

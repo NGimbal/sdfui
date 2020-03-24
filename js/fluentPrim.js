@@ -362,11 +362,6 @@ class Point{
     return this;
   }
 
-  sceenXY(resolution){
-
-    return this;
-  }
-
   clone(){
     let x = this.x;
     let y = this.y;

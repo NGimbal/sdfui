@@ -238,7 +238,7 @@ class GhostUI{
     evPt.x = (evPt.x * resolution.x) / (resolution.x * 0.5);
     evPt.y = (evPt.y * resolution.y) / (resolution.y * 0.5);
 
-    SDFUI.store.dispatch(ACT.cursorSet(evPt.x, evPt.y));
+    SDFUI.store.dispatch(ACT.cursorSet({x:evPt.x, y:evPt.y}));
 
     evPt.x = e.clientX;
     evPt.y = e.clientY;
@@ -488,7 +488,7 @@ function drawUp(e, fluentDoc){
   fluentDoc.pts.push(plPt);
   // fluentDoc.tree.insert(plPt);
 
-  SDFUI.store.dispatch({type:'ADD_PT', pt:plPt});
+  SDFUI.store.dispatch({type:'scene', subtype:'ADD_PT', pt:plPt});
 
   if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
     // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);

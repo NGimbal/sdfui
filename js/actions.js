@@ -5,7 +5,13 @@
 import * as PRIM from './fluentPrim.js';
 
 //ACTION TYPE CONSTANTS
+//main types
+export const status = 'status';
+export const scene = 'scene';
+export const cursor = 'cursor';
+export const ui = 'ui';
 
+//sub types
 //STATUS
 export const STATUS_UPDATE = 'STATUS_UPDATE';
 //GRID
@@ -21,6 +27,7 @@ export const CURSOR_SNAPGRID = 'CURSOR_SNAPGRID';
 export const CURSOR_SNAPPT = 'CURSOR_SNAPPT';
 export const CURSOR_SNAPGLOBAL = 'CURSOR_SNAPLOBAL';
 export const CURSOR_SNAPREF = 'CURSOR_SNAPREF';
+export const CURSOR_ADDPT = 'CURSOR_ADDPT';
 
 export const CURSOR_GRIDSCALE = 'CURSOR_GRIDSCALE';
 export const CURSOR_GRID = 'CURSOR_GRID';
@@ -28,47 +35,91 @@ export const CURSOR_GRID = 'CURSOR_GRID';
 export const DRAW_DRAWING = "DRAW_DRAWING";
 export const DRAW_EDITITEM = "DRAW_EDITITEM";
 export const DRAW_FILTER = "DRAW_FILTER";
-export const DRAW_SCOLOR = "DRAW_SCOLOR";
-export const DRAW_FCOLOR = "DRAW_FCOLOR";
-export const DRAW_SWEIGHT = "DRAW_SWEIGHT";
+export const DRAW_STROKE = "DRAW_STROKE";
+export const DRAW_FILL = "DRAW_FILL";
+export const DRAW_WEIGHT = "DRAW_WEIGHT";
 export const DRAW_RADIUS = "DRAW_RADIUS";
 
+//ACTION CREATORS
+//are we drawing? - bool
+export function drawDrawing(toggle){
+  return{
+    type: ui,
+    subtype: DRAW_DRAWING,
+    toggle,
+  }
+}
 
-var drawToolInit = {
-  drawing: true,
-  editElem: new PRIM.PolyLine(),
-  filter: null,
-  strokeColor: 0x000000,
-  fillColor: 0x000000,
-  strokeWeight: 0.02,
-  radius: 0.02
+//what is the current edit item - string
+export function drawEditItem(primType){
+  return{
+    type: ui,
+    subtype: DRAW_EDITITEM,
+    primType,
+  }
+}
+
+//what is the current filter - string
+export function drawFilter(filter){
+  return{
+    type: ui,
+    subtype: DRAW_EDITITEM,
+    filter,
+  }
+}
+
+//what is the current stroke color - vec(r, g, b, a)
+export function drawStroke(stroke){
+  return{
+    type: ui,
+    subtype: DRAW_STROKE,
+    stroke,
+  }
+}
+
+//what is the current fill color - vec(r, g, b, a)
+export function drawFill(fill){
+  return{
+    type: ui,
+    subtype: DRAW_FILL,
+    fill,
+  }
+}
+
+//what is the current fill weight - 0 - 1.0
+export function drawWeight(weight){
+  return{
+    type: ui,
+    subtype: DRAW_WEIGHT,
+    weight,
+  }
 }
 
 
-//ACTION CREATORS
-
-//records when shader needs to be recompiled
+//records when shader needs to be recompiled - bool
 export function statusUpdate(toggle){
   return{
-    type: STATUS_UPDATE,
+    type: status,
+    subtype: STATUS_UPDATE,
     toggle,
   }
 }
 
 //establishes grid offset
-export function statusRes(vec3){
+export function statusRes(vec2){
   return{
-    type: STATUS_RES,
-    vec3
+    type: status,
+    subtype: STATUS_RES,
+    vec2
   }
 }
 
 //records cursor position
-export function cursorSet(x, y){
+export function cursorSet(vec2){
   return {
-    type: CURSOR_SET,
-    x,
-    y,
+    type: cursor,
+    subtype: CURSOR_SET,
+    vec2
   };
 }
 
@@ -76,7 +127,8 @@ export function cursorSet(x, y){
 //establishes grid offset
 export function cursorGrid(vec4){
   return{
-    type: CURSOR_GRID,
+    type: cursor,
+    subtype: CURSOR_GRID,
     vec4
   }
 }
@@ -84,7 +136,8 @@ export function cursorGrid(vec4){
 //toggles snap to grid
 export function cursorSnapGrid(toggle){
   return{
-    type: CURSOR_SNAPGRID,
+    type: cursor,
+    subtype: CURSOR_SNAPGRID,
     toggle,
   }
 }
@@ -92,7 +145,8 @@ export function cursorSnapGrid(toggle){
 //toggles snap to grid
 export function cursorSnapPt(toggle){
   return{
-    type: CURSOR_SNAPPT,
+    type: cursor,
+    subtype: CURSOR_SNAPPT,
     toggle,
   }
 }
@@ -100,7 +154,8 @@ export function cursorSnapPt(toggle){
 //toggles snap to grid
 export function cursorSnapGlobal(toggle){
   return{
-    type: CURSOR_SNAPGLOBAL,
+    type: cursor,
+    subtype: CURSOR_SNAPGLOBAL,
     toggle,
   }
 }
@@ -108,7 +163,8 @@ export function cursorSnapGlobal(toggle){
 //toggles snap to grid
 export function cursorSnapRef(toggle){
   return{
-    type: CURSOR_SNAPREF,
+    type: cursor,
+    subtype: CURSOR_SNAPREF,
     toggle,
   }
 }
@@ -116,7 +172,8 @@ export function cursorSnapRef(toggle){
 //sets grid scale
 export function cursorGridScale(int){
   return{
-    type: CURSOR_GRIDSCALE,
+    type: cursor,
+    subtype: CURSOR_GRIDSCALE,
     int,
   }
 }
@@ -125,7 +182,8 @@ export function cursorGridScale(int){
 //adds point
 export function addPt(pt){
   return {
-    type: ADD_PT,
+    type: scene,
+    subtype: ADD_PT,
     pt
   };
 }
