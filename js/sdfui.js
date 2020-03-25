@@ -43,9 +43,9 @@ function listener(){
   mPt.setXY(state.cursor.pos.x, state.cursor.pos.y);
   //update kdTree of points
   for(let p of state.scene.pts){
-    if(p.pt.insert == true){
+    if(p.pt.update == true){
       ptTree.insert(p.pt);
-      p.pt.insert = false;
+      p.pt.update = false;
     }
   }
   return state;

@@ -14,18 +14,38 @@ import * as ACT from './actions.js';
 import { ptTree } from './sdfui.js';
 
 class vec{
-  constructor(x, y, z, w, id, _new, update, remove, pId){
+  constructor(x, y, z, w, id, update, pId){
     this.x = x || 0;
     this.y = y || 0;
     this.z = z || 0;
     this.w = w || 0;
     this.id = id || "";
-    this.new = _new || true;
     this.update = update || false;
-    this.remove = remove || false;
     //parentId
     this.parentId = pId || "";
   }
+}
+
+function lengthVec(_vec){
+  return Math.sqrt(_vec.x * _vec.x + _vec.y * _vec.y);
+}
+
+function normVec(_vec){
+  let vec = {..._vec};
+  let l = lengthVec(vec);
+  vec.x = vec.x / l;
+  vec.y = vec.y / l;
+  return vec;
+}
+
+function dotVec(_vecA, _vecB){
+  let x = _vecA.x * _vecB.x;
+  let y = _vecA.y * _vecB.y;
+  return x + y;
+}
+
+function angleVec(_vec){
+  return (Math.atan2( - _vec.y, - _vec.x ) + Math.PI);
 }
 
 var propsDefault = {
@@ -38,12 +58,14 @@ var propsDefault = {
 }
 
 class prim{
-  constructor(pts, _props, id, pId, merge){
-    //scene merge
-    this.merge = merge || "";
+  constructor(type, pts, _props, id, pId, merge){
+    this.type = type;
+    //list of point ids
+    this.pts = pts || [];
     this.properties = _props || {...propsDefault};
     this.id = id || "";
     this.pId = pId || "";
+    //scene merge
     this.merge = merge || "union";
   }
 }
@@ -64,14 +86,13 @@ const uiInit = {
 }
 
 const cursorInit = {
-  prev: new vec(0, 0),
   pos: new vec(0, 0),
   snapPt: true,
   snapGlobal: false,
   snapGlobalAngle: 45,
   snapGrid: false,
-  snapRef: false,
-  snapRefAngle: 45,
+  snapRef: true,
+  snapRefAngle: 15,
   //grid properties that are important to snapping
   //scaleX, scaleY, offsetX, offsetY
   grid: new vec(0,0,0,0),
@@ -79,7 +100,16 @@ const cursorInit = {
 }
 
 const sceneInit = {
+  //curr edit Item
+  editItem:"",
+  //all points in doc
   pts:[],
+  //points in doc to be removed
+  rmPts:[],
+  //all polylines in doc
+  plines:[],
+  polygons:[],
+
 }
 
 const initialState={
@@ -120,12 +150,12 @@ function cursor(_state=initialState, action) {
   switch(action.subtype) {
     case ACT.CURSOR_SET:
       let pt = {x:action.vec2.x, y:action.vec2.y};
+      let pts = _state.scene.pts;
       if(snapPt){
         let ptNear = ptTree.nearest(pt, 1);
         if (ptNear.length > 0 && ptNear[0][1] < 0.001){
           pt = ptNear[0][0];
           return Object.assign({}, state,{
-            prev: {...state.pos},
             pos: pt
           });
         }
@@ -134,44 +164,61 @@ function cursor(_state=initialState, action) {
         pt.y = Math.round(((pt.y) * (1 + state.grid.y)) / state.grid.y) * state.grid.y + state.grid.w;
 
         return Object.assign({}, state,{
-          prev: {...state.pos},
           pos: pt
         });
-      } if(state.snapGlobal) {
-        if (!(state.prev.x==0 && state.prev.y==0)){
-          //previous line
-          let line = {...state.prev};
-          // let lnCurr = new THREE.Vector2().subVectors(prevPt, evPt);
+      } if(state.snapGlobal && pts.length > 0) {
+          let prev = {...pts[pts.length - 1].pt};
+          let line = {...prev};
+
           line.x = line.x - pt.x;
           line.y = line.y - pt.y;
-          console.log(line);
+          // let angle = (Math.atan2( - line.y, - line.x ) + Math.PI) * (180 / Math.PI);
+          let angle = angleVec(line)  * (Math.PI / 180);
 
-          // let angle = lnCurr.angle()* (180 / Math.PI);
-          let angle = (Math.atan2( - line.y, - line.x ) + Math.PI) * (180 / Math.PI);
-          console.log((Math.atan2( - line.y, - line.x ) + Math.PI) * (180 / Math.PI));
-
-          // snap to global angle
           let snapA = (Math.round(angle / state.snapGlobalAngle) * state.snapGlobalAngle);
           snapA = (snapA * (Math.PI / 180));
 
           //length
-          let length = (Math.sqrt( line.x * line.x + line.y * line.y ));
-          pt.x = state.prev.x - length * Math.cos(snapA);
-          pt.y = state.prev.y - length * Math.sin(snapA);
-
-          // pt.x = snapX / resolution.x;
-          // pt.y = (resolution.y - snapY) / resolution.y;
+          let length = lengthVec(line);
+          pt.x = prev.x - length * Math.cos(snapA);
+          pt.y = prev.y - length * Math.sin(snapA);
 
           return Object.assign({}, state,{
-            prev: {...state.pos},
             pos: pt
           });
-        }
-      } if(state.snapRef) {
+      } if(state.snapRef && pts.length > 1) {
+        let prev = {...pts[pts.length - 1].pt};
+        let prevPrev = {...pts[pts.length - 2].pt};
 
+        let line = {...prev};
+        let linePrev = {...prevPrev};
+        // let lnCurr = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
+        line.x = line.x - pt.x;
+        line.y = line.y - pt.y;
+        // let lnCurrN = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
+        let lineN = normVec(line);
+        // let lnPrev = new THREE.Vector2().subVectors(ptPrevEnd, ptPrevBeg);
+        linePrev.x = prev.x - linePrev.x;
+        linePrev.y = prev.y - linePrev.y;
+
+        let linePrevN = normVec(linePrev);
+
+        // let dot = lnPrev.normalize().dot(lnCurrN.normalize());
+        let dot = dotVec(lineN, linePrevN);
+        // let det = lnPrev.x * lnCurrN.y - lnPrev.y * lnCurrN.x
+        let det = linePrevN.x * lineN.y - linePrevN.y * lineN.x;
+        //
+        let angle = Math.atan2(det, dot) * (180 / Math.PI);
+        console.log(angle);
+        //
+        let snapA = Math.round(angle / state.snapRefAngle) * state.snapRefAngle;
+        //
+        snapA = snapA * (Math.PI / 180) + angleVec(linePrev);
+        //
+        pt.x = prev.x - (lengthVec(line) * Math.cos(snapA));
+        pt.y = prev.y - (lengthVec(line) * Math.sin(snapA));
 
       } return Object.assign({}, state,{
-        prev: {...state.pos},
         pos: pt
       });
     case ACT.CURSOR_SNAPGLOBAL:
@@ -208,20 +255,15 @@ function scene(_state=initialState, action) {
   let state = _state.scene;
   switch(action.subtype){
     case ACT.ADD_PT:
+      let pt = action.pt;
       return Object.assign({}, state,{
         pts: [
           ...state.pts,
           {
-            pt: action.pt
+            pt: new vec(pt.x, pt.y, pt.z, pt.w, pt.id, true, pt.shapeID),
           }
         ]
       });
-      // return [
-      //   ...state,
-      //   {
-      //     pt: action.pt
-      //   }
-      // ]
     default:
       return state;
   }
