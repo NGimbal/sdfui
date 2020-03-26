@@ -73,6 +73,8 @@ class prim{
 const statusInit = {
   resolution: new vec(0,0),
   shaderUpdate: false,
+  raster: false,
+  export: false,
 }
 
 const uiInit = {
@@ -83,15 +85,18 @@ const uiInit = {
   fillColor: 0x000000,
   strokeWeight: 0.02,
   radius: 0.02,
+  pause: false,
+  grid: true,
+  points: false,
 }
 
 const cursorInit = {
   pos: new vec(0, 0),
-  snapPt: true,
+  snapPt: false,
   snapGlobal: false,
   snapGlobalAngle: 45,
   snapGrid: false,
-  snapRef: true,
+  snapRef: false,
   snapRefAngle: 15,
   //grid properties that are important to snapping
   //scaleX, scaleY, offsetX, offsetY
@@ -109,7 +114,6 @@ const sceneInit = {
   //all polylines in doc
   plines:[],
   polygons:[],
-
 }
 
 const initialState={
@@ -131,6 +135,10 @@ function status(_state=initialState, action){
       return Object.assign({}, state,{
         shaderUpdate: action.update
       });
+    case ACT.STATUS_RASTER:
+      return !state.raster;
+    case ACT.STATUS_EXPORT:
+      return !state.export;
     default:
       return state;
   }
@@ -139,6 +147,18 @@ function status(_state=initialState, action){
 function ui(_state=initialState, action){
   let state = _state.ui;
   switch(action.subtype){
+    case ACT.UI_PAUSE:
+      return Object.assign({}, state,{
+        pause: !state.pause
+      });
+    case ACT.UI_GRID:
+      return Object.assign({}, state,{
+        grid: !state.grid
+      });
+    case ACT.UI_POINTS:
+      return Object.assign({}, state,{
+        points: !state.points
+      });
     default:
       return state;
   }
@@ -151,7 +171,8 @@ function cursor(_state=initialState, action) {
     case ACT.CURSOR_SET:
       let pt = {x:action.vec2.x, y:action.vec2.y};
       let pts = _state.scene.pts;
-      if(snapPt){
+
+      if(state.snapPt){
         let ptNear = ptTree.nearest(pt, 1);
         if (ptNear.length > 0 && ptNear[0][1] < 0.001){
           pt = ptNear[0][0];
@@ -173,8 +194,8 @@ function cursor(_state=initialState, action) {
           line.x = line.x - pt.x;
           line.y = line.y - pt.y;
           // let angle = (Math.atan2( - line.y, - line.x ) + Math.PI) * (180 / Math.PI);
-          let angle = angleVec(line)  * (Math.PI / 180);
-
+          let angle = angleVec(line) * (180 / Math.PI);
+          console.log(angle);
           let snapA = (Math.round(angle / state.snapGlobalAngle) * state.snapGlobalAngle);
           snapA = (snapA * (Math.PI / 180));
 
@@ -189,35 +210,29 @@ function cursor(_state=initialState, action) {
       } if(state.snapRef && pts.length > 1) {
         let prev = {...pts[pts.length - 1].pt};
         let prevPrev = {...pts[pts.length - 2].pt};
-
         let line = {...prev};
         let linePrev = {...prevPrev};
-        // let lnCurr = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
+
+        //current line
         line.x = line.x - pt.x;
         line.y = line.y - pt.y;
-        // let lnCurrN = new THREE.Vector2().subVectors(ptPrevEnd, evPt);
         let lineN = normVec(line);
-        // let lnPrev = new THREE.Vector2().subVectors(ptPrevEnd, ptPrevBeg);
+
+        //previous line
         linePrev.x = prev.x - linePrev.x;
         linePrev.y = prev.y - linePrev.y;
-
         let linePrevN = normVec(linePrev);
 
-        // let dot = lnPrev.normalize().dot(lnCurrN.normalize());
+        //angle between two lines
         let dot = dotVec(lineN, linePrevN);
-        // let det = lnPrev.x * lnCurrN.y - lnPrev.y * lnCurrN.x
         let det = linePrevN.x * lineN.y - linePrevN.y * lineN.x;
-        //
         let angle = Math.atan2(det, dot) * (180 / Math.PI);
-        console.log(angle);
-        //
+        //snap angle
         let snapA = Math.round(angle / state.snapRefAngle) * state.snapRefAngle;
-        //
         snapA = snapA * (Math.PI / 180) + angleVec(linePrev);
         //
         pt.x = prev.x - (lengthVec(line) * Math.cos(snapA));
         pt.y = prev.y - (lengthVec(line) * Math.sin(snapA));
-
       } return Object.assign({}, state,{
         pos: pt
       });

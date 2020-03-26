@@ -45,6 +45,9 @@ function addButtonHeading(uiMod){
 }
 
 function addButtonHint(uiMod){
+  // let uiMod = _uiMod || this;
+  // if (uiMod == null) console.log("invalid uiMod or not bound properly");
+
   let buttonStack = document.getElementById('button-stack');
   let stack = buttonStack.children;
 
@@ -106,10 +109,13 @@ function insertAfter(el, referenceNode) {
   referenceNode.parentNode.insertBefore(el, referenceNode.nextSibling);
 }
 
-
 function toggleActive(uiMod){
+  // console.log(uiMod);
+  // let uiMod = _uiMod || this;
+  // if (uiMod == null) console.log("invalid uiMod or not bound properly");
+
   let classAct = uiMod.tag + "-active";
-  uiMod.button.elem.classList.toggle(classAct);
+  uiMod.elem.classList.toggle(classAct);
 }
 
 function pulseActive(uiMod){

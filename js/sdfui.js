@@ -4,7 +4,7 @@
 import * as THREE from './libjs/three.module.js';
 
 import * as PRIM from './fluentPrim.js';
-import {GhostUI, Button} from './GhostUI.js';
+import {GhostUI} from './GhostUI.js';
 
 import * as ACT from './actions.js';
 import { reducer } from './reducers.js';

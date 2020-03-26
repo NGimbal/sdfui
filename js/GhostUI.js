@@ -1,7 +1,7 @@
 "use strict";
 
 import * as THREE from './libjs/three.module.js';
-import * as SNAP from './fluentSnap.js';
+// import * as SNAP from './fluentSnap.js';
 import * as HINT from './fluentHints.js';
 import * as PRIM from './fluentPrim.js';
 
@@ -75,20 +75,20 @@ class GhostUI{
 
     //MODIFIERS
     //Clck could be a built in function - looks like it will generally be a simple toggle
-    let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
-    let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
-    let showPts = new UIModifier("showPts", "view", "r", false, {clck:showPtsClck, update:showPtsUpdate}, {pts:false});
+    let pauseShader = new UIModifier("pauseShader", "view", "/", {act:ACT.uiPause()}, {});
+    let hideGrid = new UIModifier("hideGrid", "view", ".", {act:ACT.uiGrid()}, {});
+    let showPts = new UIModifier("showPts", "view", "r", {act:ACT.uiPoints()}, {});
 
-    let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
-    let printShader = new UIModifier("printShader", "export", "c", false, {clck:printShaderClck, update:printShaderUpdate}, {});
+    let screenshot = new UIModifier("screenshot", "export", "l", {act:ACT.statusRaster()}, {});
+    let printShader = new UIModifier("printShader", "export", "c", {act:ACT.statusExport()}, {});
 
-    let snapPt = new UIModifier("snapPt", "snap", "p", false, {clck:SNAP.snapPtClck, mv:SNAP.snapPtMv, up:SNAP.snapPtUp}, {dist:100});
-    let snapRef = new UIModifier("snapRef", "snap", "s", false, {clck:SNAP.snapRefClck, mv:SNAP.snapRefMv, up:SNAP.snapRefUp}, {angle:30});
-    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", false, {clck:SNAP.snapGlobalClck, mv:SNAP.snapGlobalMv, up:SNAP.snapGlobalUp}, {angle:45});
-    let snapGrid = new UIModifier("snapGrid", "snap", "g", false, {clck:SNAP.snapGridClck, mv:SNAP.snapGridMv, up:SNAP.snapGridUp}, {});
+    let snapPt = new UIModifier("snapPt", "snap", "p", {act:ACT.cursorSnapPt()}, {dist:100});
+    let snapRef = new UIModifier("snapRef", "snap", "s", {act:ACT.cursorSnapRef()}, {angle:30});
+    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", {act:ACT.cursorSnapGlobal()}, {angle:45});
+    let snapGrid = new UIModifier("snapGrid", "snap", "g", {act:ACT.cursorSnapGrid()}, {});
 
-    let endDraw = new UIModifier("endDraw", "edit", "Enter", false, {clck:endDrawClck, update:endDrawUpdate}, {exit:false});
-    let escDraw = new UIModifier("escDraw", "edit", "Escape", false, {clck:escDrawClck, update:escDrawUpdate}, {exit:false});
+    let endDraw = new UIModifier("endDraw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate}, {exit:false});
+    let escDraw = new UIModifier("escDraw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate}, {exit:false});
 
     //MODES
     let globalMods = [pauseShader, hideGrid, showPts, screenshot, printShader];
@@ -345,11 +345,11 @@ function drawEnter(){
 
   //turns on snapping to pts by default
   //function should take some default settings at some point
-  var index = this.modifiers.findIndex(i => i.name === "snapPt");
-  this.modifiers[index].clck();
-
-  var index = this.modifiers.findIndex(i => i.name === "showPts");
-  this.modifiers[index].clck();
+  // var index = this.modifiers.findIndex(i => i.name === "snapPt");
+  // this.modifiers[index].clck();
+  //
+  // var index = this.modifiers.findIndex(i => i.name === "showPts");
+  // this.modifiers[index].clck();
 }
 
 function drawExit(){
@@ -452,7 +452,6 @@ function drawUpdate(fluentDoc){
         this.exit();
         return "exit";
       }
-
     }
   }
   return fluentDoc;
@@ -583,7 +582,7 @@ function endDrawUpdate(fluentDoc){
 
   //this is a little goofy but there should be no problem with it
   let options = {...fluentDoc.currEditItem.properties};
-  console.log(options);
+  // console.log(options);
 
   fluentDoc.editItems.push(fluentDoc.currEditItem.create(options));
   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
@@ -902,28 +901,29 @@ class UIMode{
         tags.push(m.tag);
         HINT.addButtonHeading(m);
       }
-      let newButton = new Button(HINT.addButtonHint(m), m)
+      let newButton = m.addButton();
       m.button = newButton;
     }
   }
 }
 
-//Modifier functions return null or a cloned modified FluentDoc
-//we can also include a list of what's changed
-//or we could check that it is a valid state for the program
-//I think there are ways of handling problems that might arise later
+//simple class to hold modifiers
 class UIModifier{
   //clck
-  constructor(name, tag, keyCut, toggle, events, _options){
+  constructor(name, tag, keyCut, events, _options, _elem){
     this.name = name;
     //tag e.g. snap, edit, view, export
     this.tag = tag;
     this.keyCut = keyCut;
 
-    this.toggle = toggle || false;
+    this.toggle = false;
     //whether this modifiers move function should be called on move or onUpdate
     if(events.update){
       this.update = events.update;
+    }
+    if(events.act){
+      this.act = events.act;
+      this.clck = this.dispatch;
     }
     if(events.clck){
       this.clck = events.clck.bind(this);
@@ -943,41 +943,40 @@ class UIModifier{
 
     this.options = _options || {};
 
-    this.button = null;
+    //button element
+    this.elem = _elem || "";
+    if (this.elem != ""){
+      this.innerHTML = this.elem.innerHTML;
+
+      let style = window.getComputedStyle(elem);
+      this.top = style.getPropertyValue('top');
+      this.left = style.getPropertyValue('left');
+
+      elem.onclick = this.clck;
+    }
   }
-}
 
-class Button{
-  constructor(elem, uimodifier){
-    //for offsets, could clean up these names
-    this.pos1 = 0;
-    this.pos2 = 0;
-    this.pos3 = 0;
-    this.pos4 = 0;
+  addButton(){
+    let elem = HINT.addButtonHint(this);
 
+    //button element
     this.elem = elem;
-
     this.innerHTML = this.elem.innerHTML;
 
-    //bool for checking if input method is active
-    this.input = false;
-
-    this.uimodifier = uimodifier;
-
-    //original positions
-    let style = window.getComputedStyle(elem);
+    let style = window.getComputedStyle(this.elem);
     this.top = style.getPropertyValue('top');
     this.left = style.getPropertyValue('left');
 
-    this.onclick = this.uimodifier.clck.bind(this.uimodifier);
+    elem.onclick = this.clck;
+  }
 
-    //what happens onclick
-    elem.onclick = this.onclick;
-
-    //interpret type and color from html element
-    let classes = elem.classList;
+  dispatch(){
+    SDFUI.store.dispatch(this.act);
+    HINT.toggleActive(this);
   }
 }
+
+
 
 function hexToRgb(hex) {
   // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
@@ -1026,4 +1025,4 @@ function addSVGCircle(id, x, y, r, opacity, fill, stroke, strokeWeight){
   return svg;
 }
 
-export {GhostUI, Button};
+export {GhostUI};

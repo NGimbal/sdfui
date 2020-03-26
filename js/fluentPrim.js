@@ -48,7 +48,7 @@ into other function calls.
 "use strict";
 
 import * as THREE from './libjs/three.module.js';
-import * as SNAP from './fluentSnap.js';
+// import * as SNAP from './fluentSnap.js';
 import * as HINT from './fluentHints.js';
 
 import { resolution } from './sdfui.js';
