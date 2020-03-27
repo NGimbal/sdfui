@@ -81,10 +81,10 @@ const uiInit = {
   drawing: true,
   editElem: new PRIM.PolyLine(),
   filter: null,
-  strokeColor: 0x000000,
-  fillColor: 0x000000,
-  strokeWeight: 0.02,
-  radius: 0.02,
+  stroke: "FF0000",   //strokecolor
+  fill: "00FF00",    //fillcolor
+  weight: 0.002,      //stroke weight
+  radius: 0.002,
   pause: false,
   grid: true,
   points: false,
@@ -133,12 +133,16 @@ function status(_state=initialState, action){
       });
     case ACT.STATUS_UPDATE:
       return Object.assign({}, state,{
-        shaderUpdate: action.update
+        shaderUpdate: action.toggle,
       });
     case ACT.STATUS_RASTER:
-      return !state.raster;
+      return Object.assign({}, state,{
+        raster: !state.raster,
+      });
     case ACT.STATUS_EXPORT:
-      return !state.export;
+      return Object.assign({}, state,{
+        export: !state.export,
+      });
     default:
       return state;
   }
@@ -158,6 +162,22 @@ function ui(_state=initialState, action){
     case ACT.UI_POINTS:
       return Object.assign({}, state,{
         points: !state.points
+      });
+    case ACT.DRAW_WEIGHT:
+      return Object.assign({}, state,{
+        weight: action.weight,
+      });
+    case ACT.DRAW_RADIUS:
+      return Object.assign({}, state,{
+        radius: action.radius,
+      });
+    case ACT.DRAW_FILL:
+      return Object.assign({}, state,{
+        fill: action.hexString,
+      });
+    case ACT.DRAW_STROKE:
+      return Object.assign({}, state,{
+        stroke: action.hexString,
       });
     default:
       return state;

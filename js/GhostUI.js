@@ -75,20 +75,20 @@ class GhostUI{
 
     //MODIFIERS
     //Clck could be a built in function - looks like it will generally be a simple toggle
-    let pauseShader = new UIModifier("pauseShader", "view", "/", {act:ACT.uiPause()}, {});
-    let hideGrid = new UIModifier("hideGrid", "view", ".", {act:ACT.uiGrid()}, {});
-    let showPts = new UIModifier("showPts", "view", "r", {act:ACT.uiPoints()}, {});
+    let pauseShader = new UIModifier("pauseShader", "view", "/", {act:ACT.uiPause()},false, {});
+    let hideGrid = new UIModifier("hideGrid", "view", ".", {act:ACT.uiGrid()},false, {});
+    let showPts = new UIModifier("showPts", "view", "r", {act:ACT.uiPoints()},false, {});
 
-    let screenshot = new UIModifier("screenshot", "export", "l", {act:ACT.statusRaster()}, {});
-    let printShader = new UIModifier("printShader", "export", "c", {act:ACT.statusExport()}, {});
+    let screenshot = new UIModifier("screenshot", "export", "l", {act:ACT.statusRaster()},true, {});
+    let printShader = new UIModifier("printShader", "export", "c", {act:ACT.statusExport()},true, {});
 
-    let snapPt = new UIModifier("snapPt", "snap", "p", {act:ACT.cursorSnapPt()}, {dist:100});
-    let snapRef = new UIModifier("snapRef", "snap", "s", {act:ACT.cursorSnapRef()}, {angle:30});
-    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", {act:ACT.cursorSnapGlobal()}, {angle:45});
-    let snapGrid = new UIModifier("snapGrid", "snap", "g", {act:ACT.cursorSnapGrid()}, {});
+    let snapPt = new UIModifier("snapPt", "snap", "p", {act:ACT.cursorSnapPt()},false, {dist:100});
+    let snapRef = new UIModifier("snapRef", "snap", "s", {act:ACT.cursorSnapRef()},false, {angle:30});
+    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", {act:ACT.cursorSnapGlobal()},false, {angle:45});
+    let snapGrid = new UIModifier("snapGrid", "snap", "g", {act:ACT.cursorSnapGrid()},false, {});
 
-    let endDraw = new UIModifier("endDraw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate}, {exit:false});
-    let escDraw = new UIModifier("escDraw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate}, {exit:false});
+    let endDraw = new UIModifier("endDraw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true, {exit:false});
+    let escDraw = new UIModifier("escDraw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true, {exit:false});
 
     //MODES
     let globalMods = [pauseShader, hideGrid, showPts, screenshot, printShader];
@@ -193,12 +193,11 @@ class GhostUI{
     let newDoc = mode.update(fluentDoc);
     if (newDoc && newDoc != "exit") fluentDoc = newDoc;
     else if (newDoc == "exit"){
-      console.log("hi");
 
       //enter, how to actually make this  a little more modular?
-      let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
-      let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
-      let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
+      // let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
+      // let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
+      // let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
 
       let selMods = [pauseShader, hideGrid, screenshot];
       let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
@@ -414,6 +413,7 @@ function drawUpdate(fluentDoc){
     let newColor = new THREE.Vector3(rgb.r / 255, rgb.g / 255, rgb.b/255);
     this.options.stroke = newColor;
     fluentDoc.currEditItem.properties.stroke = newColor;
+    SDFUI.store.dispatch(ACT.drawStroke(sel.value));
   }
 
   sel = document.getElementById("fillColor-select");
@@ -425,22 +425,20 @@ function drawUpdate(fluentDoc){
     this.options.fill = newColor;
     //curr edit item properties
     fluentDoc.currEditItem.properties.fill = newColor;
+    SDFUI.store.dispatch(ACT.drawFill(sel.value));
   }
 
   sel = document.getElementById("strokeWeight-range");
   if(this.options.strokeWeight != sel.value){
-    //curr UI options
-    this.options.weight = sel.value / 2000;
-    //curr edit item properties
-    fluentDoc.currEditItem.properties.weight = sel.value / 2000;
+    SDFUI.store.dispatch(ACT.drawWeight(sel.value / 2000));
   }
 
   sel = document.getElementById("radius-range");
-  if(this.options.strokeWeight != sel.value){
+  if(this.options.radius != sel.value){
     //curr UI options
     this.options.radius = sel.value / 100;
     //curr edit item properties
-    fluentDoc.currEditItem.properties.radius = sel.value / 100;
+    SDFUI.store.dispatch(ACT.drawRadius(sel.value / 100));
   }
 
   for(let m of this.modifiers){
@@ -910,7 +908,7 @@ class UIMode{
 //simple class to hold modifiers
 class UIModifier{
   //clck
-  constructor(name, tag, keyCut, events, _options, _elem){
+  constructor(name, tag, keyCut, events, _pulse, _options, _elem){
     this.name = name;
     //tag e.g. snap, edit, view, export
     this.tag = tag;
@@ -940,6 +938,12 @@ class UIModifier{
     if(events.scrll){
       this.scrll = events.scrll.bind(this);
     }
+
+    if(typeof _pulse == "boolean"){
+       this.pulse = _pulse;
+     }else{
+       this.pulse = false;
+     }
 
     this.options = _options || {};
 
@@ -972,7 +976,11 @@ class UIModifier{
 
   dispatch(){
     SDFUI.store.dispatch(this.act);
-    HINT.toggleActive(this);
+    if(this.pulse){
+      HINT.pulseActive(this);
+    }else{
+      HINT.toggleActive(this);
+    }
   }
 }
 

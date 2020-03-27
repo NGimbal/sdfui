@@ -195,29 +195,38 @@ export function drawFilter(filter){
 }
 
 //what is the current stroke color - vec(r, g, b, a)
-export function drawStroke(stroke){
+export function drawStroke(hexString){
   return{
     type: ui,
     subtype: DRAW_STROKE,
-    stroke,
+    hexString,
   }
 }
 
 //what is the current fill color - vec(r, g, b, a)
-export function drawFill(fill){
+export function drawFill(hexString){
   return{
     type: ui,
     subtype: DRAW_FILL,
-    fill,
+    hexString,
   }
 }
 
-//what is the current fill weight - 0 - 1.0
+//what is the current stroke weight int
 export function drawWeight(weight){
   return{
     type: ui,
     subtype: DRAW_WEIGHT,
     weight,
+  }
+}
+
+//what is the current shape radius int
+export function drawRadius(radius){
+  return{
+    type: ui,
+    subtype: DRAW_RADIUS,
+    radius,
   }
 }
 

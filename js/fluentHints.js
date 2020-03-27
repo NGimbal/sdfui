@@ -120,8 +120,8 @@ function toggleActive(uiMod){
 
 function pulseActive(uiMod){
   let classAct = uiMod.tag + "-active";
-  uiMod.button.elem.classList.toggle(classAct);
-  window.setTimeout(function(){uiMod.button.elem.classList.toggle(classAct);}.bind(uiMod), 250);
+  uiMod.elem.classList.toggle(classAct);
+  window.setTimeout(function(){uiMod.elem.classList.toggle(classAct);}.bind(uiMod), 250);
 }
 
 function popModeHint(elem){

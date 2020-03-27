@@ -24,7 +24,6 @@ uniform vec4       pointPrim;
 
 //expandable structure for item being edited
 uniform sampler2D  posTex;
-uniform vec2       posTexRes;
 
 //global parameter container for all parameterized properties
 uniform sampler2D parameters;

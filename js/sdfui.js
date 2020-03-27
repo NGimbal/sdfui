@@ -124,8 +124,6 @@ function main() {
     pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
     //uniform for curr edit polypoint prims, should be factored out
     posTex: { value: fluentDoc.currEditItem.ptsTex},
-    //resolution for curr edit poly point prims
-    posTexRes: {value: new THREE.Vector2(16.0, 16.0)},
     //global points texture
     parameters: {value: parameters},
     //current mouse position - surprised mPt works here
@@ -133,12 +131,12 @@ function main() {
     //index of texel being currently edited
     editCTexel : {value: fluentDoc.currEditItem.cTexel},
     //current edit options
-    editWeight : {value: ui.modeStack.curr().options.weight},
+    editWeight : {value: state.ui.weight},
     strokeColor: {value: new THREE.Vector3(0.0, 0.0, 0.0)},
     fillColor: {value: new THREE.Vector3(0.0, 0.384, 0.682)},
-    editRadius : {value: ui.modeStack.curr().options.radius},
+    editRadius : {value: state.ui.radius},
     //global scale variables, mostly unused
-    scale: {value: fluentDoc.scale},
+    scale: {value: state.cursor.scale},
     hiDPR: {value: window.devicePixelRatio}
   };
 
@@ -177,6 +175,7 @@ function resizeRendererToDisplaySize(renderer) {
     store.dispatch(ACT.statusRes({x:width, y:height}));
     store.dispatch(ACT.cursorGridScale(48));
     //this is convoluted
+    store.dispatch(ACT.statusUpdate(true));
     ui.fluentStack.curr().shaderUpdate = true;
   }
 
@@ -207,14 +206,16 @@ function render() {
 
   //surprised that mPt works here
   screenMesh.material.uniforms.mousePt.value = mPt;
-  screenMesh.material.uniforms.editWeight.value = uiOptions.weight;
-  screenMesh.material.uniforms.strokeColor.value = uiOptions.stroke;
-  screenMesh.material.uniforms.fillColor.value = uiOptions.fill;
-  screenMesh.material.uniforms.editRadius.value = uiOptions.radius;
+  screenMesh.material.uniforms.editWeight.value = state.ui.weight;
+  let stroke = hexToRgb(state.ui.stroke);
+  screenMesh.material.uniforms.strokeColor.value.set(stroke.r, stroke.g, stroke.b);
+  let fill = hexToRgb(state.ui.fill);
+  screenMesh.material.uniforms.fillColor.value.set(fill.r, fill.g, fill.b);
+  screenMesh.material.uniforms.editRadius.value = state.ui.radius;
 
   screenMesh.material.uniforms.needsUpdate = true;
 
-  let shaderUpdate = false;
+  let shaderUpdate = state.status.shaderUpdate;
 
   //change current edit item in shader
   if (uiOptions.currEditItem != dataShader.parameters.properties.currEditItem){
@@ -286,24 +287,25 @@ function render() {
     screenMesh.material = material;
 
     fluentDoc.shaderUpdate = false;
+    store.dispatch(ACT.statusUpdate(false));
   }
 
   renderer.render(scene, camera);
 
   //this hack is necessary because saving has to happen
   //while framebuffer still has data
-  if(fluentDoc.screenshot){
+  if(state.status.raster){
     canvas.toBlob((blob) => {
       saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
     });
-    fluentDoc.screenshot = false;
+    store.dispatch(ACT.statusRaster());
   }
 }
 
 function animate(time){
   //currently can't unpause for some reason
   let fluentDoc = ui.fluentStack.curr();
-  if(!fluentDoc.shaderPause){ render(); }
+  if(!state.ui.pause){ render(); }
 
   requestAnimationFrame(animate);
 }
@@ -336,6 +338,21 @@ function modifyDefine(shader, define, val){
   shader = startShader + endShader;
 
   return shader;
+}
+
+function hexToRgb(hex) {
+  // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+  var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+    return r + r + g + g + b + b;
+  });
+
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
 }
 
 //Run-----------------------------------------------------------
