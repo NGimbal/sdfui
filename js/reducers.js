@@ -63,6 +63,7 @@ class prim{
     //list of point ids
     this.pts = pts || [];
     this.properties = _props || {...propsDefault};
+    this.needsUpdate = false;
     this.id = id || "";
     this.pId = pId || "";
     //scene merge
@@ -86,7 +87,7 @@ const uiInit = {
   weight: 0.002,      //stroke weight
   radius: 0.002,
   pause: false,
-  grid: true,
+  grid: false,
   points: false,
 }
 
@@ -178,6 +179,10 @@ function ui(_state=initialState, action){
     case ACT.DRAW_STROKE:
       return Object.assign({}, state,{
         stroke: action.hexString,
+      });
+    case ACT.DRAW_FILTER:
+      return Object.assign({}, state,{
+        filter: action.filter,
       });
     default:
       return state;
@@ -288,15 +293,33 @@ function cursor(_state=initialState, action) {
 //state related to the scene
 function scene(_state=initialState, action) {
   let state = _state.scene;
+  let ptIndex = -1;
   switch(action.subtype){
-    case ACT.ADD_PT:
+    case ACT.SCENE_ADDPT:
       let pt = action.pt;
       return Object.assign({}, state,{
+          ...state,
+          pts: [...state.pts, new vec(pt.x, pt.y, pt.z, pt.w, pt.id, true, pt.shapeID)]
+      });
+    case ACT.SCENE_RMVPT:
+      // let pt = action.pt;
+      ptIndex = state.pts.findIndex(i => i.id === action.pt.id);
+      return Object.assign({}, state,{
+        ...state,
         pts: [
-          ...state.pts,
-          {
-            pt: new vec(pt.x, pt.y, pt.z, pt.w, pt.id, true, pt.shapeID),
-          }
+          ...state.pts.slice(0, ptIndex),
+          ...state.pts.slice(ptIndex + 1)
+        ],
+        rmPts: [...state.rmPts, {...state.pts[ptIndex]}]
+      });
+    case ACT.SCENE_FINRMVPT:
+      // let pt = action.pt;
+      ptIndex = state.rmPts.findIndex(i => i.id === action.pt.id);
+      return Object.assign({}, state,{
+        ...state,
+        rmPts: [
+          ...state.rmPts.slice(0, ptIndex),
+          ...state.rmPts.slice(ptIndex + 1)
         ]
       });
     default:

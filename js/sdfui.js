@@ -43,15 +43,35 @@ function listener(){
   mPt.setXY(state.cursor.pos.x, state.cursor.pos.y);
   //update kdTree of points
   for(let p of state.scene.pts){
-    if(p.pt.update == true){
-      ptTree.insert(p.pt);
-      p.pt.update = false;
+    //will need to find and move, or find remove and add when update means moving points around
+    if(p.update == true){
+      ptTree.insert(p);
+      //am I allowed to do this? Prolly not...
+      p.update = false;
     }
+  }
+  for(let p of state.scene.rmPts){
+    console.log(ptTree);
+    //have to write my own tree search function
+    let rmPt = searchTree(ptTree.root, p.id);
+    ptTree.remove(rmPt);
+    store.dispatch(ACT.sceneFinRmvPt(p));
+    //will also want to remove from parameters texture here as well
   }
   return state;
 };
 
-
+//searchKDTree for point by id
+function searchTree(node, id){
+  if(!node) return null;
+  if(node.obj.id == id) {
+    return node.obj;
+  } else {
+    let left = searchTree(node.left, id);
+    return left ? left : searchTree(node.right, id);
+  }
+  return null;
+}
 
 //substcribe to store changes - run listener to set relevant variables
 store.subscribe(() => console.log(listener()));
@@ -237,12 +257,27 @@ function render() {
         dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "4");
         break;
     }
-    shaderUpdate = true;
+    store.dispatch(ACT.statusUpdate(true));
+    // shaderUpdate = true;
   }
 
+  if (state.ui.grid != dataShader.parameters.properties.grid){
+    dataShader.parameters.properties.grid = state.ui.grid;
+    let valString = "0";
+
+    if (!state.ui.grid) valString = "1";
+    dataShader.shader = modifyDefine(dataShader.shader, "BG_GRID", valString);
+    // fluentDoc.shader = modifyDefine(fluentDoc.shader, "BG_GRID", valString);
+    // fluentDoc.shaderUpdate = true;
+    store.dispatch(ACT.statusUpdate(true));
+
+    // this.options.grid = !this.options.grid;
+  }
+
+
   //change filter in shader
-  if (uiOptions.filter != dataShader.parameters.properties.filter){
-    dataShader.parameters.properties.filter = uiOptions.filter;
+  if (state.ui.filter != dataShader.parameters.properties.filter){
+    dataShader.parameters.properties.filter = state.ui.filter;
     switch(uiOptions.filter){
       case "None":
         dataShader.shader = modifyDefine(dataShader.shader, "FILTER", "0");
@@ -257,7 +292,8 @@ function render() {
         dataShader.shader = modifyDefine(dataShader.shader, "FILTER", "3");
         break;
     }
-    shaderUpdate = true;
+    // shaderUpdate = true;
+    store.dispatch(ACT.statusUpdate(true));
   }
 
   //keep shader update for now
@@ -304,7 +340,7 @@ function render() {
 
 function animate(time){
   //currently can't unpause for some reason
-  let fluentDoc = ui.fluentStack.curr();
+  // let fluentDoc = ui.fluentStack.curr();
   if(!state.ui.pause){ render(); }
 
   requestAnimationFrame(animate);

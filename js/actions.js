@@ -39,8 +39,9 @@ export const DRAW_FILL         = "DRAW_FILL"; //fill color
 export const DRAW_WEIGHT       = "DRAW_WEIGHT"; //stroke weight
 export const DRAW_RADIUS       = "DRAW_RADIUS"; //shape radius
 //SCENE
-export const ADD_PT            = 'ADD_PT'; //add point to scene
-
+export const SCENE_ADDPT       = 'SCENE_ADDPT'; //add point to scene
+export const SCENE_RMVPT       = 'SCENE_RMVPT'; //stages pt for removal
+export const SCENE_FINRMVPT    = 'SCENE_FINRMVPT'; //finishes removing pt from state
 //ACTION CREATORS
 
 //records when shader needs to be recompiled - bool
@@ -189,7 +190,7 @@ export function drawEditItem(primType){
 export function drawFilter(filter){
   return{
     type: ui,
-    subtype: DRAW_EDITITEM,
+    subtype: DRAW_FILTER,
     filter,
   }
 }
@@ -232,10 +233,27 @@ export function drawRadius(radius){
 
 
 //adds point
-export function addPt(pt){
+export function sceneAddPt(pt){
   return {
     type: scene,
-    subtype: ADD_PT,
+    subtype: SCENE_ADDPT,
+    pt
+  };
+}
+
+//remove point
+export function sceneRmvPt(pt){
+  return {
+    type: scene,
+    subtype: SCENE_RMVPT,
+    pt
+  };
+}
+
+export function sceneFinRmvPt(pt){
+  return {
+    type: scene,
+    subtype: SCENE_FINRMVPT,
     pt
   };
 }

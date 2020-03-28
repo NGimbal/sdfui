@@ -63,7 +63,8 @@ class GhostUI{
       stroke:new THREE.Vector3(0.0, 0.0, 0.0),
       fill:new THREE.Vector3(0.0, 0.384, 0.682),
       fillToggle:false,
-      radius:0.125
+      radius:0.125,
+      grid: true
     };
 
     //Doc State
@@ -405,6 +406,7 @@ function drawUpdate(fluentDoc){
 
   sel = document.getElementById("filter-select");
   this.options.filter = sel.value;
+  SDFUI.store.dispatch(ACT.drawFilter(sel.value));
 
   sel = document.getElementById("strokeColor-select");
   if(this.options.strokeColor != sel.value){
@@ -485,7 +487,7 @@ function drawUp(e, fluentDoc){
   fluentDoc.pts.push(plPt);
   // fluentDoc.tree.insert(plPt);
 
-  SDFUI.store.dispatch({type:'scene', subtype:'ADD_PT', pt:plPt});
+  SDFUI.store.dispatch({type:'scene', subtype:'SCENE_ADDPT', pt:plPt});
 
   if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
     // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
@@ -495,6 +497,7 @@ function drawUp(e, fluentDoc){
     fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
     fluentDoc.shaderUpdate = true;
+    SDFUI.store.dispatch(ACT.statusUpdate(true));
   }
 
   return fluentDoc;
@@ -573,7 +576,8 @@ function endDrawUpdate(fluentDoc){
   }
 
   // so this is the disentangled paradigm
-  fluentDoc.shaderUpdate = true;
+  // fluentDoc.shaderUpdate = true;
+  store.dispatch(ACT.statusUpdate(true));
 
   //this is new paradigm
   fluentDoc.currEditItem.needsUpdate = true;
@@ -603,6 +607,7 @@ function escDrawUpdate(fluentDoc){
     var index = fluentDoc.pts.findIndex(i => i.id === p.id);
     fluentDoc.pts.splice(index, 1);
     fluentDoc.tree.remove(p);
+    SDFUI.store.dispatch(ACT.sceneRmvPt(p));
   }
 
   fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.currEditItem.create({...fluentDoc.currEditItem.properties});
