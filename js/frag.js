@@ -294,7 +294,8 @@ void main(){
 
     //Circle--------
     #if EDIT_SHAPE == 3
-    vec2 center = pointPrim.xy;
+    //center is first location in posTex
+    vec2 center = texture2D(posTex, vec2(texelOffset, texelOffset)).xy;
     d = sdCircle(uv, mPt, 0.125);
 
     if(center.x != 0.0){
@@ -332,6 +333,7 @@ void main(){
 
     //Rectange--------
     #if EDIT_SHAPE == 4
+    vec2 topLeft = texture2D(posTex, vec2(texelOffset, texelOffset)).xy;
     vec2 rect = vec2(0.5, 0.25);
     vec2 flipX = vec2(-1.0, 1.0);
 
@@ -339,8 +341,8 @@ void main(){
 
     d = sdBox(uv, center, rect, editRadius);
 
-    if(pointPrim.x != 0.0){
-      center = 0.5 * (mPt.xy - pointPrim.xy) + pointPrim.xy;
+    if(topLeft.x != 0.0){
+      center = 0.5 * (mPt.xy - topLeft.xy) + topLeft.xy;
       vec2 rPt = abs(mPt.xy - center);
       d = sdBox(uv, center, rPt, editRadius);
     }

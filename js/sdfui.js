@@ -74,8 +74,8 @@ function searchTree(node, id){
 }
 
 //substcribe to store changes - run listener to set relevant variables
-// store.subscribe(() => console.log(listener()));
-store.subscribe(() => listener());
+store.subscribe(() => console.log(listener()));
+// store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
@@ -322,6 +322,18 @@ function render() {
             break;
           case "polygon":
             dataShader = BAKE.polygon(prim, dataShader);
+            store.dispatch(ACT.sceneItemUpdate(index, false));
+            break;
+          case "polycircle":
+            dataShader = BAKE.polyCircle(prim, dataShader);
+            store.dispatch(ACT.sceneItemUpdate(index, false));
+            break;
+          case "circle":
+            dataShader = BAKE.circle(prim, dataShader);
+            store.dispatch(ACT.sceneItemUpdate(index, false));
+            break;
+          case "rectangle":
+            dataShader = BAKE.rectangle(prim, dataShader);
             store.dispatch(ACT.sceneItemUpdate(index, false));
           default:
             break;

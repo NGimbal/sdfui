@@ -13,66 +13,8 @@ import * as ACT from './actions.js';
 //let's keep it out for now
 import { ptTree } from './sdfui.js';
 
-export class vec{
-  constructor(x, y, z, w, id, update, pId){
-    this.x = x || 0;
-    this.y = y || 0;
-    this.z = z || 0;
-    this.w = w || 0;
-    this.id = id || (+new Date).toString(36).slice(-8);
-    this.update = update || false;
-    //parentId
-    this.parentId = pId || "";
-  }
-}
-
-export function lengthVec(_vec){
-  return Math.sqrt(_vec.x * _vec.x + _vec.y * _vec.y);
-}
-
-export function normVec(_vec){
-  let vec = {..._vec};
-  let l = lengthVec(vec);
-  vec.x = vec.x / l;
-  vec.y = vec.y / l;
-  return vec;
-}
-
-export function dotVec(_vecA, _vecB){
-  let x = _vecA.x * _vecB.x;
-  let y = _vecA.y * _vecB.y;
-  return x + y;
-}
-
-export function angleVec(_vec){
-  return (Math.atan2( - _vec.y, - _vec.x ) + Math.PI);
-}
-
-export var propsDefault = {
-  type:"",
-  filter:"",
-  stroke:"",
-  fill:"",
-  weight:0,
-  radius:0
-}
-
-export class prim{
-  constructor(type, pts, _props, id, pId, merge){
-    this.type = type;
-    //list of point ids
-    this.pts = pts || [];
-    this.properties = _props || {...propsDefault};
-    this.needsUpdate = false;
-    this.id = id ||  (+new Date).toString(36).slice(-8);
-    this.pId = pId || "";
-    //scene merge
-    this.merge = merge || "union";
-  }
-}
-
 const statusInit = {
-  resolution: new vec(0,0),
+  resolution: new PRIM.vec(0,0),
   shaderUpdate: false,
   raster: false,
   export: false,
@@ -81,14 +23,14 @@ const statusInit = {
 const uiInit = {
   drawing: true,
   //properties
-  properties: {...propsDefault},
+  properties: {...PRIM.propsDefault},
   pause: false, //pause shader
   grid: false, //show background grid
   points: false, //show points
 }
 
 const cursorInit = {
-  pos: new vec(0, 0),
+  pos: new PRIM.vec(0, 0),
   snapPt: false,
   snapGlobal: false,
   snapGlobalAngle: 45,
@@ -97,7 +39,7 @@ const cursorInit = {
   snapRefAngle: 15,
   //grid properties that are important to snapping
   //scaleX, scaleY, offsetX, offsetY
-  grid: new vec(0,0,0,0),
+  grid: new PRIM.vec(0,0,0,0),
   scale: 48,
 }
 
@@ -111,7 +53,7 @@ const sceneInit = {
   //points in doc to be removed
   rmPts:[],
   //all items in doc
-  editItems:[new prim("polyline", [], {...propsDefault})],
+  editItems:[new PRIM.prim("polyline", [], {...PRIM.propsDefault})],
 }
 
 const initialState={
@@ -127,7 +69,7 @@ function status(_state=initialState, action){
   switch(action.subtype){
     case ACT.STATUS_RES:
       return Object.assign({}, state,{
-        resolution: new vec(action.vec2.x, action.vec2.y)
+        resolution: new PRIM.vec(action.vec2.x, action.vec2.y)
       });
     case ACT.STATUS_UPDATE:
       return Object.assign({}, state,{
@@ -226,12 +168,12 @@ function cursor(_state=initialState, action) {
           line.x = line.x - pt.x;
           line.y = line.y - pt.y;
           // let angle = (Math.atan2( - line.y, - line.x ) + Math.PI) * (180 / Math.PI);
-          let angle = angleVec(line) * (180 / Math.PI);
+          let angle = PRIM.angleVec(line) * (180 / Math.PI);
           let snapA = (Math.round(angle / state.snapGlobalAngle) * state.snapGlobalAngle);
           snapA = (snapA * (Math.PI / 180));
 
           //length
-          let length = lengthVec(line);
+          let length = PRIM.lengthVec(line);
           pt.x = prev.x - length * Math.cos(snapA);
           pt.y = prev.y - length * Math.sin(snapA);
 
@@ -247,23 +189,23 @@ function cursor(_state=initialState, action) {
         //current line
         line.x = line.x - pt.x;
         line.y = line.y - pt.y;
-        let lineN = normVec(line);
+        let lineN = PRIM.normVec(line);
 
         //previous line
         linePrev.x = prev.x - linePrev.x;
         linePrev.y = prev.y - linePrev.y;
-        let linePrevN = normVec(linePrev);
+        let linePrevN = PRIM.normVec(linePrev);
 
         //angle between two lines
-        let dot = dotVec(lineN, linePrevN);
+        let dot = PRIM.dotVec(lineN, linePrevN);
         let det = linePrevN.x * lineN.y - linePrevN.y * lineN.x;
         let angle = Math.atan2(det, dot) * (180 / Math.PI);
         //snap angle
         let snapA = Math.round(angle / state.snapRefAngle) * state.snapRefAngle;
-        snapA = snapA * (Math.PI / 180) + angleVec(linePrev);
-        //
-        pt.x = prev.x - (lengthVec(line) * Math.cos(snapA));
-        pt.y = prev.y - (lengthVec(line) * Math.sin(snapA));
+        snapA = snapA * (Math.PI / 180) + PRIM.angleVec(linePrev);
+
+        pt.x = prev.x - (PRIM.lengthVec(line) * Math.cos(snapA));
+        pt.y = prev.y - (PRIM.lengthVec(line) * Math.sin(snapA));
       } return Object.assign({}, state,{
         pos: pt
       });
@@ -302,7 +244,7 @@ function scene(_state=initialState, action) {
   let ptIndex = -1;
   switch(action.subtype){
     case ACT.SCENE_ADDPT:
-      let pt = new vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, action.pt.id, true, action.pt.shapeID);
+      let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, action.pt.id, true);
       return Object.assign({}, state,{
           ...state,
           //add point to current edit item
@@ -373,7 +315,7 @@ function scene(_state=initialState, action) {
         return Object.assign({}, state,{
           ...state,
           editItem: state.editItem = state.editItem + 1,
-          editItems: [...state.editItems, new prim(action.prim, [], {..._state.ui.properties})],
+          editItems: [...state.editItems, new PRIM.prim(action.prim, [], {..._state.ui.properties})],
         });
       } else {
         return Object.assign({}, state,{
@@ -381,7 +323,7 @@ function scene(_state=initialState, action) {
           // editItems: [...state.editItems, new prim(action.prim, [], {..._state.ui.properties})],
           editItems: [
             ...state.editItems.slice(0, state.editItem),
-            new prim(action.prim, [], {..._state.ui.properties}),
+            new PRIM.prim(action.prim, [], {..._state.ui.properties}),
             ...state.editItems.slice(state.editItem + 1)
           ]
         });

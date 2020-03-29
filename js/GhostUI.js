@@ -70,8 +70,8 @@ class GhostUI{
 
     //Doc State
     this.fluentDoc = new FluentDoc();
-    this.fluentDoc.editItems.push(new PRIM.PolyLine(editOptions));
-    this.fluentDoc.currEditItem = this.fluentDoc.editItems[this.fluentDoc.editItems.length - 1];
+    // this.fluentDoc.editItems.push(new PRIM.PolyLine(editOptions));
+    // this.fluentDoc.currEditItem = this.fluentDoc.editItems[this.fluentDoc.editItems.length - 1];
 
     // this.fluentStack = new StateStack(fluentDoc, 10);
 
@@ -341,11 +341,6 @@ function drawUpdate(fluentDoc){
   let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
 
   if(type != sel.value){
-    // if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length > 0){
-    //   SDFUI.store.dispatch(ACT.scenePushEditItem("polyline"));
-    // } else {
-    //   SDFUI.store.dispatch(ACT.sceneNewEditItem(type));
-    // }
     switch(sel.value){
       case "polyline":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
@@ -360,19 +355,22 @@ function drawUpdate(fluentDoc){
         SDFUI.newEditTex();
         break;
       case "polycircle":
-        this.options.currEditItem = "PolyCircle";
-        fluentDoc.editItems.push(new PRIM.PolyCircle({...this.options}));
-        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("polycircle"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "2");
+        SDFUI.newEditTex();
         break;
       case "circle":
-        this.options.currEditItem = "Circle";
-        fluentDoc.editItems.push(new PRIM.Circle({...this.options}));
-        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("circle"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "3");
+        SDFUI.newEditTex();
         break;
       case "rectangle":
-        this.options.currEditItem = "Rectangle";
-        fluentDoc.editItems.push(new PRIM.Rectangle({...this.options}));
-        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("rectangle"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "4");
+        SDFUI.newEditTex();
         break;
     }
     SDFUI.store.dispatch(ACT.statusUpdate(true));
@@ -446,22 +444,29 @@ function drawUp(e, fluentDoc){
     fluentDoc = modState;
   }
 
-  //could have this return true / false to determine wether point should be pushed to tree
-  // let plPt = fluentDoc.currEditItem.addPoint(SDFUI.mPt.x, SDFUI.mPt.y, "plPoint");
-  let plPt = SDFUI.editTex.addPoint(SDFUI.mPt.x, SDFUI.mPt.y, "plPoint");
+  //returns a new point of type PRIM.vec()
+  let pt = SDFUI.editTex.addPoint(SDFUI.mPt, "plPoint");
 
-  SDFUI.store.dispatch({type:'scene', subtype:'SCENE_ADDPT', pt:plPt});
-
-  if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
-    // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
-    fluentDoc.currEditItem.needsUpdate = true;
-
-    fluentDoc.editItems.push(fluentDoc.currEditItem.create(resolution, this.options));
-    fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-
-    // fluentDoc.shaderUpdate = true;
+  SDFUI.store.dispatch(ACT.sceneAddPt(pt));
+  //
+  // if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
+  //   // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
+  //   fluentDoc.currEditItem.needsUpdate = true;
+  //
+  //   fluentDoc.editItems.push(fluentDoc.currEditItem.create(resolution, this.options));
+  //   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+  //
+  //   // fluentDoc.shaderUpdate = true;
+  //   SDFUI.store.dispatch(ACT.statusUpdate(true));
+  // }
+  let item = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+  if ( (item.type == "circle" || item.type == "rectangle") && item.pts.length == 2){
+    SDFUI.store.dispatch(ACT.sceneItemUpdate(SDFUI.state.scene.editItem, true));
+    SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
     SDFUI.store.dispatch(ACT.statusUpdate(true));
+    SDFUI.newEditTex();
   }
+
 
   return fluentDoc;
 }

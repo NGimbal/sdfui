@@ -61,60 +61,119 @@ class DataShader{
   }
 }
 
-//Two primitive types, PointPrim and PolyPoint
-//PointPrim is for primitives that take 2 xy values + options
-//PolyPoint is a datastructure that holds many xy values
-class PointPrim{
-  constructor(properties){
-    //input is 1 to 20 divided by 2500
-    // this.weight = options.weight || .002;
-    // this.options = {...options};
-    this.pointPrim = new THREE.Vector4(0.0, 0.0, 0.0, 0.0);
-    this.properties = properties;
-    //list of points
-    this.pts=[];
 
-    //does this shader need to be recompiled
-    this.needsUpdate = false;
-    this.id = (+new Date).toString(36).slice(-8);
+export class vec{
+  constructor(x, y, z, w, id, update, pId){
+    this.x = x || 0;
+    this.y = y || 0;
+    this.z = z || 0;
+    this.w = w || 0;
+    this.id = id || (+new Date).toString(36).slice(-8);
+    this.update = update || false;
+    //parentId
+    this.parentId = pId || "";
   }
-
-  //really just going to add 1 of 2 points to this.pts
-  addPoint(x, y, tag){
-    // let resolution = SDFUI.resolution;
-
-    let hFloatX = x / resolution.x;
-    let hFloatY = y / resolution.y;
-    let hFloatYFlip = (resolution.y - y) / resolution.y;
-
-    // let dpr = window.devicePixelRatio;
-
-    hFloatX -= 0.5;
-    hFloatYFlip -= 0.5;
-    hFloatX *= resolution.x / resolution.y;
-
-    //where does dpr fit into this?
-    hFloatX = (hFloatX * resolution.x) / (resolution.x * 0.5);
-    hFloatYFlip = (hFloatYFlip * resolution.y) / (resolution.y * 0.5);
-
-    if(this.pts.length == 0){
-      this.pointPrim.x = hFloatX;
-      this.pointPrim.y = hFloatYFlip;
-    }else{
-      this.pointPrim.z = hFloatX;
-      this.pointPrim.w = hFloatYFlip;
-    }
-
-    // console.log(this.pointPrim);
-
-    let pt = new Point(x, y, 0, [], this.id, "circlePt");
-
-    this.pts.push(pt);
-
-    return pt;
-  }
-
 }
+
+export function lengthVec(_vec){
+  return Math.sqrt(_vec.x * _vec.x + _vec.y * _vec.y);
+}
+
+export function normVec(_vec){
+  let vec = {..._vec};
+  let l = lengthVec(vec);
+  vec.x = vec.x / l;
+  vec.y = vec.y / l;
+  return vec;
+}
+
+export function dotVec(_vecA, _vecB){
+  let x = _vecA.x * _vecB.x;
+  let y = _vecA.y * _vecB.y;
+  return x + y;
+}
+
+export function angleVec(_vec){
+  return (Math.atan2( - _vec.y, - _vec.x ) + Math.PI);
+}
+
+export var propsDefault = {
+  type:"",
+  filter:"",
+  stroke:"",
+  fill:"",
+  weight:0,
+  radius:0
+}
+
+export class prim{
+  constructor(type, pts, _props, id, pId, merge){
+    this.type = type;
+    //list of point ids
+    this.pts = pts || [];
+    this.properties = _props || {...propsDefault};
+    this.needsUpdate = false;
+    this.id = id ||  (+new Date).toString(36).slice(-8);
+    this.pId = pId || "";
+    //scene merge
+    this.merge = merge || "union";
+  }
+}
+//
+// //Two primitive types, PointPrim and PolyPoint
+// //PointPrim is for primitives that take 2 xy values + options
+// //PolyPoint is a datastructure that holds many xy values
+// class PointPrim{
+//   constructor(properties){
+//     //input is 1 to 20 divided by 2500
+//     // this.weight = options.weight || .002;
+//     // this.options = {...options};
+//     this.pointPrim = new THREE.Vector4(0.0, 0.0, 0.0, 0.0);
+//     this.properties = properties;
+//     //list of points
+//     this.pts=[];
+//
+//     //does this shader need to be recompiled
+//     this.needsUpdate = false;
+//     this.id = (+new Date).toString(36).slice(-8);
+//   }
+//
+//   //really just going to add 1 of 2 points to this.pts
+//   addPoint(x, y, tag){
+//     // let resolution = SDFUI.resolution;
+//
+//     let hFloatX = x / resolution.x;
+//     let hFloatY = y / resolution.y;
+//     let hFloatYFlip = (resolution.y - y) / resolution.y;
+//
+//     // let dpr = window.devicePixelRatio;
+//
+//     hFloatX -= 0.5;
+//     hFloatYFlip -= 0.5;
+//     hFloatX *= resolution.x / resolution.y;
+//
+//     //where does dpr fit into this?
+//     hFloatX = (hFloatX * resolution.x) / (resolution.x * 0.5);
+//     hFloatYFlip = (hFloatYFlip * resolution.y) / (resolution.y * 0.5);
+//
+//     if(this.pts.length == 0){
+//       this.pointPrim.x = hFloatX;
+//       this.pointPrim.y = hFloatYFlip;
+//     }else{
+//       this.pointPrim.z = hFloatX;
+//       this.pointPrim.w = hFloatYFlip;
+//     }
+//
+//     // console.log(this.pointPrim);
+//
+//     let pt = new Point(x, y, 0, [], this.id, "circlePt");
+//
+//     this.pts.push(pt);
+//
+//     return pt;
+//   }
+//
+// }
 //PolyPoint is an array of points, a texture representation and properties
 //Another class e.g. PolyLine extends PolyPoint to manipulate and bake
 class PolyPoint {
@@ -175,11 +234,17 @@ class PolyPoint {
   //adds point to polyPoint
   //point x, y are stored as HalfFloat16
   //https://github.com/petamoriken/float16
-  addPoint(x, y, tag){
-    // let resolution = SDFUI.resolution;
+  addPoint(_pt, tag){
+    let x = _pt.x;
+    let y = _pt.y;
+    let z = _pt.z || 1.0;
+    let w = _pt.w || 1.0;
+
+    let pt = new vec(x, y, z, w);
 
     this.cTexel++;
     console.log(this.cTexel);
+    console.log(this);
     let index = this.cTexel * 4;
     //use view.setFloat16() to set the digits in the DataView
     //then use view.getUint16 to retrieve and write to data Texture
@@ -194,10 +259,8 @@ class PolyPoint {
 
     view.setFloat16(0, x, endD);
     view.setFloat16(16, y, endD);
-    //in the case of the point prims so far z and w have already been transformed as above
-    //maybe should turn that into a little function we can call...
-    view.setFloat16(32, 1.0, endD);
-    view.setFloat16(48, 1.0, endD);
+    view.setFloat16(32, z, endD);
+    view.setFloat16(48, w, endD);
 
     this.ptsTex.image.data[index] = view.getUint16(0, endD);
     this.ptsTex.image.data[index + 1] = view.getUint16(16, endD);
@@ -209,8 +272,10 @@ class PolyPoint {
     let _tag = tag || "none";
     let texData = [view.getUint16(0, endD), view.getUint16(16, endD), view.getUint16(32, endD), view.getUint16(48, endD)];
 
-    let pt = new Point(x, y, this.cTexel, texData, this.id, _tag);
+    //why is this important? want to get rid of this point class
+    // let ptpt = new Point(x, y, this.cTexel, texData, this.id, _tag);
 
+    // this.pts.push(ptpt);
     this.pts.push(pt);
 
     return pt;
@@ -318,1050 +383,1047 @@ class Point{
     return newPt;
   }
 }
-
-class Circle extends PointPrim{
-  constructor(properties){
-    super(properties);
-
-    this.fragFunction = "";
-
-    this.primType = "Circle";
-  }
-
-  //going to add each of the 2 points to fluentDoc.params
-  // bakeFunctionCall(shader, parameters)
-  bakeFunctionCall(shader, parameters){
+//
+// class Circle extends PointPrim{
+//   constructor(properties){
+//     super(properties);
+//
+//     this.fragFunction = "";
+//
+//     this.primType = "Circle";
+//   }
+//
+//   //going to add each of the 2 points to fluentDoc.params
+//   // bakeFunctionCall(shader, parameters)
+//   bakeFunctionCall(shader, parameters){
+//     // let shader = fluentDoc.shader;
+//
+//     //bakes pointPrim data the fluentDoc.parameters
+//     let p = this.pointPrim;
+//     parameters.addPointPrim(p.x, p.y,p.z, p.w, "Circle");
+//
+//     let cTexel = parameters.cTexel;
+//     let dataSize = parameters.dataSize;
+//
+//     let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+//
+//     let indexX = (cTexel % dataSize) / dataSize + texelOffset;
+//     let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+//
+//     //eventually address these functions using id in place of d
+//     //then perform scene merge operation when modifying finalColor
+//     let insString = "//$INSERT CALL$------";
+//     let insIndex = shader.indexOf(insString);
+//     insIndex += insString.length;
+//
+//     let startShader = shader.slice(0, insIndex);
+//     let endShader = shader.slice(insIndex);
+//
+//     let buffer = new ArrayBuffer(10);
+//     let view = new DataView(buffer);
+//
+//     //create function call
+//     let posString = '\n';
+//
+//     let rgb = this.properties.stroke;
+//
+//     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+//     let weight = this.properties.weight;
+//
+//     posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
+//     posString += '\tradius = distance(texture2D(parameters, index).xy, texture2D(parameters, index).zw);\n';
+//     posString += '\td = sdCircle(uv, texture2D(parameters, index).xy, radius);\n';
+//     posString += '\td = clamp(abs(d) - '+ weight +', 0.0, 1.0);\n';
+//     posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,0.003,abs(d)) );\n'
+//
+//     startShader += posString;
+//     let fragShader = startShader + endShader;
+//
+//     // console.log(fragShader);
+//
+//     return new DataShader(fragShader, parameters);
+//   }
+//
+//   // bakeFunctionAbsolute
+//
+//   //returns distance to a point
+//   dist(point){
+//     // let center = this.pts[0];
+//     // console.log(center);
+//     // let radius = center - this.pts[1];
+//     // console.log(radius);
+//     console.log(this);
+//
+//   }
+//
+//   clone(){
+//     let pointPrim = this.pointPrim.clone();
+//     let properties = {...this.properties};
+//     //may need to clone this in a better way
+//     let id = this.id;
+//
+//     //list of points
+//     let pts = [];
+//     for (let p of this.pts){ pts.push(p.clone());};
+//     let newCircle = new Circle(properties);
+//
+//     newCircle.pointPrim = pointPrim;
+//
+//     newCircle.needsUpdate = this.needsUpdate;
+//
+//     newCircle.id = id;
+//     newCircle.pts = pts;
+//
+//     return newCircle;
+//   }
+//
+//   create(properties){
+//     return new Circle(properties);
+//   }
+//
+//   end(shader, parameters){
+//     if(this.pts.length == 0) return dataShader;
+//
+//     return this.bakeFunctionCall(shader, parameters);
+//   }
+// }
+//
+// //maybe create a PointPrim class like PolyPoint
+// class Rectangle extends PointPrim{
+//   constructor(properties){
+//     super(properties);
+//
+//     this.fragFunction = "";
+//
+//     this.primType = "Rectangle";
+//   }
+//
+//   //going to add each of the 2 points to fluentDoc.params
+//   bakeFunctionCall(shader, parameters){
     // let shader = fluentDoc.shader;
-
-    //bakes pointPrim data the fluentDoc.parameters
-    let p = this.pointPrim;
-    parameters.addPointPrim(p.x, p.y,p.z, p.w, "Circle");
-
-    let cTexel = parameters.cTexel;
-    let dataSize = parameters.dataSize;
-
-    let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
-
-    let indexX = (cTexel % dataSize) / dataSize + texelOffset;
-    let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-
-    //eventually address these functions using id in place of d
-    //then perform scene merge operation when modifying finalColor
-    let insString = "//$INSERT CALL$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    //create function call
-    let posString = '\n';
-
-    let rgb = this.properties.stroke;
-
-    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-    let weight = this.properties.weight;
-
-    posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
-    posString += '\tradius = distance(texture2D(parameters, index).xy, texture2D(parameters, index).zw);\n';
-    posString += '\td = sdCircle(uv, texture2D(parameters, index).xy, radius);\n';
-    posString += '\td = clamp(abs(d) - '+ weight +', 0.0, 1.0);\n';
-    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,0.003,abs(d)) );\n'
-
-    startShader += posString;
-    let fragShader = startShader + endShader;
-
-    // console.log(fragShader);
-
-    return new DataShader(fragShader, parameters);
-  }
-
-  // bakeFunctionAbsolute
-
-  //returns distance to a point
-  dist(point){
-    // let center = this.pts[0];
-    // console.log(center);
-    // let radius = center - this.pts[1];
-    // console.log(radius);
-    console.log(this);
-
-  }
-
-  clone(){
-    let pointPrim = this.pointPrim.clone();
-    let properties = {...this.properties};
-    //may need to clone this in a better way
-    let id = this.id;
-
-    //list of points
-    let pts = [];
-    for (let p of this.pts){ pts.push(p.clone());};
-    let newCircle = new Circle(properties);
-
-    newCircle.pointPrim = pointPrim;
-
-    newCircle.needsUpdate = this.needsUpdate;
-
-    newCircle.id = id;
-    newCircle.pts = pts;
-
-    return newCircle;
-  }
-
-  create(properties){
-    return new Circle(properties);
-  }
-
-  end(shader, parameters){
-    if(this.pts.length == 0) return dataShader;
-
-    return this.bakeFunctionCall(shader, parameters);
-  }
-}
-
-//maybe create a PointPrim class like PolyPoint
-class Rectangle extends PointPrim{
-  constructor(properties){
-    super(properties);
-
-    this.fragFunction = "";
-
-    this.primType = "Rectangle";
-  }
-
-  //going to add each of the 2 points to fluentDoc.params
-  bakeFunctionCall(shader, parameters){
-    // let shader = fluentDoc.shader;
-
-    //bakes pointPrim data the fluentDoc.parameters
-    let p = this.pointPrim;
-    parameters.addPointPrim(p.x, p.y,p.z, p.w, "blah");
-
-    let cTexel = parameters.cTexel;
-    let dataSize = parameters.dataSize;
-
-    let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
-
-    let indexX = (cTexel % dataSize) / dataSize + texelOffset;
-    let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-
-
-    //eventually address these functions using id in place of d
-    //then perform scene merge operation when modifying finalColor
-    let insString = "//$INSERT CALL$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    //create function call
-    let posString = '\n';
-
-    let rgb = this.properties.stroke;
-    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-    let radius = this.properties.radius.toFixed(4);
-    let weight = this.properties.weight.toFixed(4);
-
-    posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
-
-    // posString += '\td = sdBox(uv, texture2D(parameters, index).xy, (abs(texture2D(parameters, index).zw - texture2D(parameters, index).xy)), ' + radius + ');\n';
-    posString += '\trect1 = texture2D(parameters, index).xy;\n';
-    posString += '\trect2 = texture2D(parameters, index).zw;\n';
-    posString += '\td = sdBox(uv, 0.5 * (rect2 - rect1) + rect1, abs(rect2 - (0.5 * (rect2 - rect1) + rect1)), '+radius+');\n';
-    posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,0.003,abs(d)) );\n'
-
-    startShader += posString;
-    let fragShader = startShader + endShader;
-
-    // console.log(fragShader);
-
-    return new DataShader(fragShader, parameters);
-  }
-
-  // bakeFunctionAbsolute
-
-  clone(){
-    let pointPrim = this.pointPrim.clone();
-    //may need to clone this in a better way
-    let id = this.id;
-    let properties = {...this.properties};
-
-    //list of points
-    let pts = [];
-    for (let p of this.pts){ pts.push(p.clone());};
-    let newRect = new Rectangle(properties);
-    newRect.pointPrim = pointPrim;
-    newRect.id = id;
-    newRect.pts = pts;
-
-    newRect.needsUpdate = this.needsUpdate;
-
-    return newRect;
-  }
-
-  create(properties){
-    return new Rectangle(properties);
-  }
-
-  end(shader, parameters){
-
-    if(this.pts.length == 0) return dataShader;
-
-    return this.bakeFunctionCall(shader, parameters);
-  }
-}
-
-class PolyLine extends PolyPoint {
-
-  constructor(properties, _dataSize){
-    //super is how PolyPoint class is constructed
-    //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
-    super(properties, _dataSize);
-
-    this.fragFunction = "";
-
-    this.primType = "PolyLine";
-  }
-
-  clone(){
-    let weight = this.weight;
-    let properties = {...this.properties};
-    let dataSize = this.dataSize;
-
-    let newPolyLine = new PolyLine(properties, dataSize);
-
-    let pts = [];
-    for (let p of this.pts){ pts.push(p.clone());};
-    let cTexel = this.cTexel;
-
-    newPolyLine.pts = pts;
-    newPolyLine.cTexel = cTexel;
-
-    let data = new Uint16Array(this.data);
-    let ptsTex = new THREE.DataTexture(data, dataSize, dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
-
-    newPolyLine.data = data;
-    newPolyLine.ptsTex = ptsTex;
-
-    newPolyLine.needsUpdate = this.needsUpdate;
-
-    let id = (' ' + this.id).slice(1);
-    newPolyLine.id = id;
-
-    let fragFunction = (' ' + this.fragFunction).slice(1);
-    newPolyLine.fragFunction = fragFunction;
-
-    return newPolyLine;
-  }
-
-  //takes shader as argument, modifies string, returns modified shader
-  //the inputs to these functions e.g. position will be parameterized
-  //needs review
-  bakeFunctionAbsolute(shader){
-    // let shader = fluentDoc.shader;
-
-    //insert new function
-    let insString = "//$INSERT FUNCTION$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    // if function exists start and end should be before beginning and after end
-    let exFuncStr = '//$START-' + this.id;
-
-    let exFuncIndex = shader.indexOf(exFuncStr);
-
-    //if function exists
-    if(exFuncIndex >= 0){
-      startShader = shader.slice(0, exFuncIndex);
-
-      let postFuncStr = '//$END-' + this.id;
-      let postIndex = shader.indexOf(postFuncStr);
-      postIndex += postFuncStr.length;
-      endShader = shader.slice(postIndex);
-    }
-
-    //create function
-    let posString = '\n';
-    posString += '//$START-' + this.id + '\n';
-
-    // p is a translation for polygon
-    // eventually this will be a reference to another data texture
-    posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
-
-    posString += '\n\tvec2 tUv = uv - p;\n';
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    let oldPosX = 0;
-    let oldPosY = 0;
-
-    let rgb = this.properties.stroke;
-    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-    let weight = this.properties.weight.toFixed(4);
-
-    for (let p of this.pts){
-      view.setUint16(0, p.texData[0]);
-      let floatX = getFloat16(view, 0);
-      // console.log(getFloat16(view, 0));
-      // console.log(getFloat16(view, 0) * window.innerWidth);
-
-      //this should be a property of GhostUI
-      let dpr = window.devicePixelRatio;
-
-      view.setUint16(0, p.texData[1]);
-      let floatY = getFloat16(view, 0);
-      // console.log(getFloat16(view, 0));
-      // console.log(window.innerHeight - getFloat16(view, 0) * window.innerHeight);
-
-      if(oldPosX == 0 && oldPosY ==0){
-        oldPosX = floatX;
-        oldPosY = floatY;
-
-        posString += '\n\tvec2 pos = vec2(0.0);\n';
-        posString += '\n\tfloat d = 0.0;\n';
-        posString += '\n\tvec2 oldPos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
-
-        continue;
-      }else{
-        posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
-        posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);\n';
-
-        posString += '\tfinalColor = mix(finalColor, ' + color + ', line(tUv, d, '+weight+'));\n';
-
-        posString += '\toldPos = pos;\n';
-
-        oldPosX = floatX;
-        oldPosY = floatY;
-      }
-    }
-
-    // posString += '\tfinalColor = mix(finalColor, vec3(1.0), editOpacity);\n}\n';
-    posString += '\n}\n';
-    posString += '//$END-' + this.id + '\n';
-
-    this.fragShaer = posString;
-    // console.log(posString);
-
-    startShader += posString;
-
-    let fragShader = startShader + endShader;
-
-    return new DataShader(fragShader, parameters);
-  }
-
-  //takes shader as argument, modifies string, returns modified shader
-  //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionParams(shader, parameters){
-
-    // let shader = fluentDoc.shader;
-
-    //insert new function
-    let insString = "//$INSERT FUNCTION$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    // if function exists start and end should be before beginning and after end
-    let exFuncStr = '//$START-' + this.id;
-
-    let exFuncIndex = shader.indexOf(exFuncStr);
-
-    //if function exists
-    if(exFuncIndex >= 0){
-      startShader = shader.slice(0, exFuncIndex);
-
-      let postFuncStr = '//$END-' + this.id;
-      let postIndex = shader.indexOf(postFuncStr);
-      postIndex += postFuncStr.length;
-      endShader = shader.slice(postIndex);
-    }
-
-    //create function
-    let posString = '\n';
-    posString += '//$START-' + this.id + '\n';
-
-    // p is a translation for polygon
-    // eventually this will be a reference to another data texture
-    posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
-
-    posString += '\n\tvec2 tUv = uv - p;\n';
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    let oldPosX = 0;
-    let oldPosY = 0;
-
-    let indexX = 0;
-    let indexY = 0;
-
-    //this should be a property of GhostUI
-    let dpr = window.devicePixelRatio;
-
-    let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
-    let dataSize = parameters.dataSize;
-
-    let rgbStroke = this.properties.stroke;
-    let colorStroke = 'vec3(' + rgbStroke.x + ',' + rgbStroke.y + ',' + rgbStroke.z +')';
-    let weight = this.properties.weight.toFixed(4);
-
-    let count = 0;
-
-    for (let p of this.pts){
-
-      parameters.addPoint(p.x, p.y, p.tag);
-      let cTexel = parameters.cTexel;
-
-      if(count == 0){
-        //what are x, y texel indices?
-        indexX = (cTexel % dataSize) / dataSize + texelOffset;
-        indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-        posString += '\n\tvec2 pos = vec2(0.0);\n';
-        posString += '\n\tfloat d = 0.0;\n';
-
-        posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');\n';
-
-        posString += '\n\tvec2 oldPos = texture2D(parameters, index).xy;\n';
-
-        count++;
-        continue;
-      }else{
-        indexX = (cTexel % dataSize) / dataSize + texelOffset;
-        indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-        //texture2D(posTex, vIndex).xy;
-        // posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
-        posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');\n';
-        posString += '\n\tpos = texture2D(parameters, index).xy;\n';
-
-        posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);\n';
-
-        posString += '\tfinalColor = mix(finalColor, ' + colorStroke + ', line(tUv, d, '+weight+'));\n';
-
-        posString += '\toldPos = pos;\n';
-
-        count++;
-      }
-    }
-
-    posString += '\n}\n';
-    posString += '//$END-' + this.id + '\n';
-    // console.log(posString);
-    this.fragShaer = posString;
-
-    startShader += posString;
-
-    let fragShader = startShader + endShader;
-
-    // console.log(fragShader);
-
-    return new DataShader(fragShader, parameters);
-  }
-
-  //takes shader as argument, modifies string, returns modified shader
-  //creates function calls that calls function already created
-  //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionCall(shader, parameters){
-    // let shader = fluentDoc.shader;
-    let insString = "//$INSERT CALL$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    let oldPosX = 0;
-    let oldPosY = 0;
-
-    //create function
-    let posString = '\n';
-
-    // p here vec2(0.0,0.0) is a translation for polygon
-    // eventually this will be a reference to another data texture
-    posString += '\t' + this.id + '(uv, vec2(0.0,0.0), finalColor);\n';
-    startShader += posString;
-
-    let fragShader = startShader + endShader;
-
-    // console.log(fragShader);
-
-    return fragShader;
-  }
-
-  create(properties, _dataSize){
-    return new PolyLine(properties, _dataSize);
-  }
-
-  //should clone and probably push to state stack prior to this
-  end(shader, parameters){
-    let dataShader = new DataShader(shader, parameters);
-    if(this.pts.length == 0) return dataShader;
-
-    dataShader = this.bakeFunctionParams(shader, parameters);
-    dataShader.shader = this.bakeFunctionCall(dataShader.shader, dataShader.parameters);
-
-    return dataShader;
-  }
-}
-
-class Polygon extends PolyPoint {
-
-  constructor(properties, _dataSize){
-    //super is how PolyPoint class is constructed
-    //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
-    super(properties, _dataSize);
-
-    this.fragFunction = "";
-
-    this.primType = "Polygon";
-  }
-
-  clone(){
-    let weight = this.weight;
-    let properties = {...this.properties};
-    let dataSize = this.dataSize;
-
-    let newPolygon = new Polygon(properties, dataSize);
-
-    let pts = [];
-    for (let p of this.pts){ pts.push(p.clone());};
-    let cTexel = this.cTexel;
-
-    newPolygon.pts = pts;
-    newPolygon.cTexel = cTexel;
-
-    let data = new Uint16Array(this.data);
-    let ptsTex = new THREE.DataTexture(data, dataSize, dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
-
-    newPolygon.data = data;
-    newPolygon.ptsTex = ptsTex;
-
-    newPolygon.needsUpdate = this.needsUpdate;
-
-    let id = (' ' + this.id).slice(1);
-    newPolygon.id = id;
-
-    //is there a bug here? should I clone id this way?
-    var fragFunction = (' ' + this.fragFunction).slice(1);
-
-    newPolygon.fragFunction = fragFunction;
-
-    return newPolygon;
-  }
-
-  //takes shader as argument, modifies string, returns modified shader
-  bakeFunctionAbsolute(shader, parameters){
-    // let shader = fluentDoc.shader;
-
-    //insert new function
-    let insString = "//$INSERT FUNCTION$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    // if function exists start and end should be before beginning and after end
-    let exFuncStr = '//$START-' + this.id;
-
-    let exFuncIndex = shader.indexOf(exFuncStr);
-
-    //if function exists
-    if(exFuncIndex >= 0){
-      startShader = shader.slice(0, exFuncIndex);
-
-      let postFuncStr = '//$END-' + this.id;
-      let postIndex = shader.indexOf(postFuncStr);
-      postIndex += postFuncStr.length;
-      endShader = shader.slice(postIndex);
-    }
-
-    //create function
-    let posString = '\n';
-    posString += '//$START-' + this.id + '\n';
-
-    // p is a translation for polygon
-    // eventually this will be a reference to another data texture
-    posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
-
-    posString += '\n\tvec2 tUv = uv - p;\n';
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    let oldPosX = 0;
-    let oldPosY = 0;
-
-    let rgb = this.properties.stroke;
-    let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-    let weight = this.properties.weight.toFixed(4);
-
-    for (let p of this.pts){
-      view.setUint16(0, p.texData[0]);
-      let floatX = getFloat16(view, 0);
-      // console.log(getFloat16(view, 0));
-      // console.log(getFloat16(view, 0) * window.innerWidth);
-
-      let dpr = window.devicePixelRatio;
-
-      view.setUint16(0, p.texData[1]);
-      let floatY = getFloat16(view, 0);
-      // console.log(getFloat16(view, 0));
-      // console.log(window.innerHeight - getFloat16(view, 0) * window.innerHeight);
-
-      if(oldPosX == 0 && oldPosY ==0){
-        oldPosX = floatX;
-        oldPosY = floatY;
-
-        posString += '\n\tvec2 pos = vec2(0.0);\n';
-        posString += '\n\tfloat d = 0.0;\n';
-        posString += '\n\tvec2 oldPos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
-
-        continue;
-      }else{
-        posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
-        posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);\n';
-
-        posString += '\tfinalColor = mix(finalColor, ' + color + ', line(tUv, d, '+weight+'));\n';
-
-        posString += '\toldPos = pos;\n';
-
-        oldPosX = floatX;
-        oldPosY = floatY;
-      }
-    }
-
-    // posString += '\tfinalColor = mix(finalColor, vec3(1.0), editOpacity);\n}\n';
-    posString += '\n}\n';
-    posString += '//$END-' + this.id + '\n';
-
-    this.fragShaer = posString;
-    // console.log(posString);
-
-    startShader += posString;
-
-    let fragShader = startShader + endShader;
-
-    return new DataShader(shader, parameters);
-  }
-
-  //takes shader as argument, modifies string, returns modified shader
-  //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionParams(shader, parameters){
-
-    // let shader = fluentDoc.shader;
-
-    //insert new function
-    let insString = "//$INSERT FUNCTION$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    // if function exists start and end should be before beginning and after end
-    let exFuncStr = '//$START-' + this.id;
-
-    let exFuncIndex = shader.indexOf(exFuncStr);
-
-    //if function exists
-    if(exFuncIndex >= 0){
-      startShader = shader.slice(0, exFuncIndex);
-
-      let postFuncStr = '//$END-' + this.id;
-      let postIndex = shader.indexOf(postFuncStr);
-      postIndex += postFuncStr.length;
-      endShader = shader.slice(postIndex);
-    }
-
-    //create function
-    let posString = '\n';
-    posString += '//$START-' + this.id + '\n';
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    let oldPosX = 0;
-    let oldPosY = 0;
-
-    let indexX = 0;
-    let indexY = 0;
-
-    //this should be a property of GhostUI
-    let dpr = window.devicePixelRatio;
-
-    let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
-    let dataSize = parameters.dataSize;
-
-    let rgbFill = this.properties.fill;
-    let colorFill = 'vec3(' + rgbFill.x + ',' + rgbFill.y + ',' + rgbFill.z +')';
-    let rgbStroke = this.properties.stroke;
-    let colorStroke = 'vec3(' + rgbStroke.x + ',' + rgbStroke.y + ',' + rgbStroke.z +')';
-    let weight = this.properties.weight.toFixed(4);
-    let radius = this.properties.radius.toFixed(4);
-
-    // p is a translation for polygon
-    // eventually this will be a reference to another data texture
-    posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
-
-    posString += '\n\tvec2 tUv = uv - p;\n';
-    posString += '\tfloat radius='+radius+';\n';
-    // scaling this way doesn't work
-    // posString += '\ttUv = tUv/(1.0-radius);\n';
-
-    let count = 0;
-    for (let p of this.pts){
-
-      parameters.addPoint(p.x, p.y, p.tag);
-
-      let cTexel = parameters.cTexel;
-
-      if(count == 0){
-        //what are x, y texel indices?
-        indexX = (cTexel % dataSize) / dataSize + texelOffset;
-        indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-
-        posString += '\n\tvec2 pos = vec2(0.0);\n';
-
-        posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');\n';
-
-        posString += '\tvec2 first = texture2D(parameters, index).xy;\n';
-        //scaling/rounding this way doesn't seem to work
-        // posString += '\tfirst = (first/radius)*radius;\n';
-
-        //get the last point in absolute terms
-        view.setUint16(0, this.pts[this.pts.length - 1].texData[0]);
-        let floatX = getFloat16(view, 0);
-
-        view.setUint16(0, this.pts[this.pts.length - 1].texData[1]);
-        let floatY = getFloat16(view, 0);
-
-        posString += '\tvec2 last = vec2('+floatX+', '+floatY+');\n';
-        // posString += '\tlast = (last/radius)*radius;\n';
-        posString += '\tfloat d = dot(tUv - first, tUv - first);\n';
-        posString += '\tfloat s = 1.0;\n';
-        posString += '\tvec2 oldPos = first;\n';
-        //         vec2 e = v[j] - v[i];
-        posString += '\tvec2 e = last - first;\n';
-        //         vec2 w =    p - v[i];
-        posString += '\tvec2 w = tUv - first;\n';
-        //         vec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );
-        posString += '\tvec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );\n';
-        //         d = min( d, dot(b,b) );
-        posString += '\td = min(d, dot(b,b));\n';
-        // winding number from http://geomalgorithms.com/a03-_inclusion.html
-        //         bvec3 cond = bvec3( p.y>=v[i].y, p.y<v[j].y, e.x*w.y>e.y*w.x );
-        posString += '\tbvec3 cond = bvec3( tUv.y>=first.y, tUv.y<last.y, e.x*w.y>e.y*w.x );\n';
-        //         if( all(cond) || all(not(cond)) ) s*=-1.0;
-        posString += '\tif(all(cond) || all(not(cond))) s*=-1.0;\n';
-        count++;
-        continue;
-      }else{
-        indexX = (cTexel % dataSize) / dataSize + texelOffset;
-        indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-
-        posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');\n';
-        posString += '\tpos = texture2D(parameters, index).xy;\n';
-        // posString += '\tpos = (pos/radius)*radius;\n';
-        // vec2 e = v[j] - v[i];
-        posString += '\te = oldPos - pos;\n';
-        //         vec2 w =    p - v[i];
-        posString += '\tw = tUv - pos;\n';
-        //         vec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );
-        posString += '\tb = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );\n';
-        //         d = min( d, dot(b,b) );
-        posString += '\td = min(d, dot(b,b));\n';
-        //         // winding number from http://geomalgorithms.com/a03-_inclusion.html
-        //         bvec3 cond = bvec3( p.y>=v[i].y, p.y<v[j].y, e.x*w.y>e.y*w.x );
-        posString += '\tcond = bvec3( tUv.y>=pos.y, tUv.y<oldPos.y, e.x*w.y>e.y*w.x );\n';
-        //         if( all(cond) || all(not(cond)) ) s*=-1.0;
-        posString += '\tif(all(cond) || all(not(cond))) s*=-1.0;\n';
-        posString += '\toldPos = pos;\n';
-
-        count++;
-      }
-    }
-
-    //     return s*sqrt(d);
-    posString += '\td = s*sqrt(d) - radius;\n';
-    // posString += '\tfloat line = d;\n';
-    posString += '\tfloat line = d;\n';
-    posString += '\td = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));\n';
-    posString += '\tfinalColor = mix(finalColor, ' + colorFill + ', d);\n';
-
-    posString += '\tline = clamp(abs(line) - '+weight+', 0.0, 1.0);\n';
-
-    posString += '\tline = 1.0 - smoothstep(0.0,0.003,abs(line));\n';
-    posString += '\tfinalColor = mix(finalColor, ' + colorStroke + ', line);\n';
-
-    posString += '\n}\n';
-    posString += '//$END-' + this.id + '\n';
-
-    this.fragShaer = posString;
-
-    startShader += posString;
-
-    let fragShader = startShader + endShader;
-
-    // console.log(fragShader);
-
-    return new DataShader(fragShader, parameters);
-  }
-
-  //takes shader as argument, modifies string, returns modified shader
-  //creates function calls that calls function already created
-  //the inputs to these functions e.g. position will be parameterized
-  bakeFunctionCall(shader, parameters){
-    // let shader = fluentDoc.shader;
-    let insString = "//$INSERT CALL$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    let oldPosX = 0;
-    let oldPosY = 0;
-
-    //create function
-    let posString = '\n';
-
-    // p here vec2(0.0,0.0) is a translation for polygon
-    // eventually this will be a reference to another data texture
-    posString += '\t' + this.id + '(uv, vec2(0.0,0.0), finalColor);\n';
-    startShader += posString;
-
-    let fragShader = startShader + endShader;
-
-    // console.log(fragShader);
-
-    return fragShader;
-  }
-
-  create(_dataSize){
-    return new Polygon(_dataSize);
-  }
-
-  //should clone and probably push to state stack prior to this
-  end(shader, parameters){
-    let dataShader = new DataShader(shader, parameters);
-    if(this.pts.length == 0) return dataShader;
-
-    dataShader = this.bakeFunctionParams(shader, parameters);
-    dataShader.shader = this.bakeFunctionCall(dataShader.shader, dataShader.parameters);
-
-    return dataShader;
-  }
-}
-
-class PolyCircle extends PolyPoint {
-
-  constructor(properties, _dataSize){
-    //super is how PolyPoint class is constructed
-    //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
-    super(properties, _dataSize);
-
-    this.fragFunction = "";
-
-    this.primType = "PolyCircle";
-
-  }
-
-  clone(){
-    let weight = this.weight;
-    let properties = {...this.properties};
-    let dataSize = this.dataSize;
-
-    let newPolyCircle = new PolyCircle(properties, dataSize);
-
-    let pts = [];
-    for (let p of this.pts){ pts.push(p.clone());};
-    let cTexel = this.cTexel;
-
-    newPolyCircle.pts = pts;
-    newPolyCircle.cTexel = cTexel;
-
-    let data = new Uint16Array(this.data);
-    let ptsTex = new THREE.DataTexture(data, dataSize, dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
-
-    newPolyCircle.data = data;
-    newPolyCircle.ptsTex = ptsTex;
-
-    newPolyCircle.needsUpdate = this.needsUpdate;
-
-    let id = this.id;
-    newPolyCircle.id = id;
-
-    var fragFunction = (' ' + this.fragFunction).slice(1);
-
-    newPolyCircle.fragFunction = fragFunction;
-
-    return newPolyCircle;
-  }
-
-  bakeFunctionParams(shader, parameters){
-        // let shader = fluentDoc.shader;
-
-        //insert new function
-        let insString = "//$INSERT FUNCTION$------";
-        let insIndex = shader.indexOf(insString);
-        insIndex += insString.length;
-
-        let startShader = shader.slice(0, insIndex);
-        let endShader = shader.slice(insIndex);
-
-        // if function exists start and end should be before beginning and after end
-        let exFuncStr = '//$START-' + this.id;
-
-        let exFuncIndex = shader.indexOf(exFuncStr);
-
-        //if function exists
-        if(exFuncIndex >= 0){
-          startShader = shader.slice(0, exFuncIndex);
-
-          let postFuncStr = '//$END-' + this.id;
-          let postIndex = shader.indexOf(postFuncStr);
-          postIndex += postFuncStr.length;
-          endShader = shader.slice(postIndex);
-        }
-
-        //create function
-        let posString = '\n';
-        posString += '//$START-' + this.id + '\n';
-
-        // p is a translation for polygon
-        // eventually this will be a reference to another data texture
-        posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
-
-        posString += '\n\tvec2 tUv = uv - p;\n';
-
-        let indexX = 0;
-        let indexY = 0;
-
-        let first = true;
-
-        let dpr = window.devicePixelRatio;
-
-        let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
-        let dataSize = parameters.dataSize;
-
-        let rgb = this.properties.stroke;
-        let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-        let radius = this.properties.radius;
-
-        for (let p of this.pts){
-          //there is a more efficient way of doing this
-          //should have an addPoint from point thing
-          parameters.addPoint(p.x, p.y, p.tag);
-          let cTexel = parameters.cTexel;
-
-          if(first){
-            first = false;
-            //what are x, y texel indices?
-            indexX = (cTexel % dataSize) / dataSize + texelOffset;
-            indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-            posString += '\n\tvec2 pos = vec2(0.0);';
-            posString += '\n\t float oldDist = 1000.0;';
-
-            posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');';
-
-            posString += '\n\tpos = texture2D(parameters, index).xy;';
-
-            posString += '\n\tfloat d = sdCircle(uv, pos, ' + radius + ');';
-            posString += '\n\td = opSmoothUnion(d, oldDist, 0.05);';
-            posString += '\n\toldDist = d;\n';
-
-          }else{
-            indexX = (cTexel % dataSize) / dataSize + texelOffset;
-            indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-
-            posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');';
-            posString += '\n\tpos = texture2D(parameters, index).xy;';
-
-            posString += '\n\td = sdCircle(uv, pos, ' + radius + ');';
-            posString += '\n\td = opSmoothUnion(d, oldDist, 0.05);';
-            posString += '\n\toldDist = d;';
-            // posString += '\n\tvec3 cCol = vec3(0.0, 0.384, 0.682);';
-            // posString += '\n\tfinalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight,abs(d)) );';
-
-          }
-        }
-        posString += '\n';
-
-        posString += '\n\tfinalColor = mix( finalColor, ' + color + ' , 1.0-smoothstep(0.0,'+ this.properties.weight + '+0.002,abs(d)));';
-
-        posString += '\n}\n';
-        posString += '//$END-' + this.id + '\n';
-
-        this.fragShaer = posString;
-
-        startShader += posString;
-
-        let fragShader = startShader + endShader;
-
-        return new DataShader(fragShader, parameters);
-  }
-
-  bakeFunctionCall(shader, parameters){
-    // let shader = fluentDoc.shader;
-    let insString = "//$INSERT CALL$------";
-    let insIndex = shader.indexOf(insString);
-    insIndex += insString.length;
-
-    let startShader = shader.slice(0, insIndex);
-    let endShader = shader.slice(insIndex);
-
-    let buffer = new ArrayBuffer(10);
-    let view = new DataView(buffer);
-
-    let oldPosX = 0;
-    let oldPosY = 0;
-
-    //create function
-    let posString = '\n';
-
-    // p here vec2(0.0,0.0) is a translation for polygon
-    // eventually this will be a reference to another data texture
-    posString += '\t' + this.id + '(uv, vec2(0.0,0.0), finalColor);\n';
-    startShader += posString;
-
-    let fragShader = startShader + endShader;
-
-    return fragShader;
-  }
-
-  create(properties, _dataSize){
-    return new PolyCircle(properties, _dataSize);
-  }
-
-  end(shader, parameters){
-    //should return null or something to prevent recompiling shader
-    if(this.pts.length == 0) return new DataShader(shader, parameters);
-
-    let dataShader = this.bakeFunctionParams(shader, parameters);
-    dataShader.shader = this.bakeFunctionCall(dataShader.shader, dataShader.parameters);
-
-    return dataShader;
-  }
-}
-
-export {DataShader, Point, Circle, Rectangle, PolyPoint, PolyLine, Polygon, PolyCircle};
+    //
+    // //bakes pointPrim data the fluentDoc.parameters
+    // let p = this.pointPrim;
+    // parameters.addPointPrim(p.x, p.y,p.z, p.w, "blah");
+    //
+    // let cTexel = parameters.cTexel;
+    // let dataSize = parameters.dataSize;
+    //
+    // let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+    //
+    // let indexX = (cTexel % dataSize) / dataSize + texelOffset;
+    // let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+    //
+    // //eventually address these functions using id in place of d
+    // //then perform scene merge operation when modifying finalColor
+    // let insString = "//$INSERT CALL$------";
+    // let insIndex = shader.indexOf(insString);
+    // insIndex += insString.length;
+    //
+    // let startShader = shader.slice(0, insIndex);
+    // let endShader = shader.slice(insIndex);
+    // //
+    // // let buffer = new ArrayBuffer(10);
+    // // let view = new DataView(buffer);
+    //
+    // //create function call
+    // let posString = '\n';
+    //
+    // let rgb = this.properties.stroke;
+    // let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+    // let radius = this.properties.radius.toFixed(4);
+    // let weight = this.properties.weight.toFixed(4);
+    //
+    // posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
+    // posString += '\trect1 = texture2D(parameters, index).xy;\n';
+    // posString += '\trect2 = texture2D(parameters, index).zw;\n';
+    // posString += '\td = sdBox(uv, 0.5 * (rect2 - rect1) + rect1, abs(rect2 - (0.5 * (rect2 - rect1) + rect1)), '+radius+');\n';
+    // posString += '\tfinalColor = mix( finalColor, ' + color + ', 1.0-smoothstep(0.0,0.003,abs(d)) );\n'
+    //
+    // startShader += posString;
+    // let fragShader = startShader + endShader;
+    //
+    // // console.log(fragShader);
+    //
+    // return new DataShader(fragShader, parameters);
+//   }
+//
+//   // bakeFunctionAbsolute
+//
+//   clone(){
+//     let pointPrim = this.pointPrim.clone();
+//     //may need to clone this in a better way
+//     let id = this.id;
+//     let properties = {...this.properties};
+//
+//     //list of points
+//     let pts = [];
+//     for (let p of this.pts){ pts.push(p.clone());};
+//     let newRect = new Rectangle(properties);
+//     newRect.pointPrim = pointPrim;
+//     newRect.id = id;
+//     newRect.pts = pts;
+//
+//     newRect.needsUpdate = this.needsUpdate;
+//
+//     return newRect;
+//   }
+//
+//   create(properties){
+//     return new Rectangle(properties);
+//   }
+//
+//   end(shader, parameters){
+//
+//     if(this.pts.length == 0) return dataShader;
+//
+//     return this.bakeFunctionCall(shader, parameters);
+//   }
+// }
+//
+// class PolyLine extends PolyPoint {
+//
+//   constructor(properties, _dataSize){
+//     //super is how PolyPoint class is constructed
+//     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
+//     super(properties, _dataSize);
+//
+//     this.fragFunction = "";
+//
+//     this.primType = "PolyLine";
+//   }
+//
+//   clone(){
+//     let weight = this.weight;
+//     let properties = {...this.properties};
+//     let dataSize = this.dataSize;
+//
+//     let newPolyLine = new PolyLine(properties, dataSize);
+//
+//     let pts = [];
+//     for (let p of this.pts){ pts.push(p.clone());};
+//     let cTexel = this.cTexel;
+//
+//     newPolyLine.pts = pts;
+//     newPolyLine.cTexel = cTexel;
+//
+//     let data = new Uint16Array(this.data);
+//     let ptsTex = new THREE.DataTexture(data, dataSize, dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
+//
+//     newPolyLine.data = data;
+//     newPolyLine.ptsTex = ptsTex;
+//
+//     newPolyLine.needsUpdate = this.needsUpdate;
+//
+//     let id = (' ' + this.id).slice(1);
+//     newPolyLine.id = id;
+//
+//     let fragFunction = (' ' + this.fragFunction).slice(1);
+//     newPolyLine.fragFunction = fragFunction;
+//
+//     return newPolyLine;
+//   }
+//
+//   //takes shader as argument, modifies string, returns modified shader
+//   //the inputs to these functions e.g. position will be parameterized
+//   //needs review
+//   bakeFunctionAbsolute(shader){
+//     // let shader = fluentDoc.shader;
+//
+//     //insert new function
+//     let insString = "//$INSERT FUNCTION$------";
+//     let insIndex = shader.indexOf(insString);
+//     insIndex += insString.length;
+//
+//     let startShader = shader.slice(0, insIndex);
+//     let endShader = shader.slice(insIndex);
+//
+//     // if function exists start and end should be before beginning and after end
+//     let exFuncStr = '//$START-' + this.id;
+//
+//     let exFuncIndex = shader.indexOf(exFuncStr);
+//
+//     //if function exists
+//     if(exFuncIndex >= 0){
+//       startShader = shader.slice(0, exFuncIndex);
+//
+//       let postFuncStr = '//$END-' + this.id;
+//       let postIndex = shader.indexOf(postFuncStr);
+//       postIndex += postFuncStr.length;
+//       endShader = shader.slice(postIndex);
+//     }
+//
+//     //create function
+//     let posString = '\n';
+//     posString += '//$START-' + this.id + '\n';
+//
+//     // p is a translation for polygon
+//     // eventually this will be a reference to another data texture
+//     posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
+//
+//     posString += '\n\tvec2 tUv = uv - p;\n';
+//
+//     let buffer = new ArrayBuffer(10);
+//     let view = new DataView(buffer);
+//
+//     let oldPosX = 0;
+//     let oldPosY = 0;
+//
+//     let rgb = this.properties.stroke;
+//     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+//     let weight = this.properties.weight.toFixed(4);
+//
+//     for (let p of this.pts){
+//       view.setUint16(0, p.texData[0]);
+//       let floatX = getFloat16(view, 0);
+//       // console.log(getFloat16(view, 0));
+//       // console.log(getFloat16(view, 0) * window.innerWidth);
+//
+//       //this should be a property of GhostUI
+//       let dpr = window.devicePixelRatio;
+//
+//       view.setUint16(0, p.texData[1]);
+//       let floatY = getFloat16(view, 0);
+//       // console.log(getFloat16(view, 0));
+//       // console.log(window.innerHeight - getFloat16(view, 0) * window.innerHeight);
+//
+//       if(oldPosX == 0 && oldPosY ==0){
+//         oldPosX = floatX;
+//         oldPosY = floatY;
+//
+//         posString += '\n\tvec2 pos = vec2(0.0);\n';
+//         posString += '\n\tfloat d = 0.0;\n';
+//         posString += '\n\tvec2 oldPos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
+//
+//         continue;
+//       }else{
+//         posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
+//         posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);\n';
+//
+//         posString += '\tfinalColor = mix(finalColor, ' + color + ', line(tUv, d, '+weight+'));\n';
+//
+//         posString += '\toldPos = pos;\n';
+//
+//         oldPosX = floatX;
+//         oldPosY = floatY;
+//       }
+//     }
+//
+//     // posString += '\tfinalColor = mix(finalColor, vec3(1.0), editOpacity);\n}\n';
+//     posString += '\n}\n';
+//     posString += '//$END-' + this.id + '\n';
+//
+//     this.fragShaer = posString;
+//     // console.log(posString);
+//
+//     startShader += posString;
+//
+//     let fragShader = startShader + endShader;
+//
+//     return new DataShader(fragShader, parameters);
+//   }
+//
+//   //takes shader as argument, modifies string, returns modified shader
+//   //the inputs to these functions e.g. position will be parameterized
+//   bakeFunctionParams(shader, parameters){
+//
+//     // let shader = fluentDoc.shader;
+//
+//     //insert new function
+//     let insString = "//$INSERT FUNCTION$------";
+//     let insIndex = shader.indexOf(insString);
+//     insIndex += insString.length;
+//
+//     let startShader = shader.slice(0, insIndex);
+//     let endShader = shader.slice(insIndex);
+//
+//     // if function exists start and end should be before beginning and after end
+//     let exFuncStr = '//$START-' + this.id;
+//
+//     let exFuncIndex = shader.indexOf(exFuncStr);
+//
+//     //if function exists
+//     if(exFuncIndex >= 0){
+//       startShader = shader.slice(0, exFuncIndex);
+//
+//       let postFuncStr = '//$END-' + this.id;
+//       let postIndex = shader.indexOf(postFuncStr);
+//       postIndex += postFuncStr.length;
+//       endShader = shader.slice(postIndex);
+//     }
+//
+//     //create function
+//     let posString = '\n';
+//     posString += '//$START-' + this.id + '\n';
+//
+//     // p is a translation for polygon
+//     // eventually this will be a reference to another data texture
+//     posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
+//
+//     posString += '\n\tvec2 tUv = uv - p;\n';
+//
+//     let buffer = new ArrayBuffer(10);
+//     let view = new DataView(buffer);
+//
+//     let oldPosX = 0;
+//     let oldPosY = 0;
+//
+//     let indexX = 0;
+//     let indexY = 0;
+//
+//     //this should be a property of GhostUI
+//     let dpr = window.devicePixelRatio;
+//
+//     let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+//     let dataSize = parameters.dataSize;
+//
+//     let rgbStroke = this.properties.stroke;
+//     let colorStroke = 'vec3(' + rgbStroke.x + ',' + rgbStroke.y + ',' + rgbStroke.z +')';
+//     let weight = this.properties.weight.toFixed(4);
+//
+//     let count = 0;
+//
+//     for (let p of this.pts){
+//
+//       parameters.addPoint(p.x, p.y, p.tag);
+//       let cTexel = parameters.cTexel;
+//
+//       if(count == 0){
+//         //what are x, y texel indices?
+//         indexX = (cTexel % dataSize) / dataSize + texelOffset;
+//         indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+//         posString += '\n\tvec2 pos = vec2(0.0);\n';
+//         posString += '\n\tfloat d = 0.0;\n';
+//
+//         posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');\n';
+//
+//         posString += '\n\tvec2 oldPos = texture2D(parameters, index).xy;\n';
+//
+//         count++;
+//         continue;
+//       }else{
+//         indexX = (cTexel % dataSize) / dataSize + texelOffset;
+//         indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+//         //texture2D(posTex, vIndex).xy;
+//         // posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
+//         posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');\n';
+//         posString += '\n\tpos = texture2D(parameters, index).xy;\n';
+//
+//         posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);\n';
+//
+//         posString += '\tfinalColor = mix(finalColor, ' + colorStroke + ', line(tUv, d, '+weight+'));\n';
+//
+//         posString += '\toldPos = pos;\n';
+//
+//         count++;
+//       }
+//     }
+//
+//     posString += '\n}\n';
+//     posString += '//$END-' + this.id + '\n';
+//     // console.log(posString);
+//     this.fragShaer = posString;
+//
+//     startShader += posString;
+//
+//     let fragShader = startShader + endShader;
+//
+//     // console.log(fragShader);
+//
+//     return new DataShader(fragShader, parameters);
+//   }
+//
+//   //takes shader as argument, modifies string, returns modified shader
+//   //creates function calls that calls function already created
+//   //the inputs to these functions e.g. position will be parameterized
+//   bakeFunctionCall(shader, parameters){
+//     // let shader = fluentDoc.shader;
+//     let insString = "//$INSERT CALL$------";
+//     let insIndex = shader.indexOf(insString);
+//     insIndex += insString.length;
+//
+//     let startShader = shader.slice(0, insIndex);
+//     let endShader = shader.slice(insIndex);
+//
+//     let buffer = new ArrayBuffer(10);
+//     let view = new DataView(buffer);
+//
+//     let oldPosX = 0;
+//     let oldPosY = 0;
+//
+//     //create function
+//     let posString = '\n';
+//
+//     // p here vec2(0.0,0.0) is a translation for polygon
+//     // eventually this will be a reference to another data texture
+//     posString += '\t' + this.id + '(uv, vec2(0.0,0.0), finalColor);\n';
+//     startShader += posString;
+//
+//     let fragShader = startShader + endShader;
+//
+//     // console.log(fragShader);
+//
+//     return fragShader;
+//   }
+//
+//   create(properties, _dataSize){
+//     return new PolyLine(properties, _dataSize);
+//   }
+//
+//   //should clone and probably push to state stack prior to this
+//   end(shader, parameters){
+//     let dataShader = new DataShader(shader, parameters);
+//     if(this.pts.length == 0) return dataShader;
+//
+//     dataShader = this.bakeFunctionParams(shader, parameters);
+//     dataShader.shader = this.bakeFunctionCall(dataShader.shader, dataShader.parameters);
+//
+//     return dataShader;
+//   }
+// }
+//
+// class Polygon extends PolyPoint {
+//
+//   constructor(properties, _dataSize){
+//     //super is how PolyPoint class is constructed
+//     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
+//     super(properties, _dataSize);
+//
+//     this.fragFunction = "";
+//
+//     this.primType = "Polygon";
+//   }
+//
+//   clone(){
+//     let weight = this.weight;
+//     let properties = {...this.properties};
+//     let dataSize = this.dataSize;
+//
+//     let newPolygon = new Polygon(properties, dataSize);
+//
+//     let pts = [];
+//     for (let p of this.pts){ pts.push(p.clone());};
+//     let cTexel = this.cTexel;
+//
+//     newPolygon.pts = pts;
+//     newPolygon.cTexel = cTexel;
+//
+//     let data = new Uint16Array(this.data);
+//     let ptsTex = new THREE.DataTexture(data, dataSize, dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
+//
+//     newPolygon.data = data;
+//     newPolygon.ptsTex = ptsTex;
+//
+//     newPolygon.needsUpdate = this.needsUpdate;
+//
+//     let id = (' ' + this.id).slice(1);
+//     newPolygon.id = id;
+//
+//     //is there a bug here? should I clone id this way?
+//     var fragFunction = (' ' + this.fragFunction).slice(1);
+//
+//     newPolygon.fragFunction = fragFunction;
+//
+//     return newPolygon;
+//   }
+//
+//   //takes shader as argument, modifies string, returns modified shader
+//   bakeFunctionAbsolute(shader, parameters){
+//     // let shader = fluentDoc.shader;
+//
+//     //insert new function
+//     let insString = "//$INSERT FUNCTION$------";
+//     let insIndex = shader.indexOf(insString);
+//     insIndex += insString.length;
+//
+//     let startShader = shader.slice(0, insIndex);
+//     let endShader = shader.slice(insIndex);
+//
+//     // if function exists start and end should be before beginning and after end
+//     let exFuncStr = '//$START-' + this.id;
+//
+//     let exFuncIndex = shader.indexOf(exFuncStr);
+//
+//     //if function exists
+//     if(exFuncIndex >= 0){
+//       startShader = shader.slice(0, exFuncIndex);
+//
+//       let postFuncStr = '//$END-' + this.id;
+//       let postIndex = shader.indexOf(postFuncStr);
+//       postIndex += postFuncStr.length;
+//       endShader = shader.slice(postIndex);
+//     }
+//
+//     //create function
+//     let posString = '\n';
+//     posString += '//$START-' + this.id + '\n';
+//
+//     // p is a translation for polygon
+//     // eventually this will be a reference to another data texture
+//     posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
+//
+//     posString += '\n\tvec2 tUv = uv - p;\n';
+//
+//     let buffer = new ArrayBuffer(10);
+//     let view = new DataView(buffer);
+//
+//     let oldPosX = 0;
+//     let oldPosY = 0;
+//
+//     let rgb = this.properties.stroke;
+//     let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+//     let weight = this.properties.weight.toFixed(4);
+//
+//     for (let p of this.pts){
+//       view.setUint16(0, p.texData[0]);
+//       let floatX = getFloat16(view, 0);
+//       // console.log(getFloat16(view, 0));
+//       // console.log(getFloat16(view, 0) * window.innerWidth);
+//
+//       let dpr = window.devicePixelRatio;
+//
+//       view.setUint16(0, p.texData[1]);
+//       let floatY = getFloat16(view, 0);
+//       // console.log(getFloat16(view, 0));
+//       // console.log(window.innerHeight - getFloat16(view, 0) * window.innerHeight);
+//
+//       if(oldPosX == 0 && oldPosY ==0){
+//         oldPosX = floatX;
+//         oldPosY = floatY;
+//
+//         posString += '\n\tvec2 pos = vec2(0.0);\n';
+//         posString += '\n\tfloat d = 0.0;\n';
+//         posString += '\n\tvec2 oldPos = vec2(' + oldPosX + ',' + oldPosY + ');\n';
+//
+//         continue;
+//       }else{
+//         posString += '\n\tpos = vec2(' + floatX + ',' + floatY + ');\n';
+//         posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);\n';
+//
+//         posString += '\tfinalColor = mix(finalColor, ' + color + ', line(tUv, d, '+weight+'));\n';
+//
+//         posString += '\toldPos = pos;\n';
+//
+//         oldPosX = floatX;
+//         oldPosY = floatY;
+//       }
+//     }
+//
+//     // posString += '\tfinalColor = mix(finalColor, vec3(1.0), editOpacity);\n}\n';
+//     posString += '\n}\n';
+//     posString += '//$END-' + this.id + '\n';
+//
+//     this.fragShaer = posString;
+//     // console.log(posString);
+//
+//     startShader += posString;
+//
+//     let fragShader = startShader + endShader;
+//
+//     return new DataShader(shader, parameters);
+//   }
+//
+//   //takes shader as argument, modifies string, returns modified shader
+//   //the inputs to these functions e.g. position will be parameterized
+//   bakeFunctionParams(shader, parameters){
+//
+//     // let shader = fluentDoc.shader;
+//
+//     //insert new function
+//     let insString = "//$INSERT FUNCTION$------";
+//     let insIndex = shader.indexOf(insString);
+//     insIndex += insString.length;
+//
+//     let startShader = shader.slice(0, insIndex);
+//     let endShader = shader.slice(insIndex);
+//
+//     // if function exists start and end should be before beginning and after end
+//     let exFuncStr = '//$START-' + this.id;
+//
+//     let exFuncIndex = shader.indexOf(exFuncStr);
+//
+//     //if function exists
+//     if(exFuncIndex >= 0){
+//       startShader = shader.slice(0, exFuncIndex);
+//
+//       let postFuncStr = '//$END-' + this.id;
+//       let postIndex = shader.indexOf(postFuncStr);
+//       postIndex += postFuncStr.length;
+//       endShader = shader.slice(postIndex);
+//     }
+//
+//     //create function
+//     let posString = '\n';
+//     posString += '//$START-' + this.id + '\n';
+//
+//     let buffer = new ArrayBuffer(10);
+//     let view = new DataView(buffer);
+//
+//     let oldPosX = 0;
+//     let oldPosY = 0;
+//
+//     let indexX = 0;
+//     let indexY = 0;
+//
+//     //this should be a property of GhostUI
+//     let dpr = window.devicePixelRatio;
+//
+//     let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+//     let dataSize = parameters.dataSize;
+//
+//     let rgbFill = this.properties.fill;
+//     let colorFill = 'vec3(' + rgbFill.x + ',' + rgbFill.y + ',' + rgbFill.z +')';
+//     let rgbStroke = this.properties.stroke;
+//     let colorStroke = 'vec3(' + rgbStroke.x + ',' + rgbStroke.y + ',' + rgbStroke.z +')';
+//     let weight = this.properties.weight.toFixed(4);
+//     let radius = this.properties.radius.toFixed(4);
+//
+//     // p is a translation for polygon
+//     // eventually this will be a reference to another data texture
+//     posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
+//
+//     posString += '\n\tvec2 tUv = uv - p;\n';
+//     posString += '\tfloat radius='+radius+';\n';
+//     // scaling this way doesn't work
+//     // posString += '\ttUv = tUv/(1.0-radius);\n';
+//
+//     let count = 0;
+//     for (let p of this.pts){
+//
+//       parameters.addPoint(p.x, p.y, p.tag);
+//
+//       let cTexel = parameters.cTexel;
+//
+//       if(count == 0){
+//         //what are x, y texel indices?
+//         indexX = (cTexel % dataSize) / dataSize + texelOffset;
+//         indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+//
+//         posString += '\n\tvec2 pos = vec2(0.0);\n';
+//
+//         posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');\n';
+//
+//         posString += '\tvec2 first = texture2D(parameters, index).xy;\n';
+//         //scaling/rounding this way doesn't seem to work
+//         // posString += '\tfirst = (first/radius)*radius;\n';
+//
+//         //get the last point in absolute terms
+//         view.setUint16(0, this.pts[this.pts.length - 1].texData[0]);
+//         let floatX = getFloat16(view, 0);
+//
+//         view.setUint16(0, this.pts[this.pts.length - 1].texData[1]);
+//         let floatY = getFloat16(view, 0);
+//
+//         posString += '\tvec2 last = vec2('+floatX+', '+floatY+');\n';
+//         // posString += '\tlast = (last/radius)*radius;\n';
+//         posString += '\tfloat d = dot(tUv - first, tUv - first);\n';
+//         posString += '\tfloat s = 1.0;\n';
+//         posString += '\tvec2 oldPos = first;\n';
+//         //         vec2 e = v[j] - v[i];
+//         posString += '\tvec2 e = last - first;\n';
+//         //         vec2 w =    p - v[i];
+//         posString += '\tvec2 w = tUv - first;\n';
+//         //         vec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );
+//         posString += '\tvec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );\n';
+//         //         d = min( d, dot(b,b) );
+//         posString += '\td = min(d, dot(b,b));\n';
+//         // winding number from http://geomalgorithms.com/a03-_inclusion.html
+//         //         bvec3 cond = bvec3( p.y>=v[i].y, p.y<v[j].y, e.x*w.y>e.y*w.x );
+//         posString += '\tbvec3 cond = bvec3( tUv.y>=first.y, tUv.y<last.y, e.x*w.y>e.y*w.x );\n';
+//         //         if( all(cond) || all(not(cond)) ) s*=-1.0;
+//         posString += '\tif(all(cond) || all(not(cond))) s*=-1.0;\n';
+//         count++;
+//         continue;
+//       }else{
+//         indexX = (cTexel % dataSize) / dataSize + texelOffset;
+//         indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+//
+//         posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');\n';
+//         posString += '\tpos = texture2D(parameters, index).xy;\n';
+//         // posString += '\tpos = (pos/radius)*radius;\n';
+//         // vec2 e = v[j] - v[i];
+//         posString += '\te = oldPos - pos;\n';
+//         //         vec2 w =    p - v[i];
+//         posString += '\tw = tUv - pos;\n';
+//         //         vec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );
+//         posString += '\tb = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );\n';
+//         //         d = min( d, dot(b,b) );
+//         posString += '\td = min(d, dot(b,b));\n';
+//         //         // winding number from http://geomalgorithms.com/a03-_inclusion.html
+//         //         bvec3 cond = bvec3( p.y>=v[i].y, p.y<v[j].y, e.x*w.y>e.y*w.x );
+//         posString += '\tcond = bvec3( tUv.y>=pos.y, tUv.y<oldPos.y, e.x*w.y>e.y*w.x );\n';
+//         //         if( all(cond) || all(not(cond)) ) s*=-1.0;
+//         posString += '\tif(all(cond) || all(not(cond))) s*=-1.0;\n';
+//         posString += '\toldPos = pos;\n';
+//
+//         count++;
+//       }
+//     }
+//
+//     //     return s*sqrt(d);
+//     posString += '\td = s*sqrt(d) - radius;\n';
+//     // posString += '\tfloat line = d;\n';
+//     posString += '\tfloat line = d;\n';
+//     posString += '\td = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));\n';
+//     posString += '\tfinalColor = mix(finalColor, ' + colorFill + ', d);\n';
+//
+//     posString += '\tline = clamp(abs(line) - '+weight+', 0.0, 1.0);\n';
+//
+//     posString += '\tline = 1.0 - smoothstep(0.0,0.003,abs(line));\n';
+//     posString += '\tfinalColor = mix(finalColor, ' + colorStroke + ', line);\n';
+//
+//     posString += '\n}\n';
+//     posString += '//$END-' + this.id + '\n';
+//
+//     this.fragShaer = posString;
+//
+//     startShader += posString;
+//
+//     let fragShader = startShader + endShader;
+//
+//     // console.log(fragShader);
+//
+//     return new DataShader(fragShader, parameters);
+//   }
+//
+//   //takes shader as argument, modifies string, returns modified shader
+//   //creates function calls that calls function already created
+//   //the inputs to these functions e.g. position will be parameterized
+//   bakeFunctionCall(shader, parameters){
+//     // let shader = fluentDoc.shader;
+//     let insString = "//$INSERT CALL$------";
+//     let insIndex = shader.indexOf(insString);
+//     insIndex += insString.length;
+//
+//     let startShader = shader.slice(0, insIndex);
+//     let endShader = shader.slice(insIndex);
+//
+//     let buffer = new ArrayBuffer(10);
+//     let view = new DataView(buffer);
+//
+//     let oldPosX = 0;
+//     let oldPosY = 0;
+//
+//     //create function
+//     let posString = '\n';
+//
+//     // p here vec2(0.0,0.0) is a translation for polygon
+//     // eventually this will be a reference to another data texture
+//     posString += '\t' + this.id + '(uv, vec2(0.0,0.0), finalColor);\n';
+//     startShader += posString;
+//
+//     let fragShader = startShader + endShader;
+//
+//     // console.log(fragShader);
+//
+//     return fragShader;
+//   }
+//
+//   create(_dataSize){
+//     return new Polygon(_dataSize);
+//   }
+//
+//   //should clone and probably push to state stack prior to this
+//   end(shader, parameters){
+//     let dataShader = new DataShader(shader, parameters);
+//     if(this.pts.length == 0) return dataShader;
+//
+//     dataShader = this.bakeFunctionParams(shader, parameters);
+//     dataShader.shader = this.bakeFunctionCall(dataShader.shader, dataShader.parameters);
+//
+//     return dataShader;
+//   }
+// }
+//
+// class PolyCircle extends PolyPoint {
+//
+//   constructor(properties, _dataSize){
+//     //super is how PolyPoint class is constructed
+//     //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/extends
+//     super(properties, _dataSize);
+//
+//     this.fragFunction = "";
+//
+//     this.primType = "PolyCircle";
+//
+//   }
+//
+//   clone(){
+//     let weight = this.weight;
+//     let properties = {...this.properties};
+//     let dataSize = this.dataSize;
+//
+//     let newPolyCircle = new PolyCircle(properties, dataSize);
+//
+//     let pts = [];
+//     for (let p of this.pts){ pts.push(p.clone());};
+//     let cTexel = this.cTexel;
+//
+//     newPolyCircle.pts = pts;
+//     newPolyCircle.cTexel = cTexel;
+//
+//     let data = new Uint16Array(this.data);
+//     let ptsTex = new THREE.DataTexture(data, dataSize, dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
+//
+//     newPolyCircle.data = data;
+//     newPolyCircle.ptsTex = ptsTex;
+//
+//     newPolyCircle.needsUpdate = this.needsUpdate;
+//
+//     let id = this.id;
+//     newPolyCircle.id = id;
+//
+//     var fragFunction = (' ' + this.fragFunction).slice(1);
+//
+//     newPolyCircle.fragFunction = fragFunction;
+//
+//     return newPolyCircle;
+//   }
+//
+//   bakeFunctionParams(shader, parameters){
+//         // let shader = fluentDoc.shader;
+//
+//         //insert new function
+//         let insString = "//$INSERT FUNCTION$------";
+//         let insIndex = shader.indexOf(insString);
+//         insIndex += insString.length;
+//
+//         let startShader = shader.slice(0, insIndex);
+//         let endShader = shader.slice(insIndex);
+//
+//         // if function exists start and end should be before beginning and after end
+//         let exFuncStr = '//$START-' + this.id;
+//
+//         let exFuncIndex = shader.indexOf(exFuncStr);
+//
+//         //if function exists
+//         if(exFuncIndex >= 0){
+//           startShader = shader.slice(0, exFuncIndex);
+//
+//           let postFuncStr = '//$END-' + this.id;
+//           let postIndex = shader.indexOf(postFuncStr);
+//           postIndex += postFuncStr.length;
+//           endShader = shader.slice(postIndex);
+//         }
+//
+//         //create function
+//         let posString = '\n';
+//         posString += '//$START-' + this.id + '\n';
+//
+//         // p is a translation for polygon
+//         // eventually this will be a reference to another data texture
+//         posString += 'void ' + this.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
+//
+//         posString += '\n\tvec2 tUv = uv - p;\n';
+//
+//         let indexX = 0;
+//         let indexY = 0;
+//
+//         let first = true;
+//
+//         let dpr = window.devicePixelRatio;
+//
+//         let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+//         let dataSize = parameters.dataSize;
+//
+//         let rgb = this.properties.stroke;
+//         let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
+//         let radius = this.properties.radius;
+//
+//         for (let p of this.pts){
+//           //there is a more efficient way of doing this
+//           //should have an addPoint from point thing
+//           parameters.addPoint(p.x, p.y, p.tag);
+//           let cTexel = parameters.cTexel;
+//
+//           if(first){
+//             first = false;
+//             //what are x, y texel indices?
+//             indexX = (cTexel % dataSize) / dataSize + texelOffset;
+//             indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+//             posString += '\n\tvec2 pos = vec2(0.0);';
+//             posString += '\n\t float oldDist = 1000.0;';
+//
+//             posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');';
+//
+//             posString += '\n\tpos = texture2D(parameters, index).xy;';
+//
+//             posString += '\n\tfloat d = sdCircle(uv, pos, ' + radius + ');';
+//             posString += '\n\td = opSmoothUnion(d, oldDist, 0.05);';
+//             posString += '\n\toldDist = d;\n';
+//
+//           }else{
+//             indexX = (cTexel % dataSize) / dataSize + texelOffset;
+//             indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+//
+//             posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');';
+//             posString += '\n\tpos = texture2D(parameters, index).xy;';
+//
+//             posString += '\n\td = sdCircle(uv, pos, ' + radius + ');';
+//             posString += '\n\td = opSmoothUnion(d, oldDist, 0.05);';
+//             posString += '\n\toldDist = d;';
+//             // posString += '\n\tvec3 cCol = vec3(0.0, 0.384, 0.682);';
+//             // posString += '\n\tfinalColor = mix( finalColor, cCol , 1.0-smoothstep(0.0,editWeight,abs(d)) );';
+//
+//           }
+//         }
+//         posString += '\n';
+//
+//         posString += '\n\tfinalColor = mix( finalColor, ' + color + ' , 1.0-smoothstep(0.0,'+ this.properties.weight + '+0.002,abs(d)));';
+//
+//         posString += '\n}\n';
+//         posString += '//$END-' + this.id + '\n';
+//
+//         this.fragShaer = posString;
+//
+//         startShader += posString;
+//
+//         let fragShader = startShader + endShader;
+//
+//         return new DataShader(fragShader, parameters);
+//   }
+//
+//   bakeFunctionCall(shader, parameters){
+//     // let shader = fluentDoc.shader;
+//     let insString = "//$INSERT CALL$------";
+//     let insIndex = shader.indexOf(insString);
+//     insIndex += insString.length;
+//
+//     let startShader = shader.slice(0, insIndex);
+//     let endShader = shader.slice(insIndex);
+//
+//     let buffer = new ArrayBuffer(10);
+//     let view = new DataView(buffer);
+//
+//     let oldPosX = 0;
+//     let oldPosY = 0;
+//
+//     //create function
+//     let posString = '\n';
+//
+//     // p here vec2(0.0,0.0) is a translation for polygon
+//     // eventually this will be a reference to another data texture
+//     posString += '\t' + this.id + '(uv, vec2(0.0,0.0), finalColor);\n';
+//     startShader += posString;
+//
+//     let fragShader = startShader + endShader;
+//
+//     return fragShader;
+//   }
+//
+//   create(properties, _dataSize){
+//     return new PolyCircle(properties, _dataSize);
+//   }
+//
+//   end(shader, parameters){
+//     //should return null or something to prevent recompiling shader
+//     if(this.pts.length == 0) return new DataShader(shader, parameters);
+//
+//     let dataShader = this.bakeFunctionParams(shader, parameters);
+//     dataShader.shader = this.bakeFunctionCall(dataShader.shader, dataShader.parameters);
+//
+//     return dataShader;
+//   }
+// }
+
+export {DataShader, Point, PolyPoint};
