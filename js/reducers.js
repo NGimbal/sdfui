@@ -4,7 +4,7 @@
 //document - state related to a shared scene
 import * as THREE from './libjs/three.module.js';
 
-import * as PRIM from './fluentPrim.js';
+import * as PRIM from './primitives.js';
 import * as ACT from './actions.js';
 
 //would rather not have this but I have a feeling werner wouldn't

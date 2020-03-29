@@ -19,9 +19,6 @@ const sdfPrimFrag =`
 // https://www.shadertoy.com/view/4tc3DX
 uniform vec3      iResolution;           // viewport resolution (in pixels)
 
-//simple uniform for 2 xy coordinate based prims
-uniform vec4       pointPrim;
-
 //expandable structure for item being edited
 uniform sampler2D  posTex;
 

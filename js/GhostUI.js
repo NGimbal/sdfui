@@ -1,12 +1,9 @@
 "use strict";
 
 import * as THREE from './libjs/three.module.js';
-// import * as SNAP from './fluentSnap.js';
-import * as HINT from './fluentHints.js';
-import * as PRIM from './fluentPrim.js';
-
+import * as HINT from './uihints.js';
+import * as PRIM from './primitives.js';
 import * as SDFUI from './sdfui.js';
-
 import * as ACT from './actions.js';
 
 //GhostUI coordinates all UI functions, keeps FluentDocStack, and UI State
@@ -16,10 +13,6 @@ import * as ACT from './actions.js';
 class GhostUI{
 
   constructor(){
-    // "Out of the box" element and shader
-    // this.elem = elem;
-    // this.resolution = _resolution || new THREE.Vector2(window.innerWidth, window.innerHeight);
-
     //need to check endianess for half float usage
     // https://abdulapopoola.com/2019/01/20/check-endianness-with-javascript/
     function endianNess(){
@@ -69,7 +62,7 @@ class GhostUI{
     };
 
     //Doc State
-    this.fluentDoc = new FluentDoc();
+    // this.fluentDoc = new FluentDoc();
     // this.fluentDoc.editItems.push(new PRIM.PolyLine(editOptions));
     // this.fluentDoc.currEditItem = this.fluentDoc.editItems[this.fluentDoc.editItems.length - 1];
 
@@ -192,9 +185,9 @@ class GhostUI{
       mode.enter();
     }
 
-    let newDoc = mode.update(this.fluentDoc);
-    if (newDoc && newDoc != "exit") this.fluentDoc = newDoc;
-    else if (newDoc == "exit"){
+    let newDoc = mode.update();
+    // if (newDoc && newDoc != "exit") this.fluentDoc = newDoc;
+    if (newDoc == "exit"){
 
       //enter, how to actually make this  a little more modular?
       // let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
@@ -215,17 +208,12 @@ class GhostUI{
     let mode = this.modeStack.curr();
     if(!mode.up)return;
 
-    let newDoc = mode.up(e, this.fluentDoc);
-    if (newDoc) this.fluentDoc = newDoc;
-
-    // this.fluentStack.modCurr(thifluentDoc);
-    // this.fluentStack.push(fluentDoc);
+    let newDoc = mode.up(e);
   }
 
   mouseMove(e) {
     let resolution = SDFUI.resolution;
-    // let resolution = SDFUI.store.getState().resolution;
-    // let resolution = SDFUI.state.resolution;
+
     let evPt = {
       x: e.clientX,
       y: e.clientY
@@ -244,8 +232,7 @@ class GhostUI{
 
     if(!mode.mv)return;
 
-    let newDoc = mode.mv(e, this.fluentDoc);
-    if (newDoc) this.fluentDoc = newDoc;
+    let newDoc = mode.mv(e);
   }
 
   //cnrl Z
@@ -260,8 +247,7 @@ class GhostUI{
 
     for (let m of mode.modifiers){
       if(m.keyCut == key){
-        let newDoc = m.clck(this.fluentDoc);
-        if (newDoc) this.fluentDoc = newDoc;
+        let newDoc = m.clck();
       }
     }
   }
@@ -299,12 +285,8 @@ function selExit(){
   console.log(this);
 }
 
-function selUpdate(fluentDoc){
-  for (let e of fluentDoc.editItems){
-    if (e.primType && e.primType == "Circle" && e.pts.length > 0){
+function selUpdate(){
 
-    }
-  }
 }
 
 function selMv(){
@@ -328,7 +310,7 @@ function drawExit(){
 }
 
 //happens on every frame of draw mode
-function drawUpdate(fluentDoc){
+function drawUpdate(){
   let resolution = SDFUI.resolution;
 
   //exit draw condition - no primitive tool active
@@ -380,6 +362,21 @@ function drawUpdate(fluentDoc){
   if(SDFUI.state.ui.properties.filter != sel.value){
     SDFUI.store.dispatch(ACT.drawFilter(sel.value));
     SDFUI.store.dispatch(ACT.sceneEditProps());
+    switch(SDFUI.state.ui.properties.filter){
+      case "None":
+        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "0");
+        break;
+      case "Pencil":
+        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "1");
+        break;
+      case "Crayon":
+        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "2");
+        break;
+      case "SDF":
+        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "3");
+        break;
+    }
+    SDFUI.store.dispatch(ACT.statusUpdate(true));
   }
 
   sel = document.getElementById("strokeColor-select");
@@ -393,6 +390,7 @@ function drawUpdate(fluentDoc){
   if(SDFUI.state.ui.properties.fill != sel.value){
     SDFUI.store.dispatch(ACT.drawFill(sel.value));
     SDFUI.store.dispatch(ACT.sceneEditProps());
+
   }
 
   sel = document.getElementById("strokeWeight-range");
@@ -410,55 +408,40 @@ function drawUpdate(fluentDoc){
   for(let m of this.modifiers){
     //each update will deal with m.toggle on an individual basis
     if(m.update){
-      let newDoc = m.update(fluentDoc);
-      if (newDoc) fluentDoc = newDoc;
+      let newDoc = m.update();
       if (m.options.exit && m.options.exit == true){
         this.exit();
         return "exit";
       }
     }
   }
-  return fluentDoc;
+  return;
 }
 
-function drawMv(e, fluentDoc){
+function drawMv(e){
 
   for (let m of this.modifiers){
     if(!m.mv || !m.toggle || m.update) continue;
 
-    let modState = m.mv(e, fluentDoc, this.options);
-    if(!modState) continue;
-    else fluentDoc = modState;
+    let modState = m.mv(e, this.options);
   }
-  return fluentDoc;
+  return;
 }
 
-function drawUp(e, fluentDoc){
+function drawUp(e){
   let resolution = SDFUI.resolution;
-  // let resolution = SDFUI.state.resolution;
 
   for (let m of this.modifiers){
     if(!m.up) continue;
-    let modState = m.up(e, fluentDoc)
+    let modState = m.up(e)
     if(!modState) continue;
-    fluentDoc = modState;
   }
 
   //returns a new point of type PRIM.vec()
   let pt = SDFUI.editTex.addPoint(SDFUI.mPt, "plPoint");
 
   SDFUI.store.dispatch(ACT.sceneAddPt(pt));
-  //
-  // if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
-  //   // fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
-  //   fluentDoc.currEditItem.needsUpdate = true;
-  //
-  //   fluentDoc.editItems.push(fluentDoc.currEditItem.create(resolution, this.options));
-  //   fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-  //
-  //   // fluentDoc.shaderUpdate = true;
-  //   SDFUI.store.dispatch(ACT.statusUpdate(true));
-  // }
+
   let item = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
   if ( (item.type == "circle" || item.type == "rectangle") && item.pts.length == 2){
     SDFUI.store.dispatch(ACT.sceneItemUpdate(SDFUI.state.scene.editItem, true));
@@ -468,7 +451,7 @@ function drawUp(e, fluentDoc){
   }
 
 
-  return fluentDoc;
+  return;
 }
 
 //---DRAW-----------------------------
@@ -477,14 +460,14 @@ function endDrawClck(){
   HINT.pulseActive(this);
 }
 //
-function escDrawClck(fluentDoc){
+function escDrawClck(){
   this.toggle = !this.toggle;
   HINT.pulseActive(this);
 }
 
 function endDrawUpdate(){
   if(!this.toggle) return null;
-  console.log("///////////////////////////////////////////////");
+  // console.log("///////////////////////////////////////////////");
 
   //get out of Draw UIMode
   if(SDFUI.editTex.pts.length == 0) {
@@ -503,7 +486,7 @@ function endDrawUpdate(){
   this.toggle = !this.toggle;
 }
 
-function escDrawUpdate(fluentDoc){
+function escDrawUpdate(){
   if(!this.toggle) return null;
 
   if(SDFUI.editTex.pts.length == 0) {
@@ -515,16 +498,15 @@ function escDrawUpdate(fluentDoc){
     SDFUI.store.dispatch(ACT.sceneRmvPt(p));
   }
 
-  // SDFUI.editTex = new PRIM.PolyPoint({...SDFUI.state.ui.properties}, 16);
   SDFUI.newEditTex();
 
   this.toggle = !this.toggle;
-  return fluentDoc;
+  return;
 }
 
 //this will eventually just operate on the shader
 //should move this to sdfui
-function showPtsUpdate(fluentDoc){
+function showPtsUpdate(){
   if(!this.toggle) return null;
 
   let valString = "0";
@@ -537,30 +519,7 @@ function showPtsUpdate(fluentDoc){
   this.options.pts = !this.options.pts;
 
   this.toggle = !this.toggle;
-  return fluentDoc;
-}
-
-function printShaderUpdate(fluentDoc){
-  if(!this.toggle) return null;
-
-  // console.log(fluentDoc.shader);
-  this.toggle = !this.toggle;
-  return fluentDoc;
-}
-
-function modifyDefine(shader, define, val){
-  //change #define
-  let insString = "#define " + define + " ";
-  let insIndex = shader.indexOf(insString);
-  insIndex += insString.length;
-
-  let startShader = shader.slice(0, insIndex);
-  let endShader = shader.slice(insIndex+2);
-
-  startShader += val + "\n";
-  shader = startShader + endShader;
-
-  return shader;
+  return;
 }
 
 //Ring buffer of states, type agnostic
@@ -603,8 +562,6 @@ class StateStack{
     this.incrementIndex();
 
     this.stack[this.index] = state;
-
-    //console.log(this);
   }
 
   //return previous state, decrement index
@@ -639,90 +596,6 @@ class StateStack{
     if(this.index < 0){
       this.index = 9;
     }
-  }
-}
-
-//FluentDoc State state distince from ui state
-class FluentDoc{
-  // new Doc contains elem, curr shader, kd tree of all pts, curr editItem, editItems
-  constructor(){
-    // should move shader logic in here
-    // maybe this class should get moved to sdfui
-    // this.elem = elem;
-    // this.resolution = new THREE.Vector2(elem.width, elem.height);
-
-    //uniforms might want to get moved here
-    // this.shader = shader;
-    // this.shaderUpdate = false;
-    // this.shaderPause = false;
-    // this.screenshot = false;
-
-    //mouse target position
-    // this.mPt = new THREE.Vector3(0, 0, 1.0);
-
-    //grid scale
-    // this.scale = 48;
-
-    this.addPt = {
-      x: 0,
-      y: 0,
-      tag: "",
-    };
-
-    //list of kdTree points, might not be necessary?
-    this.pts = [];
-    //all clickable / snappable points
-    // this.tree = new kdTree(this.pts, this.pointDist, ["x", "y"]);
-
-    // this.editItemIndex = 0;
-    this.currEditItem;
-    this.editItems = [];
-
-    // this.drawGrid();
-  }
-
-  // simple distance function for kdTree
-  pointDist(a, b){
-    var dx = a.x - b.x;
-    var dy = a.y - b.y;
-    return dx*dx + dy*dy;
-  }
-
-  //clones FluentDoc, essential for document stack
-  clone(){
-    //elem is probably the only thing we want to retain a reference to
-    //also elem probably doesn't have to be a property of fluentDoc
-    // var shader = (' ' + this.shader).slice(1);
-    let newDoc = new FluentDoc();
-
-    // newDoc.shaderPause = this.shaderPause;
-    // newDoc.shaderUpdate = this.shaderUpdate;
-    // newDoc.screenshot = this.screenshot;
-
-    // newDoc.mPt = this.mPt.clone();
-    let pts = [];
-    for (let p of this.pts){ pts.push(p.clone()) };
-
-    // newDoc.tree = new kdTree(pts, newDoc.pointDist, ["x", "y"]);
-
-    newDoc.pts = pts;
-
-    //this may have to get a little more sofisticated...
-    // newDoc.editOptions = {...this.editOptions};
-    // newDoc.editItemIndex = this.editItemIndex;
-
-    // let currEditItem = this.currEditItem.clone();
-    let editItems = [];
-    for (let item of this.editItems){editItems.push(item.clone());}
-    newDoc.editItems = editItems;
-    let currEditItem = editItems[editItems.length - 1];
-
-    // newDoc.parameters = this.parameters.clone();
-
-    newDoc.currEditItem = currEditItem;
-    newDoc.editItems = editItems;
-
-    return newDoc;
   }
 }
 
@@ -842,8 +715,6 @@ class UIModifier{
     }
   }
 }
-
-
 
 function hexToRgb(hex) {
   // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")

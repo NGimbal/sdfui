@@ -9,24 +9,20 @@ SVG() //returns svg of polyline
 
 */
 
-
 "use strict";
 
 import * as THREE from './libjs/three.module.js';
-// import * as SNAP from './fluentSnap.js';
-import * as HINT from './fluentHints.js';
+import * as HINT from './uihints.js';
 
-import { resolution } from './sdfui.js';
-
-//simple class for returning shader and polypoint
-class DataShader{
+//simple class for packaging shader and polypoint
+export class DataShader{
   constructor(shader, parameters){
     this.shader = shader;
     this.parameters = parameters;
   }
 }
 
-
+//simple point, color vector
 export class vec{
   constructor(x, y, z, w, id, update, pId){
     this.x = x || 0;
@@ -38,6 +34,14 @@ export class vec{
     //parentId
     this.parentId = pId || "";
   }
+}
+
+export function vecSet(vec, x, y, z, w){
+  vec.x = x || vec.x;
+  vec.y = y || vec.y;
+  vec.z = z || vec.z;
+  vec.w = w || vec.w;
+  return vec;
 }
 
 export function lengthVec(_vec){
@@ -87,16 +91,13 @@ export class prim{
 
 //PolyPoint is an array of points, a texture representation and properties
 //Another class e.g. PolyLine extends PolyPoint to manipulate and bake
-class PolyPoint {
+export class PolyPoint {
 
   //creates empty PolyPoint object
   constructor(properties, _dataSize){
     this.properties = properties;
     this.dataSize = _dataSize || 16;
-    //input is 1 to 20 divided by 2000
-    // this.weight = options.weight || .002,
-    //this can probably be relegated to the actual primitives? idk
-    // this.options = {...options};
+
     //list of points
     this.pts=[];
 
@@ -141,9 +142,8 @@ class PolyPoint {
     return newPolyPoint;
   }
 
-  //takes x, y, and tag
   //adds point to polyPoint
-  //point x, y are stored as HalfFloat16
+  //point x, y, z, w are stored as HalfFloat16
   //https://github.com/petamoriken/float16
   addPoint(_pt, tag){
     let x = _pt.x;
@@ -183,116 +183,9 @@ class PolyPoint {
     let _tag = tag || "none";
     let texData = [view.getUint16(0, endD), view.getUint16(16, endD), view.getUint16(32, endD), view.getUint16(48, endD)];
 
-    //why is this important? want to get rid of this point class
-    // let ptpt = new Point(x, y, this.cTexel, texData, this.id, _tag);
-
-    // this.pts.push(ptpt);
     this.pts.push(pt);
 
     return pt;
   }
 
-  //takes x, y, and tag
-  //adds point to polyPoint
-  //point x, y are stored as HalfFloat16
-  //https://github.com/petamoriken/float16
-  addPointPrim(x, y, z, w, tag){
-    this.cTexel++;
-
-    let index = this.cTexel * 4;
-    //pointPrim points are already transformed
-    //could think about unifying this with addPoint, wouldn't be too hard
-
-    //use view.setFloat16() to set the digits in the DataView
-    //then use view.getUint16 to retrieve and write to data Texture
-    let buffer = new ArrayBuffer(64);
-    let view = new DataView(buffer);
-
-    view.getFloat16 = (...args) => getFloat16(view, ...args);
-    view.setFloat16 = (...args) => setFloat16(view, ...args);
-
-    //assume little endian
-    let endD = false;
-
-    view.setFloat16(0, x, endD);
-    view.setFloat16(16, y, endD);
-    //in the case of the point prims so far z and w have already been transformed as above
-    //maybe should turn that into a little function we can call...
-    view.setFloat16(32, z, endD);
-    view.setFloat16(48, w, endD);
-
-    this.ptsTex.image.data[index] = view.getUint16(0, endD);
-    this.ptsTex.image.data[index + 1] = view.getUint16(16, endD);
-    this.ptsTex.image.data[index + 2] = view.getUint16(32, endD);
-    this.ptsTex.image.data[index + 3] = view.getUint16(48, endD);
-
-    this.ptsTex.needsUpdate = true;
-
-    let _tag = tag || "none";
-    let texData = [view.getUint16(0, endD), view.getUint16(16, endD), view.getUint16(32, endD), view.getUint16(48, endD)];
-
-    let pt = new Point(x, y, this.cTexel, texData, this.id, _tag);
-
-    this.pts.push(pt);
-
-    return pt;
-  }
 }
-
-//Simple point class for insertion into kdTree
-//Holds information for kdTree / UI
-class Point{
-  constructor(x, y, _texRef, _texData, _shapeID, _tag){
-    //shader aligned X, Y
-    //committing to shader align coords LATER (lol)
-    //vals are x = [0 - screenY / screenX]
-    //         y = [0 - 1.0]
-    this.x = x;
-    this.y = y;
-
-    //texture coordinates can be reconstructed from this and dataSize
-    this.texRef = _texRef || 0;
-
-    //half float data will be stored here for future use in bake function
-    this.texData = _texData || [];
-
-    //for selection by point
-    this.shapeID = _shapeID || "";
-
-    //for filtering point selection
-    this.tag = _tag || "none";
-
-    this.insert = true;
-    this.update = false;
-    this.remove = false;
-
-    this.id = (+new Date).toString(36).slice(-8);
-
-    this.primType = "Point";
-  }
-
-  setXY(x, y){
-    this.x = x || this.x;
-    this.y = y || this.y;
-    return this;
-  }
-
-  clone(){
-    let x = this.x;
-    let y = this.y;
-    let texRef = this.texRef;
-    let texData = [];
-    let shapeID = this.shapeID;
-    let tag = this.tag;
-    let id = this.id;
-
-    for (let t of this.texData) texData.push(t);
-
-    let newPt = new Point(x, y, texRef, texData, shapeID, tag);
-    newPt.id = id;
-
-    return newPt;
-  }
-}
-
-export {DataShader, Point, PolyPoint};

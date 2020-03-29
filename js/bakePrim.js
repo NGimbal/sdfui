@@ -1,5 +1,5 @@
 //bakePrim.js
-import * as PRIM from './fluentPrim.js';
+import * as PRIM from './primitives.js';
 import * as SDFUI from './sdfui.js';
 
 //POLYLINE-------------------------------------------------------

@@ -3,9 +3,9 @@
 //import * as THREE from 'https://unpkg.com/three@0.108.0/build/three.module.js';
 import * as THREE from './libjs/three.module.js';
 
-import * as PRIM from './fluentPrim.js';
+import * as PRIM from './primitives.js';
 import * as BAKE from './bakePrim.js';
-import {GhostUI} from './GhostUI.js';
+import {GhostUI} from './ghostUI.js';
 
 import * as ACT from './actions.js';
 import { reducer } from './reducers.js';
@@ -30,7 +30,7 @@ function pointDist (a, b){
 }
 
 export var resolution;
-export var mPt = new PRIM.Point(0, 0);
+export var mPt = new PRIM.vec(0, 0);
 
 export var ptTree = new kdTree([], pointDist, ["x", "y"]);
 
@@ -41,7 +41,7 @@ function listener(){
   //update resolution variable
   resolution = state.status.resolution;
   //update mouse position variable
-  mPt.setXY(state.cursor.pos.x, state.cursor.pos.y);
+  mPt = PRIM.vecSet(mPt, state.cursor.pos.x, state.cursor.pos.y);
   //update kdTree of points
   for(let p of state.scene.pts){
     //will need to find and move, or find remove and add when update means moving points around
@@ -128,7 +128,6 @@ function main() {
   );
 
   ui = new GhostUI();
-  let fluentDoc = ui.fluentDoc;
 
   resizeRendererToDisplaySize(renderer);
 
@@ -140,8 +139,6 @@ function main() {
 
   uniforms = {
     iResolution:  { value: new THREE.Vector3(resolution.x, resolution.y, resolution.z)},
-    //uniform for rect, circle, primitives based on two points
-    pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
     //uniform for curr edit polypoint prims, should be factored out
     posTex: { value: editTex},
     //index of texel being currently edited
@@ -157,7 +154,6 @@ function main() {
     editRadius : {value: state.ui.properties.radius},
     //global scale variables, mostly unused
     scale: {value: state.cursor.scale},
-    // hiDPR: {value: window.devicePixelRatio}
   };
 
   scene = new THREE.Scene();
@@ -209,19 +205,9 @@ function render() {
   resizeRendererToDisplaySize(renderer);
 
   ui.update();
-
-  // const canvas = renderer.domElement;
-  let fluentDoc = ui.fluentDoc;
-
-  //update uniforms
-  // if(fluentDoc.currEditItem.ptsTex){
-    //next this is going to come out of polyPointPrim
-    screenMesh.material.uniforms.posTex.value = editTex.ptsTex;
-    screenMesh.material.uniforms.editCTexel.value = editTex.cTexel;
-  // }
-  // if(fluentDoc.currEditItem.pointPrim){
-  //   screenMesh.material.uniforms.pointPrim.value = fluentDoc.currEditItem.pointPrim;
-  // }
+  
+  screenMesh.material.uniforms.posTex.value = editTex.ptsTex;
+  screenMesh.material.uniforms.editCTexel.value = editTex.cTexel;
 
   // let uiOptions = ui.modeStack.curr().options;
   let uiOptions = state.ui.properties;
@@ -239,29 +225,6 @@ function render() {
   screenMesh.material.uniforms.editRadius.value = state.ui.properties.radius;
 
   screenMesh.material.uniforms.needsUpdate = true;
-
-  //change current edit item in shader
-  // if (state.scene.editItems[state.scene.editItem].type != dataShader.parameters.properties.currEditItem){
-  //   dataShader.parameters.properties.currEditItem = state.scene.editItems[state.scene.editItem].type;
-  //   switch(state.scene.editItems[state.scene.editItem].type){
-  //     case "PolyLine":
-  //       dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "1");
-  //       break;
-  //     case "Polygon":
-  //       dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "5");
-  //       break;
-  //     case "PolyCircle":
-  //       dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "2");
-  //       break;
-  //     case "Circle":
-  //       dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "3");
-  //       break;
-  //     case "Rectangle":
-  //       dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "4");
-  //       break;
-  //   }
-  //   store.dispatch(ACT.statusUpdate(true));
-  // }
 
   //if we're changing the status of showing/hiding the background grid
   if (state.ui.grid != dataShader.parameters.properties.grid){
@@ -285,28 +248,8 @@ function render() {
     store.dispatch(ACT.statusUpdate(true));
   }
 
-  //change filter in shader
-  if (state.ui.properties.filter != dataShader.parameters.properties.filter){
-    dataShader.parameters.properties.filter = state.ui.properties.filter;
-    switch(state.ui.properties.filter){
-      case "None":
-        modifyDefine(dataShader, "FILTER", "0");
-        break;
-      case "Pencil":
-        modifyDefine(dataShader, "FILTER", "1");
-        break;
-      case "Crayon":
-        modifyDefine(dataShader, "FILTER", "2");
-        break;
-      case "SDF":
-        modifyDefine(dataShader, "FILTER", "3");
-        break;
-    }
-    store.dispatch(ACT.statusUpdate(true));
-  }
-
   //keep shader update for now
-  if (fluentDoc.shaderUpdate || state.status.shaderUpdate){
+  if (state.status.shaderUpdate){
     console.log("shader update!");
     let vertexShader = sdfPrimVert;
 
@@ -317,7 +260,6 @@ function render() {
         switch(prim.type){
           case "polyline":
             dataShader = BAKE.polyLine(prim, dataShader);
-            // store.dispatch(ACT.sceneEditUpdate(true));
             store.dispatch(ACT.sceneItemUpdate(index, false));
             break;
           case "polygon":
@@ -344,8 +286,6 @@ function render() {
 
     uniforms.parameters.value = dataShader.parameters.ptsTex;
 
-    // console.log(dataShader);
-
     let fragmentShader = dataShader.shader;
 
     material = new THREE.ShaderMaterial({
@@ -356,7 +296,6 @@ function render() {
 
     screenMesh.material = material;
 
-    fluentDoc.shaderUpdate = false;
     store.dispatch(ACT.statusUpdate(false));
   }
 
@@ -373,8 +312,6 @@ function render() {
 }
 
 function animate(time){
-  //currently can't unpause for some reason
-  // let fluentDoc = ui.fluentStack.curr();
   if(!state.ui.pause){ render(); }
 
   requestAnimationFrame(animate);
