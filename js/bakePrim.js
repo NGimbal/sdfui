@@ -110,7 +110,6 @@ export function polyLineFunc(prim, dataShader){
   startShader += posString;
   let fragShader = startShader + endShader;
 
-  //should this be a new DataShader or the old one?
   return new PRIM.DataShader(fragShader, parameters);
 }
 
@@ -160,8 +159,7 @@ export function polygon(prim, dataShader){
   return dataShader;
 }
 
-//takes shader as argument, modifies string, returns modified shader
-//the inputs to these functions e.g. position will be parameterized
+//creates function call that draws prim as a polygon
 export function polgonFunc(prim, dataShader){
   let shader = dataShader.shader;
   let parameters = dataShader.parameters;
@@ -193,16 +191,11 @@ export function polgonFunc(prim, dataShader){
   let posString = '\n';
   posString += '//$START-' + prim.id + '\n';
 
-  // let buffer = new ArrayBuffer(32);
-  // let view = new DataView(buffer);
-
   let oldPosX = 0;
   let oldPosY = 0;
 
   let indexX = 0;
   let indexY = 0;
-
-  // let dpr = window.devicePixelRatio;
 
   let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
   let dataSize = parameters.dataSize;
@@ -297,9 +290,7 @@ export function polgonFunc(prim, dataShader){
   return new PRIM.DataShader(fragShader, parameters);
 }
 
-//takes shader as argument, modifies string, returns modified shader
-//creates function calls that calls function already created
-//the inputs to these functions e.g. position will be parameterized
+//creates function calls that draws prim as a polygon
 export function polygonCall(prim, dataShader){
   let shader = dataShader.shader;
   let parameters = dataShader.parameters;
@@ -346,8 +337,7 @@ export function polyCircle(prim, dataShader){
   return dataShader;
 }
 
-//takes shader as argument, modifies string, returns modified shader
-//the inputs to these functions e.g. position will be parameterized
+//bakes function call that draws prim as a PolyCircle
 export function polyCircleFunc(prim, dataShader){
   let shader = dataShader.shader;
   let parameters = dataShader.parameters;
@@ -453,9 +443,7 @@ export function polyCircleFunc(prim, dataShader){
   return new PRIM.DataShader(fragShader, parameters);
 }
 
-//takes shader as argument, modifies string, returns modified shader
-//creates function calls that calls function already created
-//the inputs to these functions e.g. position will be parameterized
+//creates function call that draws prim as a polyCircle
 export function polyCircleCall(prim, dataShader){
   let shader = dataShader.shader;
   let parameters = dataShader.parameters;
@@ -481,8 +469,9 @@ export function polyCircleCall(prim, dataShader){
 }
 
 //POLYCIRCLE-----------------------------------------------------
+
 //CIRCLE---------------------------------------------------------
-//takes prim and datashader and bakes as a polyCircle
+//takes prim and datashader and bakes as a circle
 export function circle(prim, dataShader){
   let shader = dataShader.shader;
   let parameters = dataShader.parameters;
@@ -494,9 +483,7 @@ export function circle(prim, dataShader){
   return dataShader;
 }
 
-//takes shader as argument, modifies string, returns modified shader
-//creates function calls that calls function already created
-//the inputs to these functions e.g. position will be parameterized
+//creates function call that draws prim - circle
 export function circleCall(prim, dataShader){
   let shader = dataShader.shader;
   let parameters = dataShader.parameters;
@@ -531,16 +518,8 @@ export function circleCall(prim, dataShader){
   let startShader = shader.slice(0, insIndex);
   let endShader = shader.slice(insIndex);
 
-  // let buffer = new ArrayBuffer(10);
-  // let view = new DataView(buffer);
-
   //create function call
   let posString = '\n';
-
-  // let rgb = this.properties.stroke;
-  //
-  // let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-  // let weight = this.properties.weight;
 
   let rgbFill = hexToRgb(prim.properties.fill);
   let colorFill = 'vec3(' + rgbFill.r/255 + ',' + rgbFill.g/255 + ',' + rgbFill.b/255 +')';
@@ -565,7 +544,7 @@ export function circleCall(prim, dataShader){
 //CIRCLE-------------------------------------------------------------------
 
 //RECTANGLE---------------------------------------------------------
-//takes prim and datashader and bakes as a polyCircle
+//takes prim and datashader and bakes prim as rectangle
 export function rectangle(prim, dataShader){
   let shader = dataShader.shader;
   let parameters = dataShader.parameters;
@@ -577,9 +556,7 @@ export function rectangle(prim, dataShader){
   return dataShader;
 }
 
-//takes shader as argument, modifies string, returns modified shader
-//creates function calls that calls function already created
-//the inputs to these functions e.g. position will be parameterized
+//creates function calls that draws prim
 export function rectangleCall(prim, dataShader){
   let shader = dataShader.shader;
   let parameters = dataShader.parameters;
@@ -614,16 +591,8 @@ export function rectangleCall(prim, dataShader){
   let startShader = shader.slice(0, insIndex);
   let endShader = shader.slice(insIndex);
 
-  // let buffer = new ArrayBuffer(10);
-  // let view = new DataView(buffer);
-
   //create function call
   let posString = '\n';
-
-  // let rgb = this.properties.stroke;
-  //
-  // let color = 'vec3(' + rgb.x + ',' + rgb.y + ',' + rgb.z +')';
-  // let weight = this.properties.weight;
 
   let rgbFill = hexToRgb(prim.properties.fill);
   let colorFill = 'vec3(' + rgbFill.r/255 + ',' + rgbFill.g/255 + ',' + rgbFill.b/255 +')';
@@ -641,8 +610,6 @@ export function rectangleCall(prim, dataShader){
 
   startShader += posString;
   let fragShader = startShader + endShader;
-
-  // console.log(posString);
 
   return new PRIM.DataShader(fragShader, parameters);
 }
