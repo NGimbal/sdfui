@@ -179,7 +179,7 @@ class PolyPoint {
     // let resolution = SDFUI.resolution;
 
     this.cTexel++;
-
+    console.log(this.cTexel);
     let index = this.cTexel * 4;
     //use view.setFloat16() to set the digits in the DataView
     //then use view.getUint16 to retrieve and write to data Texture
@@ -194,67 +194,6 @@ class PolyPoint {
 
     view.setFloat16(0, x, endD);
     view.setFloat16(16, y, endD);
-    //in the case of the point prims so far z and w have already been transformed as above
-    //maybe should turn that into a little function we can call...
-    view.setFloat16(32, 1.0, endD);
-    view.setFloat16(48, 1.0, endD);
-
-    this.ptsTex.image.data[index] = view.getUint16(0, endD);
-    this.ptsTex.image.data[index + 1] = view.getUint16(16, endD);
-    this.ptsTex.image.data[index + 2] = view.getUint16(32, endD);
-    this.ptsTex.image.data[index + 3] = view.getUint16(48, endD);
-
-    this.ptsTex.needsUpdate = true;
-
-    let _tag = tag || "none";
-    let texData = [view.getUint16(0, endD), view.getUint16(16, endD), view.getUint16(32, endD), view.getUint16(48, endD)];
-
-    let pt = new Point(x, y, this.cTexel, texData, this.id, _tag);
-
-    this.pts.push(pt);
-
-    return pt;
-  }
-
-  //takes x, y, and tag
-  //adds point to polyPoint
-  //point x, y are stored as HalfFloat16
-  //https://github.com/petamoriken/float16
-  transAddPoint(x, y, tag){
-    // let resolution = SDFUI.resolution;
-
-    this.cTexel++;
-
-    let index = this.cTexel * 4;
-
-    let hFloatX = x / resolution.x;
-    let hFloatY = y / resolution.y;
-    let hFloatYFlip = (resolution.y - y) / resolution.y;
-
-
-    let dpr = window.devicePixelRatio;
-
-    //The following matches the screenPt function in the fragment shader
-    hFloatX -= 0.5;
-    hFloatYFlip -= 0.5;
-    hFloatX *= resolution.x / resolution.y;
-    //I think 1.0 is where scale should go for zoom
-    hFloatX = (hFloatX * resolution.x) / (resolution.x / 2.0 * 1.0);
-    hFloatYFlip = (hFloatYFlip * resolution.y) / (resolution.y / 2.0 * 1.0);
-
-    //use view.setFloat16() to set the digits in the DataView
-    //then use view.getUint16 to retrieve and write to data Texture
-    let buffer = new ArrayBuffer(64);
-    let view = new DataView(buffer);
-
-    view.getFloat16 = (...args) => getFloat16(view, ...args);
-    view.setFloat16 = (...args) => setFloat16(view, ...args);
-
-    //assume little endian
-    let endD = false;
-
-    view.setFloat16(0, hFloatX, endD);
-    view.setFloat16(16, hFloatYFlip, endD);
     //in the case of the point prims so far z and w have already been transformed as above
     //maybe should turn that into a little function we can call...
     view.setFloat16(32, 1.0, endD);

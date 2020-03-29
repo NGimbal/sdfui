@@ -64,15 +64,16 @@ class GhostUI{
       fill:new THREE.Vector3(0.0, 0.384, 0.682),
       fillToggle:false,
       radius:0.125,
-      grid: true
+      grid: true,
+      points: false,
     };
 
     //Doc State
-    let fluentDoc = new FluentDoc();
-    fluentDoc.editItems.push(new PRIM.PolyLine(editOptions));
-    fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+    this.fluentDoc = new FluentDoc();
+    this.fluentDoc.editItems.push(new PRIM.PolyLine(editOptions));
+    this.fluentDoc.currEditItem = this.fluentDoc.editItems[this.fluentDoc.editItems.length - 1];
 
-    this.fluentStack = new StateStack(fluentDoc, 10);
+    // this.fluentStack = new StateStack(fluentDoc, 10);
 
     //MODIFIERS
     //Clck could be a built in function - looks like it will generally be a simple toggle
@@ -182,7 +183,7 @@ class GhostUI{
   //global update to run functions that have been cued by a button press
   //most basic update pattern that will also be used in event handlers
   update(){
-    let fluentDoc = this.fluentStack.curr().clone();
+    // let fluentDoc = this.fluentStack.curr().clone();
     let mode = this.modeStack.curr();
     if(!mode.update)return;
 
@@ -191,8 +192,8 @@ class GhostUI{
       mode.enter();
     }
 
-    let newDoc = mode.update(fluentDoc);
-    if (newDoc && newDoc != "exit") fluentDoc = newDoc;
+    let newDoc = mode.update(this.fluentDoc);
+    if (newDoc && newDoc != "exit") this.fluentDoc = newDoc;
     else if (newDoc == "exit"){
 
       //enter, how to actually make this  a little more modular?
@@ -206,19 +207,19 @@ class GhostUI{
       this.modeStack.curr().enter();
     }
 
-    this.fluentStack.modCurr(fluentDoc);
+    // this.fluentStack.modCurr(fluentDoc);
   }
 
   mouseUp(e) {
-    let fluentDoc = this.fluentStack.curr().clone();
+    // let fluentDoc = this.fluentStack.curr().clone();
     let mode = this.modeStack.curr();
     if(!mode.up)return;
 
-    let newDoc = mode.up(e, fluentDoc);
-    if (newDoc) fluentDoc = newDoc;
+    let newDoc = mode.up(e, this.fluentDoc);
+    if (newDoc) this.fluentDoc = newDoc;
 
-    this.fluentStack.modCurr(fluentDoc);
-    this.fluentStack.push(fluentDoc);
+    // this.fluentStack.modCurr(thifluentDoc);
+    // this.fluentStack.push(fluentDoc);
   }
 
   mouseMove(e) {
@@ -230,8 +231,7 @@ class GhostUI{
       y: e.clientY
     };
 
-    // //transforms window / js space to sdf / frag space
-    // //eventually want only shader representation of points.
+    // transforms window / js space to sdf / frag space
     evPt.x = ((evPt.x / resolution.x) - 0.5) * resolution.x/resolution.y;
     evPt.y = ((resolution.y - evPt.y) / resolution.y) - 0.5;
 
@@ -240,26 +240,12 @@ class GhostUI{
 
     SDFUI.store.dispatch(ACT.cursorSet({x:evPt.x, y:evPt.y}));
 
-    evPt.x = e.clientX;
-    evPt.y = e.clientY;
-
-    evPt.x = evPt.x / resolution.x;
-    evPt.y = (resolution.y - evPt.y) / resolution.y;
-
-    let fluentDoc = this.fluentStack.curr().clone();
-
-    //default action to show mouse target point
-    fluentDoc.mPt.x = evPt.x;// / resolution.x;
-    fluentDoc.mPt.y = evPt.y;//(resolution.y - evPt.y) / resolution.y;
-
     let mode = this.modeStack.curr();
 
     if(!mode.mv)return;
 
-    let newDoc = mode.mv(e, fluentDoc);
-    if (newDoc) fluentDoc = newDoc;
-
-    this.fluentStack.modCurr(fluentDoc);
+    let newDoc = mode.mv(e, this.fluentDoc);
+    if (newDoc) this.fluentDoc = newDoc;
   }
 
   //cnrl Z
@@ -270,18 +256,14 @@ class GhostUI{
     else if(key == "Meta") this.cntlPressed = false;
     else if(key == "Control") this.cntlPressed = false;
 
-    let fluentDoc = this.fluentStack.curr().clone();
-
     let mode = this.modeStack.curr();
 
     for (let m of mode.modifiers){
       if(m.keyCut == key){
-        let newDoc = m.clck(fluentDoc);
-        if (newDoc) fluentDoc = newDoc;
+        let newDoc = m.clck(this.fluentDoc);
+        if (newDoc) this.fluentDoc = newDoc;
       }
     }
-
-    this.fluentStack.modCurr(fluentDoc);
   }
 
   keyDown(e){
@@ -293,15 +275,16 @@ class GhostUI{
 
     if (this.zPressed && this.cntlPressed){
       this.zPressed = false;
-      // console.log("Control Z!");
-      let fluentDoc = this.fluentStack.undo();
-      if (!fluentDoc) {
-        let newDoc = new FluentDoc();
-        this.fluentStack.modCurr(newDoc);
-      } else {
-        fluentDoc.shaderUpdate = true;
-        fluentDoc.currEditItem.needsUpdate = true;
-      }
+      console.log("Control Z!");
+      // let fluentDoc = this.fluentStack.undo();
+      // if (!fluentDoc) {
+      //   let newDoc = new FluentDoc();
+      //   this.fluentStack.modCurr(newDoc);
+      // } else {
+      //   // fluentDoc.shaderUpdate = true;
+      //   SDFUI.store.dispatch(ACT.statusUpdate(true));
+      //   fluentDoc.currEditItem.needsUpdate = true;
+      // }
     }
   }
 }
@@ -309,9 +292,7 @@ class GhostUI{
 //---SELECT---------------------------
 function selEnter(){
   HINT.pushModeHint(this.name, "Select Mode!");
-  // console.log(this);
   HINT.modButtonStack();
-  // this.initUIModeButtons();
 }
 
 function selExit(){
@@ -319,37 +300,26 @@ function selExit(){
 }
 
 function selUpdate(fluentDoc){
-  // console.log(this);
-  // console.log(fluentDoc);
   for (let e of fluentDoc.editItems){
     if (e.primType && e.primType == "Circle" && e.pts.length > 0){
-      // console.log(e);
-      // let radius = fluentDoc.pointDist(e.pts[0], e.pts[1]);
-      // let center = e.pts[0];
-      //
-      // console.log(fluentDoc.mPt)
+
     }
   }
 }
 
 function selMv(){
-  // console.log(this);
+
 }
 //---SELECT---------------------------
 
 //---DRAW-----------------------------
 function drawEnter(){
-  // pushPopModeHint(this.name, "Begin Drawing!");
   HINT.pushModeHint(this.name, "Begin Drawing!");
   this.initUIModeButtons();
 
-  //turns on snapping to pts by default
-  //function should take some default settings at some point
-  // var index = this.modifiers.findIndex(i => i.name === "snapPt");
-  // this.modifiers[index].clck();
-  //
-  // var index = this.modifiers.findIndex(i => i.name === "showPts");
-  // this.modifiers[index].clck();
+  //turns on pt snapping by default
+  let snapPt = this.modifiers.find(mod => mod.name == "snapPt");
+  snapPt.clck();
 }
 
 function drawExit(){
@@ -360,7 +330,6 @@ function drawExit(){
 //happens on every frame of draw mode
 function drawUpdate(fluentDoc){
   let resolution = SDFUI.resolution;
-  // let resolution = SDFUI.state.resolution;
 
   //exit draw condition - no primitive tool active
   if(this.options.currEditItem == null){
@@ -369,78 +338,75 @@ function drawUpdate(fluentDoc){
   }
 
   let sel = document.getElementById("primitive-select");
+  let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
 
-  if(this.options.currEditItem != sel.value){
-    if(fluentDoc.currEditItem.pts.length > 0){
-      fluentDoc.shaderUpdate = true;
-      fluentDoc.currEditItem.needsUpdate = true;
-    }
+  if(type != sel.value){
+    // if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length > 0){
+    //   SDFUI.store.dispatch(ACT.scenePushEditItem("polyline"));
+    // } else {
+    //   SDFUI.store.dispatch(ACT.sceneNewEditItem(type));
+    // }
     switch(sel.value){
-      case "PolyLine":
-        this.options.currEditItem = "PolyLine";
-        fluentDoc.editItems.push(new PRIM.PolyLine({...this.options}));
-        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+      case "polyline":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("polyline"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "1");
+        SDFUI.newEditTex();
         break;
-      case "Polygon":
-        this.options.currEditItem = "Polygon";
-        fluentDoc.editItems.push(new PRIM.Polygon({...this.options}));
-        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+      case "polygon":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("polygon"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "5");
+        SDFUI.newEditTex();
         break;
-      case "PolyCircle":
+      case "polycircle":
         this.options.currEditItem = "PolyCircle";
         fluentDoc.editItems.push(new PRIM.PolyCircle({...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
-      case "Circle":
+      case "circle":
         this.options.currEditItem = "Circle";
         fluentDoc.editItems.push(new PRIM.Circle({...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
-      case "Rectangle":
+      case "rectangle":
         this.options.currEditItem = "Rectangle";
         fluentDoc.editItems.push(new PRIM.Rectangle({...this.options}));
         fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
         break;
     }
+    SDFUI.store.dispatch(ACT.statusUpdate(true));
   }
 
   sel = document.getElementById("filter-select");
-  this.options.filter = sel.value;
-  SDFUI.store.dispatch(ACT.drawFilter(sel.value));
+  if(SDFUI.state.ui.properties.filter != sel.value){
+    SDFUI.store.dispatch(ACT.drawFilter(sel.value));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
+  }
 
   sel = document.getElementById("strokeColor-select");
-  if(this.options.strokeColor != sel.value){
-
-    let rgb = hexToRgb(sel.value);
-    let newColor = new THREE.Vector3(rgb.r / 255, rgb.g / 255, rgb.b/255);
-    this.options.stroke = newColor;
-    fluentDoc.currEditItem.properties.stroke = newColor;
+  if(SDFUI.state.ui.properties.stroke != sel.value){
     SDFUI.store.dispatch(ACT.drawStroke(sel.value));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
   }
 
   sel = document.getElementById("fillColor-select");
 
-  if(this.options.fillColor != sel.value){
-    let rgb = hexToRgb(sel.value);
-    let newColor = new THREE.Vector3(rgb.r / 255, rgb.g / 255, rgb.b/255);
-    //curr UI options
-    this.options.fill = newColor;
-    //curr edit item properties
-    fluentDoc.currEditItem.properties.fill = newColor;
+  if(SDFUI.state.ui.properties.fill != sel.value){
     SDFUI.store.dispatch(ACT.drawFill(sel.value));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
   }
 
   sel = document.getElementById("strokeWeight-range");
-  if(this.options.strokeWeight != sel.value){
+  if(SDFUI.state.ui.properties.weight != sel.value){
     SDFUI.store.dispatch(ACT.drawWeight(sel.value / 2000));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
   }
 
   sel = document.getElementById("radius-range");
-  if(this.options.radius != sel.value){
-    //curr UI options
-    this.options.radius = sel.value / 100;
-    //curr edit item properties
+  if(SDFUI.state.ui.properties.radius != sel.value / 100){
     SDFUI.store.dispatch(ACT.drawRadius(sel.value / 100));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
   }
 
   for(let m of this.modifiers){
@@ -481,11 +447,8 @@ function drawUp(e, fluentDoc){
   }
 
   //could have this return true / false to determine wether point should be pushed to tree
-  let plPt = fluentDoc.currEditItem.addPoint(SDFUI.mPt.x, SDFUI.mPt.y, "plPoint");
-
-  //important to keep a simple array of pts for reconstructingree
-  fluentDoc.pts.push(plPt);
-  // fluentDoc.tree.insert(plPt);
+  // let plPt = fluentDoc.currEditItem.addPoint(SDFUI.mPt.x, SDFUI.mPt.y, "plPoint");
+  let plPt = SDFUI.editTex.addPoint(SDFUI.mPt.x, SDFUI.mPt.y, "plPoint");
 
   SDFUI.store.dispatch({type:'scene', subtype:'SCENE_ADDPT', pt:plPt});
 
@@ -496,7 +459,7 @@ function drawUp(e, fluentDoc){
     fluentDoc.editItems.push(fluentDoc.currEditItem.create(resolution, this.options));
     fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
 
-    fluentDoc.shaderUpdate = true;
+    // fluentDoc.shaderUpdate = true;
     SDFUI.store.dispatch(ACT.statusUpdate(true));
   }
 
@@ -504,114 +467,51 @@ function drawUp(e, fluentDoc){
 }
 
 //---DRAW-----------------------------
-
-function screenshotClck(){
-  this.toggle = !this.toggle;
-  HINT.pulseActive(this);
-}
-
-function printShaderClck(){
-  this.toggle = !this.toggle;
-  HINT.pulseActive(this);
-}
-
-function hideGridClck(){
-  this.toggle = !this.toggle;
-  HINT.pulseActive(this);
-}
-
-function pauseShaderClck(){
-  this.toggle = !this.toggle;
-  HINT.pulseActive(this);
-}
-
 function endDrawClck(){
   this.toggle = !this.toggle;
   HINT.pulseActive(this);
 }
-
+//
 function escDrawClck(fluentDoc){
   this.toggle = !this.toggle;
   HINT.pulseActive(this);
 }
 
-function showPtsClck(fluentDoc){
-  this.toggle = !this.toggle;
-  HINT.toggleActive(this);
-}
-
-function pauseShaderUpdate(fluentDoc){
+function endDrawUpdate(){
   if(!this.toggle) return null;
-
-  fluentDoc.shaderPause = !fluentDoc.shaderPause;
-
-  this.toggle = !this.toggle;
-  return fluentDoc;
-}
-
-//could be a ui state thing
-function hideGridUpdate(fluentDoc){
-  if(!this.toggle) return null;
-
-  let valString = "0";
-
-  if (!this.options.grid) valString = "1";
-
-  // fluentDoc.shader = modifyDefine(fluentDoc.shader, "BG_GRID", valString);
-  fluentDoc.shaderUpdate = true;
-
-  this.options.grid = !this.options.grid;
-
-  this.toggle = !this.toggle;
-  return fluentDoc;
-}
-
-function endDrawUpdate(fluentDoc){
-  if(!this.toggle) return null;
+  console.log("///////////////////////////////////////////////");
 
   //get out of Draw UIMode
-  if(fluentDoc.currEditItem.pts.length == 0) {
+  if(SDFUI.editTex.pts.length == 0) {
     this.options.exit = true;
     return null;
   }
 
-  // so this is the disentangled paradigm
-  // fluentDoc.shaderUpdate = true;
-  store.dispatch(ACT.statusUpdate(true));
+  SDFUI.store.dispatch(ACT.statusUpdate(true));
+  SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
 
-  //this is new paradigm
-  fluentDoc.currEditItem.needsUpdate = true;
+  let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
 
-  //this is a little goofy but there should be no problem with it
-  let options = {...fluentDoc.currEditItem.properties};
-  // console.log(options);
-
-  fluentDoc.editItems.push(fluentDoc.currEditItem.create(options));
-  fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+  SDFUI.store.dispatch(ACT.scenePushEditItem(type));
+  SDFUI.newEditTex();
 
   this.toggle = !this.toggle;
-  return fluentDoc;
 }
 
 function escDrawUpdate(fluentDoc){
   if(!this.toggle) return null;
 
-  if(fluentDoc.currEditItem.pts.length == 0) {
+  if(SDFUI.editTex.pts.length == 0) {
     this.options.exit = true;
     return null;
   }
 
-  //pts could be in GhostUI
-  //remove all points from curr edit item before ending this polyline
-  for (let p of fluentDoc.currEditItem.pts){
-    var index = fluentDoc.pts.findIndex(i => i.id === p.id);
-    fluentDoc.pts.splice(index, 1);
-    fluentDoc.tree.remove(p);
+  for (let p of SDFUI.editTex.pts){
     SDFUI.store.dispatch(ACT.sceneRmvPt(p));
   }
 
-  fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.currEditItem.create({...fluentDoc.currEditItem.properties});
-  fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+  // SDFUI.editTex = new PRIM.PolyPoint({...SDFUI.state.ui.properties}, 16);
+  SDFUI.newEditTex();
 
   this.toggle = !this.toggle;
   return fluentDoc;
@@ -626,19 +526,11 @@ function showPtsUpdate(fluentDoc){
 
   if (!this.options.pts) valString = "1";
 
-  // fluentDoc.shader = modifyDefine(fluentDoc.shader, "SHOW_PTS", valString);
-  fluentDoc.shaderUpdate = true;
+  SDFUI.store.dispatch(ACT.statusUpdate(true));
+  SDFUI.store.dispatch(ACT.uiPoints());
 
   this.options.pts = !this.options.pts;
 
-  this.toggle = !this.toggle;
-  return fluentDoc;
-}
-
-function screenshotUpdate(fluentDoc){
-  if(!this.toggle) return null;
-
-  fluentDoc.screenshot = true;
   this.toggle = !this.toggle;
   return fluentDoc;
 }
@@ -745,7 +637,6 @@ class StateStack{
   }
 }
 
-
 //FluentDoc State state distince from ui state
 class FluentDoc{
   // new Doc contains elem, curr shader, kd tree of all pts, curr editItem, editItems
@@ -757,15 +648,15 @@ class FluentDoc{
 
     //uniforms might want to get moved here
     // this.shader = shader;
-    this.shaderUpdate = false;
-    this.shaderPause = false;
-    this.screenshot = false;
+    // this.shaderUpdate = false;
+    // this.shaderPause = false;
+    // this.screenshot = false;
 
     //mouse target position
-    this.mPt = new THREE.Vector3(0, 0, 1.0);
+    // this.mPt = new THREE.Vector3(0, 0, 1.0);
 
     //grid scale
-    this.scale = 48;
+    // this.scale = 48;
 
     this.addPt = {
       x: 0,
@@ -776,13 +667,13 @@ class FluentDoc{
     //list of kdTree points, might not be necessary?
     this.pts = [];
     //all clickable / snappable points
-    this.tree = new kdTree(this.pts, this.pointDist, ["x", "y"]);
+    // this.tree = new kdTree(this.pts, this.pointDist, ["x", "y"]);
 
     // this.editItemIndex = 0;
     this.currEditItem;
     this.editItems = [];
 
-    this.drawGrid();
+    // this.drawGrid();
   }
 
   // simple distance function for kdTree
@@ -792,48 +683,6 @@ class FluentDoc{
     return dx*dx + dy*dy;
   }
 
-  //Establishes grid aligned with the shader
-  //Will be useful for document units
-  drawGrid(){
-    let resolution = SDFUI.resolution;
-
-    // let resolution = SDFUI.state.resolution;
-
-
-    let scaleX = (resolution.x / this.scale) * (resolution.y / resolution.x);
-    let scaleY = resolution.y / this.scale;
-
-    this.gridScaleX = scaleX;
-    this.gridScaleY = scaleY;
-
-    //There has got to be a more elegant way to do this...
-    //Is the remainder odd or even?
-    let r = ((resolution.x / scaleX) - (resolution.x / scaleX) % 1) % 2;
-    //If even, add scaleX * 0.5;
-    r = Math.abs(r - 1);
-    // let offX = (((this.resolution.x / scaleX) % 2) * scaleX) * 0.5 + scaleX * 0.5;
-    let offX = (((resolution.x / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
-
-    let offY = scaleY * 0.5;
-
-    this.gridOffX = offX;
-    this.gridOffY = offY;
-
-    // console.log("this.scale = " + this.scale);
-    // console.log("offX = " + offX);
-    // console.log("offY = " + offY);
-    // console.log("scaleX = " + scaleX);
-    // console.log("scaleY = " + scaleY);
-
-    // console.log(this.grid);
-
-    // for (let i = offY; i <= this.resolution.y; i+=scaleY){
-    //   for (let j = offX; j <= this.resolution.x; j+=scaleX){
-    //     addSVGCircle("blah", j, i, 2);
-    //   }
-    // }
-  }
-
   //clones FluentDoc, essential for document stack
   clone(){
     //elem is probably the only thing we want to retain a reference to
@@ -841,20 +690,20 @@ class FluentDoc{
     // var shader = (' ' + this.shader).slice(1);
     let newDoc = new FluentDoc();
 
-    newDoc.shaderPause = this.shaderPause;
-    newDoc.shaderUpdate = this.shaderUpdate;
-    newDoc.screenshot = this.screenshot;
+    // newDoc.shaderPause = this.shaderPause;
+    // newDoc.shaderUpdate = this.shaderUpdate;
+    // newDoc.screenshot = this.screenshot;
 
-    newDoc.mPt = this.mPt.clone();
+    // newDoc.mPt = this.mPt.clone();
     let pts = [];
     for (let p of this.pts){ pts.push(p.clone()) };
 
-    newDoc.tree = new kdTree(pts, newDoc.pointDist, ["x", "y"]);
+    // newDoc.tree = new kdTree(pts, newDoc.pointDist, ["x", "y"]);
 
     newDoc.pts = pts;
 
     //this may have to get a little more sofisticated...
-    newDoc.editOptions = {...this.editOptions};
+    // newDoc.editOptions = {...this.editOptions};
     // newDoc.editItemIndex = this.editItemIndex;
 
     // let currEditItem = this.currEditItem.clone();

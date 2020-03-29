@@ -1,0 +1,348 @@
+//bakePrim.js
+import * as PRIM from './fluentPrim.js';
+import * as SDFUI from './sdfui.js';
+
+//POLYLINE-------------------------------------------------------
+//takes prim and datashader and bakes as a polyline
+export function polyLine(prim, dataShader){
+  let shader = dataShader.shader;
+  let parameters = dataShader.parameters;
+
+  if(prim.pts.length == 0) return dataShader;
+
+  dataShader = polyLineFunc(prim, dataShader);
+  dataShader.shader = polyLineCall(prim, dataShader);
+
+  return dataShader;
+}
+
+//prim is the shape, dataShader is the fragShader + parameters tex
+export function polyLineFunc(prim, dataShader){
+  let shader = dataShader.shader;
+  let parameters = dataShader.parameters;
+
+  //insert new function
+  let insString = "//$INSERT FUNCTION$------";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex);
+
+  // if function exists start and end should be before beginning and after end
+  let exFuncStr = '//$START-' + prim.id;
+
+  let exFuncIndex = shader.indexOf(exFuncStr);
+
+  //if function exists
+  if(exFuncIndex >= 0){
+    startShader = shader.slice(0, exFuncIndex);
+
+    let postFuncStr = '//$END-' + prim.id;
+    let postIndex = shader.indexOf(postFuncStr);
+    postIndex += postFuncStr.length;
+    endShader = shader.slice(postIndex);
+  }
+
+  //create function
+  let posString = '\n';
+  posString += '//$START-' + prim.id + '\n';
+
+  // p is a translation for polyLine
+  posString += 'void ' + prim.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
+
+  posString += '\n\tvec2 tUv = uv - p;\n';
+
+  let buffer = new ArrayBuffer(10);
+  let view = new DataView(buffer);
+
+  let oldPosX = 0;
+  let oldPosY = 0;
+
+  let indexX = 0;
+  let indexY = 0;
+
+  let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+  let dataSize = parameters.dataSize;
+
+  let rgbStroke = hexToRgb(prim.properties.stroke);
+  let colorStroke = 'vec3(' + rgbStroke.r/255 + ',' + rgbStroke.g/255 + ',' + rgbStroke.b/255 +')';
+  let weight = prim.properties.weight.toFixed(4);
+
+  let count = 0;
+
+  for (let _p of prim.pts){
+    let i = SDFUI.state.scene.pts.findIndex(i => i.id === _p);
+    let p = SDFUI.state.scene.pts[i];
+
+    parameters.addPoint(p.x, p.y);
+    let cTexel = parameters.cTexel;
+
+    if(count == 0){
+      indexX = (cTexel % dataSize) / dataSize + texelOffset;
+      indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+
+      posString += '\n\tvec2 pos = vec2(0.0);\n';
+      posString += '\n\tfloat d = 0.0;\n';
+      posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');\n';
+      posString += '\n\tvec2 oldPos = texture2D(parameters, index).xy;\n';
+
+      count++;
+      continue;
+    }else{
+      indexX = (cTexel % dataSize) / dataSize + texelOffset;
+      indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+
+      posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');\n';
+      posString += '\n\tpos = texture2D(parameters, index).xy;\n';
+      posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);\n';
+      posString += '\tfinalColor = mix(finalColor, ' + colorStroke + ', line(tUv, d, '+weight+'));\n';
+      posString += '\toldPos = pos;\n';
+
+      count++;
+    }
+  }
+
+  posString += '\n}\n';
+  posString += '//$END-' + prim.id + '\n';
+
+  prim.fragShaer = posString;
+  startShader += posString;
+  let fragShader = startShader + endShader;
+
+  //should this be a new DataShader or the old one?
+  return new PRIM.DataShader(fragShader, parameters);
+}
+
+//creates function call for prim specific function
+export function polyLineCall(prim, dataShader){
+  let shader = dataShader.shader;
+  let parameters = dataShader.parameters;
+
+  let insString = "//$INSERT CALL$------";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex);
+
+  let buffer = new ArrayBuffer(10);
+  let view = new DataView(buffer);
+
+  let oldPosX = 0;
+  let oldPosY = 0;
+
+  //create function
+  let posString = '\n';
+
+  // p here vec2(0.0,0.0) is a translation for polygon
+  posString += '\t' + prim.id + '(uv, vec2(0.0,0.0), finalColor);\n';
+  startShader += posString;
+
+  let fragShader = startShader + endShader;
+
+  return fragShader;
+}
+
+//POLYLINE-------------------------------------------------------
+
+//POLYGON--------------------------------------------------------
+//takes prim and datashader and bakes as a polyline
+export function polygon(prim, dataShader){
+  let shader = dataShader.shader;
+  let parameters = dataShader.parameters;
+
+  if(prim.pts.length == 0) return dataShader;
+
+  dataShader = polgonFunc(prim, dataShader);
+  dataShader.shader = polygonCall(prim, dataShader);
+
+  return dataShader;
+}
+
+//takes shader as argument, modifies string, returns modified shader
+//the inputs to these functions e.g. position will be parameterized
+export function polgonFunc(prim, dataShader){
+  let shader = dataShader.shader;
+  let parameters = dataShader.parameters;
+
+  //insert new function
+  let insString = "//$INSERT FUNCTION$------";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex);
+
+  // if function exists start and end should be before beginning and after end
+  let exFuncStr = '//$START-' + prim.id;
+
+  let exFuncIndex = shader.indexOf(exFuncStr);
+
+  //if function exists
+  if(exFuncIndex >= 0){
+    startShader = shader.slice(0, exFuncIndex);
+
+    let postFuncStr = '//$END-' + prim.id;
+    let postIndex = shader.indexOf(postFuncStr);
+    postIndex += postFuncStr.length;
+    endShader = shader.slice(postIndex);
+  }
+
+  //create function
+  let posString = '\n';
+  posString += '//$START-' + prim.id + '\n';
+
+  // let buffer = new ArrayBuffer(32);
+  // let view = new DataView(buffer);
+
+  let oldPosX = 0;
+  let oldPosY = 0;
+
+  let indexX = 0;
+  let indexY = 0;
+
+  // let dpr = window.devicePixelRatio;
+
+  let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+  let dataSize = parameters.dataSize;
+
+  let rgbFill = hexToRgb(prim.properties.fill);
+  let colorFill = 'vec3(' + rgbFill.r/255 + ',' + rgbFill.g/255 + ',' + rgbFill.b/255 +')';
+  let rgbStroke = hexToRgb(prim.properties.stroke);
+  let colorStroke = 'vec3(' + rgbStroke.r/255 + ',' + rgbStroke.g/255 + ',' + rgbStroke.b/255 +')';
+  let weight = prim.properties.weight.toFixed(4);
+  let radius = prim.properties.radius.toFixed(4);
+
+  // p is a translation for polygon
+  posString += 'void ' + prim.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
+
+  posString += '\n\tvec2 tUv = uv - p;\n';
+  posString += '\tfloat radius='+radius+';\n';
+  // scaling/rounding corners this way doesn't work
+  // posString += '\ttUv = tUv/(1.0-radius);\n';
+
+  let count = 0;
+  for (let _p of prim.pts){
+    let i = SDFUI.state.scene.pts.findIndex(i => i.id === _p);
+    let p = SDFUI.state.scene.pts[i];
+
+    parameters.addPoint(p.x, p.y, p.tag);
+
+    let cTexel = parameters.cTexel;
+
+    if(count == 0){
+      indexX = (cTexel % dataSize) / dataSize + texelOffset;
+      indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+
+      posString += '\n\tvec2 pos = vec2(0.0);\n';
+
+      posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');\n';
+
+      posString += '\tvec2 first = texture2D(parameters, index).xy;\n';
+      //scaling/rounding corners this way doesn't seem to work
+      // posString += '\tfirst = (first/radius)*radius;\n';
+
+      //get the last point in absolute terms
+      let lastPtId = prim.pts[prim.pts.length - 1];
+      let lastPtIndex = SDFUI.state.scene.pts.findIndex(i => i.id === lastPtId);
+      let lastPt = SDFUI.state.scene.pts[lastPtIndex];
+
+      posString += '\tvec2 last = vec2('+lastPt.x+', '+lastPt.y+');\n';
+      posString += '\tfloat d = dot(tUv - first, tUv - first);\n';
+      posString += '\tfloat s = 1.0;\n';
+      posString += '\tvec2 oldPos = first;\n';
+      posString += '\tvec2 e = last - first;\n';
+      posString += '\tvec2 w = tUv - first;\n';
+      posString += '\tvec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );\n';
+      posString += '\td = min(d, dot(b,b));\n';
+      // winding number from http://geomalgorithms.com/a03-_inclusion.html
+      posString += '\tbvec3 cond = bvec3( tUv.y>=first.y, tUv.y<last.y, e.x*w.y>e.y*w.x );\n';
+      posString += '\tif(all(cond) || all(not(cond))) s*=-1.0;\n';
+
+      count++;
+      continue;
+    }else{
+      indexX = (cTexel % dataSize) / dataSize + texelOffset;
+      indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+
+      posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');\n';
+      posString += '\tpos = texture2D(parameters, index).xy;\n';
+      posString += '\te = oldPos - pos;\n';
+      posString += '\tw = tUv - pos;\n';
+      posString += '\tb = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );\n';
+      posString += '\td = min(d, dot(b,b));\n';
+      // winding number from http://geomalgorithms.com/a03-_inclusion.html
+      posString += '\tcond = bvec3( tUv.y>=pos.y, tUv.y<oldPos.y, e.x*w.y>e.y*w.x );\n';
+      posString += '\tif(all(cond) || all(not(cond))) s*=-1.0;\n';
+      posString += '\toldPos = pos;\n';
+
+      count++;
+    }
+  }
+
+  posString += '\td = s*sqrt(d) - radius;\n';
+  posString += '\tfloat line = d;\n';
+  posString += '\td = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));\n';
+  posString += '\tfinalColor = mix(finalColor, ' + colorFill + ', d);\n';
+  posString += '\tline = clamp(abs(line) - '+weight+', 0.0, 1.0);\n';
+  posString += '\tline = 1.0 - smoothstep(0.0,0.003,abs(line));\n';
+  posString += '\tfinalColor = mix(finalColor, ' + colorStroke + ', line);\n';
+  posString += '\n}\n';
+  posString += '//$END-' + prim.id + '\n';
+
+  startShader += posString;
+  let fragShader = startShader + endShader;
+
+  return new PRIM.DataShader(fragShader, parameters);
+}
+
+//takes shader as argument, modifies string, returns modified shader
+//creates function calls that calls function already created
+//the inputs to these functions e.g. position will be parameterized
+export function polygonCall(prim, dataShader){
+  let shader = dataShader.shader;
+  let parameters = dataShader.parameters;
+
+  let insString = "//$INSERT CALL$------";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex);
+
+  // let buffer = new ArrayBuffer(10);
+  // let view = new DataView(buffer);
+
+  let oldPosX = 0;
+  let oldPosY = 0;
+
+  //create function
+  let posString = '\n';
+
+  // p here vec2(0.0,0.0) is a translation for polygon
+  // eventually this will be a reference to another data texture
+  posString += '\t' + prim.id + '(uv, vec2(0.0,0.0), finalColor);\n';
+  startShader += posString;
+
+  let fragShader = startShader + endShader;
+
+  return fragShader;
+}
+
+//POLYGON--------------------------------------------------------
+
+function hexToRgb(hex) {
+  // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+  var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+    return r + r + g + g + b + b;
+  });
+
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}

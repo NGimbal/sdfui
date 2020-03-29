@@ -13,24 +13,24 @@ import * as ACT from './actions.js';
 //let's keep it out for now
 import { ptTree } from './sdfui.js';
 
-class vec{
+export class vec{
   constructor(x, y, z, w, id, update, pId){
     this.x = x || 0;
     this.y = y || 0;
     this.z = z || 0;
     this.w = w || 0;
-    this.id = id || "";
+    this.id = id || (+new Date).toString(36).slice(-8);
     this.update = update || false;
     //parentId
     this.parentId = pId || "";
   }
 }
 
-function lengthVec(_vec){
+export function lengthVec(_vec){
   return Math.sqrt(_vec.x * _vec.x + _vec.y * _vec.y);
 }
 
-function normVec(_vec){
+export function normVec(_vec){
   let vec = {..._vec};
   let l = lengthVec(vec);
   vec.x = vec.x / l;
@@ -38,17 +38,17 @@ function normVec(_vec){
   return vec;
 }
 
-function dotVec(_vecA, _vecB){
+export function dotVec(_vecA, _vecB){
   let x = _vecA.x * _vecB.x;
   let y = _vecA.y * _vecB.y;
   return x + y;
 }
 
-function angleVec(_vec){
+export function angleVec(_vec){
   return (Math.atan2( - _vec.y, - _vec.x ) + Math.PI);
 }
 
-var propsDefault = {
+export var propsDefault = {
   type:"",
   filter:"",
   stroke:"",
@@ -57,14 +57,14 @@ var propsDefault = {
   radius:0
 }
 
-class prim{
+export class prim{
   constructor(type, pts, _props, id, pId, merge){
     this.type = type;
     //list of point ids
     this.pts = pts || [];
     this.properties = _props || {...propsDefault};
     this.needsUpdate = false;
-    this.id = id || "";
+    this.id = id ||  (+new Date).toString(36).slice(-8);
     this.pId = pId || "";
     //scene merge
     this.merge = merge || "union";
@@ -80,15 +80,11 @@ const statusInit = {
 
 const uiInit = {
   drawing: true,
-  editElem: new PRIM.PolyLine(),
-  filter: null,
-  stroke: "FF0000",   //strokecolor
-  fill: "00FF00",    //fillcolor
-  weight: 0.002,      //stroke weight
-  radius: 0.002,
-  pause: false,
-  grid: false,
-  points: false,
+  //properties
+  properties: {...propsDefault},
+  pause: false, //pause shader
+  grid: false, //show background grid
+  points: false, //show points
 }
 
 const cursorInit = {
@@ -107,14 +103,15 @@ const cursorInit = {
 
 const sceneInit = {
   //curr edit Item
-  editItem:"",
+  //this is just going to be an index in editItems
+  //or should it be an id?
+  editItem:0,
   //all points in doc
   pts:[],
   //points in doc to be removed
   rmPts:[],
-  //all polylines in doc
-  plines:[],
-  polygons:[],
+  //all items in doc
+  editItems:[new prim("polyline", [], {...propsDefault})],
 }
 
 const initialState={
@@ -166,23 +163,33 @@ function ui(_state=initialState, action){
       });
     case ACT.DRAW_WEIGHT:
       return Object.assign({}, state,{
-        weight: action.weight,
+        properties: Object.assign({}, state.properties,{
+          weight: action.weight,
+        }),
       });
     case ACT.DRAW_RADIUS:
       return Object.assign({}, state,{
-        radius: action.radius,
+        properties: Object.assign({}, state.properties,{
+          radius: action.radius,
+        }),
       });
     case ACT.DRAW_FILL:
       return Object.assign({}, state,{
-        fill: action.hexString,
+        properties: Object.assign({}, state.properties,{
+          fill: action.hexString,
+        }),
       });
     case ACT.DRAW_STROKE:
       return Object.assign({}, state,{
-        stroke: action.hexString,
+        properties: Object.assign({}, state.properties,{
+          stroke: action.hexString,
+        }),
       });
     case ACT.DRAW_FILTER:
       return Object.assign({}, state,{
-        filter: action.filter,
+        properties: Object.assign({}, state.properties,{
+          filter: action.filter,
+        }),
       });
     default:
       return state;
@@ -213,14 +220,13 @@ function cursor(_state=initialState, action) {
           pos: pt
         });
       } if(state.snapGlobal && pts.length > 0) {
-          let prev = {...pts[pts.length - 1].pt};
+          let prev = {...pts[pts.length - 1]};
           let line = {...prev};
 
           line.x = line.x - pt.x;
           line.y = line.y - pt.y;
           // let angle = (Math.atan2( - line.y, - line.x ) + Math.PI) * (180 / Math.PI);
           let angle = angleVec(line) * (180 / Math.PI);
-          console.log(angle);
           let snapA = (Math.round(angle / state.snapGlobalAngle) * state.snapGlobalAngle);
           snapA = (snapA * (Math.PI / 180));
 
@@ -233,8 +239,8 @@ function cursor(_state=initialState, action) {
             pos: pt
           });
       } if(state.snapRef && pts.length > 1) {
-        let prev = {...pts[pts.length - 1].pt};
-        let prevPrev = {...pts[pts.length - 2].pt};
+        let prev = {...pts[pts.length - 1]};
+        let prevPrev = {...pts[pts.length - 2]};
         let line = {...prev};
         let linePrev = {...prevPrev};
 
@@ -296,24 +302,51 @@ function scene(_state=initialState, action) {
   let ptIndex = -1;
   switch(action.subtype){
     case ACT.SCENE_ADDPT:
-      let pt = action.pt;
+      let pt = new vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, action.pt.id, true, action.pt.shapeID);
       return Object.assign({}, state,{
           ...state,
-          pts: [...state.pts, new vec(pt.x, pt.y, pt.z, pt.w, pt.id, true, pt.shapeID)]
+          //add point to current edit item
+          editItems: state.editItems.map((item, index) => {
+            if(index !== state.editItem){
+              return item;
+            }
+            return {
+              ...item,
+              pts: [...item.pts, pt.id],
+            }
+          }),
+          //add point to pts array
+          pts:[...state.pts, pt]
       });
     case ACT.SCENE_RMVPT:
       // let pt = action.pt;
       ptIndex = state.pts.findIndex(i => i.id === action.pt.id);
       return Object.assign({}, state,{
         ...state,
+        //remove point from current edit item
+        editItems: state.editItems.map((item, index) => {
+          if(index !== state.editItem){
+            return item;
+          }
+          return {
+            ...item,
+            pts: [
+              ...item.pts.slice(0, ptIndex),
+              ...item.pts.slice(ptIndex + 1)
+            ],
+          }
+        }),
+        //remove point from pts array
         pts: [
           ...state.pts.slice(0, ptIndex),
           ...state.pts.slice(ptIndex + 1)
         ],
+        //add point to pts array, need to stage for removal from
+        //kdTree and texture
         rmPts: [...state.rmPts, {...state.pts[ptIndex]}]
       });
     case ACT.SCENE_FINRMVPT:
-      // let pt = action.pt;
+      //remove point from rmPts array
       ptIndex = state.rmPts.findIndex(i => i.id === action.pt.id);
       return Object.assign({}, state,{
         ...state,
@@ -321,6 +354,63 @@ function scene(_state=initialState, action) {
           ...state.rmPts.slice(0, ptIndex),
           ...state.rmPts.slice(ptIndex + 1)
         ]
+      });
+    case ACT.SCENE_EDITUPDATE:
+      return Object.assign({}, state,{
+        ...state,
+        editItems: state.editItems.map((item, index) => {
+          if(index !== state.editItem){
+            return item;
+          }
+          return {
+            ...item,
+            needsUpdate: true,
+          }
+        })
+      });
+    case ACT.SCENE_PUSHEDITITEM:
+      if(state.editItems[state.editItem].pts.length > 0){
+        return Object.assign({}, state,{
+          ...state,
+          editItem: state.editItem = state.editItem + 1,
+          editItems: [...state.editItems, new prim(action.prim, [], {..._state.ui.properties})],
+        });
+      } else {
+        return Object.assign({}, state,{
+          ...state,
+          // editItems: [...state.editItems, new prim(action.prim, [], {..._state.ui.properties})],
+          editItems: [
+            ...state.editItems.slice(0, state.editItem),
+            new prim(action.prim, [], {..._state.ui.properties}),
+            ...state.editItems.slice(state.editItem + 1)
+          ]
+        });
+      }
+    case ACT.SCENE_EDITPROPS:
+      return Object.assign({}, state,{
+        ...state,
+        editItems: state.editItems.map((item, index) => {
+          if(index !== state.editItem){
+            return item;
+          }
+          return {
+            ...item,
+            properties: {..._state.ui.properties},
+          }
+        })
+      });
+    case ACT.SCENE_ITEMUPDATE:
+      return Object.assign({}, state,{
+        ...state,
+        editItems: state.editItems.map((item, index) => {
+          if(index !== action.index){
+            return item;
+          }
+          return {
+            ...item,
+            needsUpdate: action.toggle,
+          }
+        })
       });
     default:
       return state;

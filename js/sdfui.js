@@ -4,23 +4,24 @@
 import * as THREE from './libjs/three.module.js';
 
 import * as PRIM from './fluentPrim.js';
+import * as BAKE from './bakePrim.js';
 import {GhostUI} from './GhostUI.js';
 
 import * as ACT from './actions.js';
 import { reducer } from './reducers.js';
 
-
 import {sdfPrimFrag} from './frag.js';
 import {sdfPrimVert} from './vert.js';
 
-var material, uniforms;
-var dataShader;
 var canvas, renderer, camera, ui, scene, plane, screenMesh;
+var material, uniforms;
 
+export var dataShader;
+
+export var editTex;
 
 export const store = Redux.createStore(reducer);
 export var state = store.getState();
-
 
 function pointDist (a, b){
     var dx = a.x - b.x;
@@ -51,8 +52,7 @@ function listener(){
     }
   }
   for(let p of state.scene.rmPts){
-    console.log(ptTree);
-    //have to write my own tree search function
+    //normal tree search function doesnt work
     let rmPt = searchTree(ptTree.root, p.id);
     ptTree.remove(rmPt);
     store.dispatch(ACT.sceneFinRmvPt(p));
@@ -74,8 +74,8 @@ function searchTree(node, id){
 }
 
 //substcribe to store changes - run listener to set relevant variables
-store.subscribe(() => console.log(listener()));
-// store.subscribe(() => listener());
+// store.subscribe(() => console.log(listener()));
+store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
@@ -83,7 +83,6 @@ function setGrid(scale){
   let scaleX = 2.0 / scale;
   let scaleY = 2.0 / scale;
 
-  //There has got to be a more elegant way to do this...
   //Is the remainder odd or even?
   let r = ((rX / scaleX) - (rX / scaleX) % 1) % 2;
   //If even, add scaleX * 0.5;
@@ -101,7 +100,7 @@ function setGrid(scale){
 
 function main() {
   canvas = document.querySelector('#c');
-  //let res = new THREE.Vector3(window.innerWidth, window.innerHeight, 1.0);
+
   //set the document resolution
   store.dispatch(ACT.statusRes({x:window.innerWidth, y:window.innerHeight}));
   store.dispatch(ACT.cursorGridScale(48));
@@ -129,35 +128,36 @@ function main() {
   );
 
   ui = new GhostUI();
-  let fluentDoc = ui.fluentStack.curr();
+  let fluentDoc = ui.fluentDoc;
 
   resizeRendererToDisplaySize(renderer);
 
   //the copy of ui Options in parameters will trigger shader recompilation
   //basically a record of what has actually been instantiated in the shader
   //versus the ui state
-  let parameters = new PRIM.PolyPoint({...ui.modeStack.curr().options}, 128);
+  let parameters = new PRIM.PolyPoint({...state.ui.properties}, 128);
+  editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
 
   uniforms = {
     iResolution:  { value: new THREE.Vector3(resolution.x, resolution.y, resolution.z)},
     //uniform for rect, circle, primitives based on two points
     pointPrim: {value: new THREE.Vector4(0.0,0.0,0.0,0.0) },
     //uniform for curr edit polypoint prims, should be factored out
-    posTex: { value: fluentDoc.currEditItem.ptsTex},
+    posTex: { value: editTex},
+    //index of texel being currently edited
+    editCTexel : {value: editTex.cTexel},
     //global points texture
     parameters: {value: parameters},
     //current mouse position - surprised mPt works here
     mousePt: {value: mPt},
-    //index of texel being currently edited
-    editCTexel : {value: fluentDoc.currEditItem.cTexel},
     //current edit options
-    editWeight : {value: state.ui.weight},
+    editWeight : {value: state.ui.properties.weight},
     strokeColor: {value: new THREE.Vector3(0.0, 0.0, 0.0)},
     fillColor: {value: new THREE.Vector3(0.0, 0.384, 0.682)},
-    editRadius : {value: state.ui.radius},
+    editRadius : {value: state.ui.properties.radius},
     //global scale variables, mostly unused
     scale: {value: state.cursor.scale},
-    hiDPR: {value: window.devicePixelRatio}
+    // hiDPR: {value: window.devicePixelRatio}
   };
 
   scene = new THREE.Scene();
@@ -196,7 +196,8 @@ function resizeRendererToDisplaySize(renderer) {
     store.dispatch(ACT.cursorGridScale(48));
     //this is convoluted
     store.dispatch(ACT.statusUpdate(true));
-    ui.fluentStack.curr().shaderUpdate = true;
+    // ui.fluentStack.curr().shaderUpdate = true;
+
   }
 
   return needResize;
@@ -210,107 +211,128 @@ function render() {
   ui.update();
 
   // const canvas = renderer.domElement;
-  let fluentDoc = ui.fluentStack.curr();
+  let fluentDoc = ui.fluentDoc;
 
   //update uniforms
-  if(fluentDoc.currEditItem.ptsTex){
+  // if(fluentDoc.currEditItem.ptsTex){
     //next this is going to come out of polyPointPrim
-    screenMesh.material.uniforms.posTex.value = fluentDoc.currEditItem.ptsTex;
-    screenMesh.material.uniforms.editCTexel.value = fluentDoc.currEditItem.cTexel;
-  }
-  if(fluentDoc.currEditItem.pointPrim){
-    screenMesh.material.uniforms.pointPrim.value = fluentDoc.currEditItem.pointPrim;
-  }
+    screenMesh.material.uniforms.posTex.value = editTex.ptsTex;
+    screenMesh.material.uniforms.editCTexel.value = editTex.cTexel;
+  // }
+  // if(fluentDoc.currEditItem.pointPrim){
+  //   screenMesh.material.uniforms.pointPrim.value = fluentDoc.currEditItem.pointPrim;
+  // }
 
-  let uiOptions = ui.modeStack.curr().options;
+  // let uiOptions = ui.modeStack.curr().options;
+  let uiOptions = state.ui.properties;
 
-  //surprised that mPt works here
+  //mPt is converted into a vector3 in the listener at the top
   screenMesh.material.uniforms.mousePt.value = mPt;
-  screenMesh.material.uniforms.editWeight.value = state.ui.weight;
-  let stroke = hexToRgb(state.ui.stroke);
-  screenMesh.material.uniforms.strokeColor.value.set(stroke.r, stroke.g, stroke.b);
-  let fill = hexToRgb(state.ui.fill);
-  screenMesh.material.uniforms.fillColor.value.set(fill.r, fill.g, fill.b);
-  screenMesh.material.uniforms.editRadius.value = state.ui.radius;
+  screenMesh.material.uniforms.editWeight.value = state.ui.properties.weight;
+
+  //should be able to get more expressive colors at some point...
+  let stroke = hexToRgb(state.ui.properties.stroke);
+  screenMesh.material.uniforms.strokeColor.value.set(stroke.r/255, stroke.g/255, stroke.b/255);
+  let fill = hexToRgb(state.ui.properties.fill);
+  screenMesh.material.uniforms.fillColor.value.set(fill.r/255, fill.g/255, fill.b/255);
+
+  screenMesh.material.uniforms.editRadius.value = state.ui.properties.radius;
 
   screenMesh.material.uniforms.needsUpdate = true;
 
-  let shaderUpdate = state.status.shaderUpdate;
-
   //change current edit item in shader
-  if (uiOptions.currEditItem != dataShader.parameters.properties.currEditItem){
-    dataShader.parameters.properties.currEditItem = uiOptions.currEditItem;
-    switch(uiOptions.currEditItem){
-      case "PolyLine":
-        dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "1");
-        break;
-      case "Polygon":
-        dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "5");
-        break;
-      case "PolyCircle":
-        dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "2");
-        break;
-      case "Circle":
-        dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "3");
-        break;
-      case "Rectangle":
-        dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "4");
-        break;
-    }
-    store.dispatch(ACT.statusUpdate(true));
-    // shaderUpdate = true;
-  }
+  // if (state.scene.editItems[state.scene.editItem].type != dataShader.parameters.properties.currEditItem){
+  //   dataShader.parameters.properties.currEditItem = state.scene.editItems[state.scene.editItem].type;
+  //   switch(state.scene.editItems[state.scene.editItem].type){
+  //     case "PolyLine":
+  //       dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "1");
+  //       break;
+  //     case "Polygon":
+  //       dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "5");
+  //       break;
+  //     case "PolyCircle":
+  //       dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "2");
+  //       break;
+  //     case "Circle":
+  //       dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "3");
+  //       break;
+  //     case "Rectangle":
+  //       dataShader.shader = modifyDefine(dataShader.shader, "EDIT_SHAPE", "4");
+  //       break;
+  //   }
+  //   store.dispatch(ACT.statusUpdate(true));
+  // }
 
+  //if we're changing the status of showing/hiding the background grid
   if (state.ui.grid != dataShader.parameters.properties.grid){
     dataShader.parameters.properties.grid = state.ui.grid;
     let valString = "0";
 
     if (!state.ui.grid) valString = "1";
-    dataShader.shader = modifyDefine(dataShader.shader, "BG_GRID", valString);
-    // fluentDoc.shader = modifyDefine(fluentDoc.shader, "BG_GRID", valString);
-    // fluentDoc.shaderUpdate = true;
-    store.dispatch(ACT.statusUpdate(true));
+    modifyDefine(dataShader, "BG_GRID", valString);
 
-    // this.options.grid = !this.options.grid;
+    store.dispatch(ACT.statusUpdate(true));
   }
 
+  //if we're changing the status of showing/hiding points
+  if (state.ui.points != dataShader.parameters.properties.points){
+    dataShader.parameters.properties.points = state.ui.points;
+    let valString = "0";
+
+    if (!state.ui.points) valString = "1";
+    modifyDefine(dataShader, "SHOW_PTS", valString);
+
+    store.dispatch(ACT.statusUpdate(true));
+  }
 
   //change filter in shader
-  if (state.ui.filter != dataShader.parameters.properties.filter){
-    dataShader.parameters.properties.filter = state.ui.filter;
-    switch(uiOptions.filter){
+  if (state.ui.properties.filter != dataShader.parameters.properties.filter){
+    dataShader.parameters.properties.filter = state.ui.properties.filter;
+    switch(state.ui.properties.filter){
       case "None":
-        dataShader.shader = modifyDefine(dataShader.shader, "FILTER", "0");
+        modifyDefine(dataShader, "FILTER", "0");
         break;
       case "Pencil":
-        dataShader.shader = modifyDefine(dataShader.shader, "FILTER", "1");
+        modifyDefine(dataShader, "FILTER", "1");
         break;
       case "Crayon":
-        dataShader.shader = modifyDefine(dataShader.shader, "FILTER", "2");
+        modifyDefine(dataShader, "FILTER", "2");
         break;
       case "SDF":
-        dataShader.shader = modifyDefine(dataShader.shader, "FILTER", "3");
+        modifyDefine(dataShader, "FILTER", "3");
         break;
     }
-    // shaderUpdate = true;
     store.dispatch(ACT.statusUpdate(true));
   }
 
   //keep shader update for now
-  if (fluentDoc.shaderUpdate || shaderUpdate){
+  if (fluentDoc.shaderUpdate || state.status.shaderUpdate){
     console.log("shader update!");
     let vertexShader = sdfPrimVert;
 
     uniforms.iResolution.value = new THREE.Vector3(resolution.x, resolution.y, resolution.z);
-
-    for (let item of fluentDoc.editItems){
-      if(item.needsUpdate){
-        dataShader = item.end(dataShader.shader, dataShader.parameters);
-        item.needsUpdate = false;
+    let index = 0;
+    for (let prim of state.scene.editItems){
+      if(prim.needsUpdate){
+        switch(prim.type){
+          case "polyline":
+            dataShader = BAKE.polyLine(prim, dataShader);
+            // store.dispatch(ACT.sceneEditUpdate(true));
+            store.dispatch(ACT.sceneItemUpdate(index, false));
+            break;
+          case "polygon":
+            dataShader = BAKE.polygon(prim, dataShader);
+            store.dispatch(ACT.sceneItemUpdate(index, false));
+          default:
+            break;
+        }
       }
+      index++;
     }
 
     uniforms.parameters.value = dataShader.parameters.ptsTex;
+
+    // console.log(dataShader);
 
     let fragmentShader = dataShader.shader;
 
@@ -346,6 +368,10 @@ function animate(time){
   requestAnimationFrame(animate);
 }
 
+export function newEditTex(){
+  editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
+}
+
 //Utility Functions-----------------------------------------------
 
 const saveBlob = (function(){
@@ -361,7 +387,9 @@ const saveBlob = (function(){
   };
 }());
 
-function modifyDefine(shader, define, val){
+
+export function modifyDefine(_dataShader, define, val){
+  let shader = _dataShader.shader.slice();
   //change #define
   let insString = "#define " + define + " ";
   let insIndex = shader.indexOf(insString);
@@ -372,8 +400,7 @@ function modifyDefine(shader, define, val){
 
   startShader += val + "\n";
   shader = startShader + endShader;
-
-  return shader;
+  dataShader.shader = shader;
 }
 
 function hexToRgb(hex) {
