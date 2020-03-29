@@ -18,14 +18,9 @@ const sdfPrimFrag =`
 
 // https://www.shadertoy.com/view/4tc3DX
 uniform vec3      iResolution;           // viewport resolution (in pixels)
-uniform float     iTime;                 // shader playback time (in seconds)
-
-//simple uniform for 2 xy coordinate based prims
-uniform vec4       pointPrim;
 
 //expandable structure for item being edited
 uniform sampler2D  posTex;
-uniform vec2       posTexRes;
 
 //global parameter container for all parameterized properties
 uniform sampler2D parameters;
@@ -44,7 +39,7 @@ uniform float      editRadius;
 
 //scale
 uniform float      scale;
-uniform float      hiDPR;
+// uniform float      hiDPR;
 
 varying vec2 vUv;
 
@@ -178,7 +173,7 @@ float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float 
     // This is for animated dashed lines. Delete if you don't like dashes.
     float dashScale = 2.0*thick.y;
     // Make a distance function for the dashes
-    float dash = (repeat(dpx/dashScale + iTime)-0.5)*dashScale;
+    float dash = (repeat(dpx/dashScale + 0.0)-0.5)*dashScale;
     // Combine this distance function with the line's.
     dist = max(dist, dash-(1.0-dashOn*1.0)*10000.0);
 
@@ -205,18 +200,6 @@ float sdCircle( vec2 uv, vec2 p, float r )
 
 void DrawPoint(vec2 uv, vec2 p, inout vec3 col) {
     col = mix(col, vec3(1.0, 0.25, 0.25), 1.0 - smoothstep(0.0,0.003,clamp(sdCircle(uv, p, 0.009), 0.0,1.0)));
-}
-
-// Transform screen space pt to shader space
-vec2 screenPt(vec2 p) {
-  vec2 pos = p;
-  //0 to 1 => -.5 to .5
-  pos -= 0.5;
-  pos.x *= iResolution.x / iResolution.y;
-
-  pos.x = (pos.x * iResolution.x) / (iResolution.x * 0.5);
-  pos.y = (pos.y * iResolution.y) / (iResolution.y * 0.5);
-  return pos;
 }
 
 //Merge Operations
@@ -304,15 +287,16 @@ void main(){
     d = sceneDist(uv, finalColor);
 
     //current Mouse Position
-    DrawPoint(uv, screenPt(mPt), finalColor);
+    DrawPoint(uv, mPt, finalColor);
 
     //Circle--------
     #if EDIT_SHAPE == 3
-    vec2 center = pointPrim.xy;
-    d = sdCircle(uv, screenPt(mPt), 0.125);
+    //center is first location in posTex
+    vec2 center = texture2D(posTex, vec2(texelOffset, texelOffset)).xy;
+    d = sdCircle(uv, mPt, 0.125);
 
     if(center.x != 0.0){
-      vec2 rPt = screenPt(mPt).xy;
+      vec2 rPt = mPt.xy;
       radius = distance(center, rPt);
       d = sdCircle(uv, center, radius);
     }
@@ -346,16 +330,17 @@ void main(){
 
     //Rectange--------
     #if EDIT_SHAPE == 4
+    vec2 topLeft = texture2D(posTex, vec2(texelOffset, texelOffset)).xy;
     vec2 rect = vec2(0.5, 0.25);
     vec2 flipX = vec2(-1.0, 1.0);
 
-    vec2 center = screenPt(mPt).xy - rect * flipX;
+    vec2 center = mPt.xy - rect * flipX;
 
     d = sdBox(uv, center, rect, editRadius);
 
-    if(pointPrim.x != 0.0){
-      center = 0.5 * (screenPt(mPt).xy - pointPrim.xy) + pointPrim.xy;
-      vec2 rPt = abs(screenPt(mPt).xy - center);
+    if(topLeft.x != 0.0){
+      center = 0.5 * (mPt.xy - topLeft.xy) + topLeft.xy;
+      vec2 rPt = abs(mPt.xy - center);
       d = sdBox(uv, center, rPt, editRadius);
     }
 
@@ -427,7 +412,7 @@ void main(){
 
     //Next line while drawing
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
-      d = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
+      d = drawLine(uv, oldPos, mPt, editWeight, 1.0);
 
       #if FILTER == 0
       finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
@@ -450,28 +435,6 @@ void main(){
     }
     #endif
     //Polyline-------
-
-    // float sdPoly( in vec2[16] v, int cTex, in vec2 p)
-    // {
-    //     const int num = v.length();
-    //     float d = dot(p-v[0],p-v[0]);
-    //     float s = 1.0;
-    //     for( int i=0, j=cTex-1; i<num; j=i, i++ )
-    //     {
-    //         if (i == cTex) break;
-    //         // distance
-    //         vec2 e = v[j] - v[i];
-    //         vec2 w =    p - v[i];
-    //         vec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );
-    //         d = min( d, dot(b,b) );
-    //
-    //         // winding number from http://geomalgorithms.com/a03-_inclusion.html
-    //         bvec3 cond = bvec3( p.y>=v[i].y, p.y<v[j].y, e.x*w.y>e.y*w.x );
-    //         if( all(cond) || all(not(cond)) ) s*=-1.0;
-    //     }
-    //
-    //     return s*sqrt(d);
-    // }
 
     //Polygon-------
     #if EDIT_SHAPE == 5
@@ -546,8 +509,8 @@ void main(){
 
     //Next line while drawing
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
-      d = drawLine(uv, oldPos, screenPt(mPt), editWeight, 1.0);
-      d = min(d, drawLine(uv, screenPt(mPt), first, editWeight, 1.0));
+      d = drawLine(uv, oldPos, mPt, editWeight, 1.0);
+      d = min(d, drawLine(uv, mPt, first, editWeight, 1.0));
 
 
       finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
@@ -578,7 +541,7 @@ void main(){
       }
     }
 
-    d = sdCircle(uv, screenPt(mPt), editRadius);
+    d = sdCircle(uv, mPt, editRadius);
 
     finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight,abs(d)) );
 

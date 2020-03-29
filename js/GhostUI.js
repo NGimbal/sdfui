@@ -1,10 +1,10 @@
 "use strict";
 
 import * as THREE from './libjs/three.module.js';
-import * as SNAP from './fluentSnap.js';
-import * as HINT from './fluentHints.js';
-import * as PRIM from './fluentPrim.js';
-
+import * as HINT from './uihints.js';
+import * as PRIM from './primitives.js';
+import * as SDFUI from './sdfui.js';
+import * as ACT from './actions.js';
 
 //GhostUI coordinates all UI functions, keeps FluentDocStack, and UI State
 //Implements UIMode and UIModifiers
@@ -12,16 +12,7 @@ import * as PRIM from './fluentPrim.js';
 //UIModifier is a collection of functions that are fired by events within uiModes
 class GhostUI{
 
-  constructor(elem, shader){
-    // "Out of the box" element and shader
-    this.elem = elem;
-    this.shader = shader;
-    //GLOBAL CONSTANTS
-    //square datatexture
-    this.dataSize = 16;
-    //texel offset to access center of texel
-    this.oTexel = 1 / this.dataSize / 2.0;
-
+  constructor(){
     //need to check endianess for half float usage
     // https://abdulapopoola.com/2019/01/20/check-endianness-with-javascript/
     function endianNess(){
@@ -47,43 +38,52 @@ class GhostUI{
         this.endD = false;
         break;
       case 'Maybe mixed-endian?':
-        // what should the response be? fuck you?
-        // this.endianness = 2;
+        this.endD = true;
         break;
       default:
-        // what should the response be? fuck you?
-        // this.endianness = 2;
+        this.endD = true;
         break;
     }
 
     console.log(endianNess());
 
+    let editOptions = {
+      // resolution: this.resolution,
+      currEditItem:"PolyLine",
+      strokeColor:"#0063ae",
+      filter:"None",
+      weight:0.003,
+      stroke:new THREE.Vector3(0.0, 0.0, 0.0),
+      fill:new THREE.Vector3(0.0, 0.384, 0.682),
+      fillToggle:false,
+      radius:0.125,
+      grid: true,
+      points: false,
+    };
 
-    //DOCUMENT STATE
-    let fluentDoc = new FluentDoc(this.elem, this.shader);
-    this.fluentStack = new StateStack(fluentDoc, 10);
+    //Doc State
+    // this.fluentDoc = new FluentDoc();
+    // this.fluentDoc.editItems.push(new PRIM.PolyLine(editOptions));
+    // this.fluentDoc.currEditItem = this.fluentDoc.editItems[this.fluentDoc.editItems.length - 1];
 
-    //MODE STATE
-    this.drawing = true;
-    this.editPolyLn = false;
+    // this.fluentStack = new StateStack(fluentDoc, 10);
 
     //MODIFIERS
     //Clck could be a built in function - looks like it will generally be a simple toggle
-    let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
-    let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
-    let showPts = new UIModifier("showPts", "view", "r", false, {clck:showPtsClck, update:showPtsUpdate}, {pts:false});
+    let pauseShader = new UIModifier("pauseShader", "view", "/", {act:ACT.uiPause()},false, {});
+    let hideGrid = new UIModifier("hideGrid", "view", ".", {act:ACT.uiGrid()},false, {});
+    let showPts = new UIModifier("showPts", "view", "r", {act:ACT.uiPoints()},false, {});
 
-    let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
-    let printShader = new UIModifier("printShader", "export", "c", false, {clck:printShaderClck, update:printShaderUpdate}, {});
+    let screenshot = new UIModifier("screenshot", "export", "l", {act:ACT.statusRaster()},true, {});
+    let printShader = new UIModifier("printShader", "export", "c", {act:ACT.statusExport()},true, {});
 
-    let snapPt = new UIModifier("snapPt", "snap", "p", false, {clck:SNAP.snapPtClck, mv:SNAP.snapPtMv, up:SNAP.snapPtUp}, {dist:100});
-    let snapRef = new UIModifier("snapRef", "snap", "s", false, {clck:SNAP.snapRefClck, mv:SNAP.snapRefMv, up:SNAP.snapRefUp}, {angle:30});
-    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", false, {clck:SNAP.snapGlobalClck, mv:SNAP.snapGlobalMv, up:SNAP.snapGlobalUp}, {angle:45});
-    let snapGrid = new UIModifier("snapGrid", "snap", "g", false, {clck:SNAP.snapGridClck, mv:SNAP.snapGridMv, up:SNAP.snapGridUp}, {});
+    let snapPt = new UIModifier("snapPt", "snap", "p", {act:ACT.cursorSnapPt()},false, {dist:100});
+    let snapRef = new UIModifier("snapRef", "snap", "s", {act:ACT.cursorSnapRef()},false, {angle:30});
+    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", {act:ACT.cursorSnapGlobal()},false, {angle:45});
+    let snapGrid = new UIModifier("snapGrid", "snap", "g", {act:ACT.cursorSnapGrid()},false, {});
 
-    //lineweight modifier is broken
-    let endDraw = new UIModifier("endDraw", "edit", "Enter", false, {clck:endDrawClck, update:endDrawUpdate}, {exit:false});
-    let escDraw = new UIModifier("escDraw", "edit", "Escape", false, {clck:escDrawClck, update:escDrawUpdate}, {exit:false});
+    let endDraw = new UIModifier("endDraw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true, {exit:false});
+    let escDraw = new UIModifier("escDraw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true, {exit:false});
 
     //MODES
     let globalMods = [pauseShader, hideGrid, showPts, screenshot, printShader];
@@ -93,20 +93,22 @@ class GhostUI{
     let selMods = [pauseShader, hideGrid, screenshot];
 
     //if no drawing tools are selected, drawExit();
-    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, {currEditItem:"PolyLine", strokeColor:"#0063ae", filter:"None"});
+    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, editOptions);
     let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
     // let edit = new UIMode("select", false, edit)
-    // let
+    // let move
 
-    //modeStack is successful
-    //eventually modeStack will become part of FluentDoc
-    //not really important enough to worry about in the short term
+    //stack of UIModes
     this.modeStack = new StateStack(draw, 5);
-    //default mode
     this.modeStack.curr().enter();
 
+<<<<<<< HEAD
     //should this be bound to docStack[] or this?
     document.getElementById("c").addEventListener('mouseup', this.mouseUp.bind(this));
+=======
+    //could pass elem around but...
+    document.querySelector('#c').addEventListener('mouseup', this.mouseUp.bind(this));
+>>>>>>> redux
     window.addEventListener('mousemove', this.mouseMove.bind(this));
 
     //cntrl+z
@@ -179,7 +181,7 @@ class GhostUI{
   //global update to run functions that have been cued by a button press
   //most basic update pattern that will also be used in event handlers
   update(){
-    let fluentDoc = this.fluentStack.curr().clone();
+    // let fluentDoc = this.fluentStack.curr().clone();
     let mode = this.modeStack.curr();
     if(!mode.update)return;
 
@@ -188,15 +190,14 @@ class GhostUI{
       mode.enter();
     }
 
-    let newDoc = mode.update(fluentDoc);
-    if (newDoc && newDoc != "exit") fluentDoc = newDoc;
-    else if (newDoc == "exit"){
-      console.log("hi");
+    let newDoc = mode.update();
+    // if (newDoc && newDoc != "exit") this.fluentDoc = newDoc;
+    if (newDoc == "exit"){
 
       //enter, how to actually make this  a little more modular?
-      let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
-      let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
-      let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
+      // let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
+      // let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
+      // let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
 
       let selMods = [pauseShader, hideGrid, screenshot];
       let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
@@ -204,42 +205,39 @@ class GhostUI{
       this.modeStack.curr().enter();
     }
 
-    this.fluentStack.modCurr(fluentDoc);
+    // this.fluentStack.modCurr(fluentDoc);
   }
 
   mouseUp(e) {
-    let fluentDoc = this.fluentStack.curr().clone();
+    // let fluentDoc = this.fluentStack.curr().clone();
     let mode = this.modeStack.curr();
     if(!mode.up)return;
 
-    let newDoc = mode.up(e, fluentDoc);
-    if (newDoc) fluentDoc = newDoc;
-
-    this.fluentStack.modCurr(fluentDoc);
-    this.fluentStack.push(fluentDoc);
+    let newDoc = mode.up(e);
   }
 
   mouseMove(e) {
+    let resolution = SDFUI.resolution;
 
     let evPt = {
       x: e.clientX,
       y: e.clientY
     };
 
-    let fluentDoc = this.fluentStack.curr().clone();
+    // transforms window / js space to sdf / frag space
+    evPt.x = ((evPt.x / resolution.x) - 0.5) * resolution.x/resolution.y;
+    evPt.y = ((resolution.y - evPt.y) / resolution.y) - 0.5;
 
-    //default action to show mouse target point
-    fluentDoc.mPt.x = evPt.x / fluentDoc.elem.width;
-    fluentDoc.mPt.y = (fluentDoc.elem.height - evPt.y) / fluentDoc.elem.height;
+    evPt.x = (evPt.x * resolution.x) / (resolution.x * 0.5);
+    evPt.y = (evPt.y * resolution.y) / (resolution.y * 0.5);
+
+    SDFUI.store.dispatch(ACT.cursorSet({x:evPt.x, y:evPt.y}));
 
     let mode = this.modeStack.curr();
 
     if(!mode.mv)return;
 
-    let newDoc = mode.mv(e, fluentDoc);
-    if (newDoc) fluentDoc = newDoc;
-
-    this.fluentStack.modCurr(fluentDoc);
+    let newDoc = mode.mv(e);
   }
 
   //cnrl Z
@@ -250,20 +248,14 @@ class GhostUI{
     else if(key == "Meta") this.cntlPressed = false;
     else if(key == "Control") this.cntlPressed = false;
 
-    let fluentDoc = this.fluentStack.curr().clone();
-
     let mode = this.modeStack.curr();
 
     for (let m of mode.modifiers){
       if(m.keyCut == key){
-        let newDoc = m.clck(fluentDoc);
-        if (newDoc) fluentDoc = newDoc;
+        let newDoc = m.clck();
       }
     }
-
-    this.fluentStack.modCurr(fluentDoc);
   }
-
 
   keyDown(e){
     let key = e.key;
@@ -274,423 +266,265 @@ class GhostUI{
 
     if (this.zPressed && this.cntlPressed){
       this.zPressed = false;
-      // console.log("Control Z!");
-      let fluentDoc = this.fluentStack.undo();
-      if (!fluentDoc) {
-        let newDoc = new FluentDoc(this.elem, this.shader);
-        this.fluentStack.modCurr(newDoc);
-      } else {
-        fluentDoc.shaderUpdate = true;
-      }
+      console.log("Control Z!");
+      // let fluentDoc = this.fluentStack.undo();
+      // if (!fluentDoc) {
+      //   let newDoc = new FluentDoc();
+      //   this.fluentStack.modCurr(newDoc);
+      // } else {
+      //   // fluentDoc.shaderUpdate = true;
+      //   SDFUI.store.dispatch(ACT.statusUpdate(true));
+      //   fluentDoc.currEditItem.needsUpdate = true;
+      // }
     }
   }
-}
-
-//this might as well just be taken care of in draw update
-function selectPrimitive(e){
-  let sel = document.getElementById("primitive-select");
-  console.log(sel.value);
 }
 
 //---SELECT---------------------------
 function selEnter(){
   HINT.pushModeHint(this.name, "Select Mode!");
-  // console.log(this);
   HINT.modButtonStack();
-  // this.initUIModeButtons();
 }
 
 function selExit(){
   console.log(this);
 }
 
-function selUpdate(fluentDoc){
-  // console.log(this);
-  // console.log(fluentDoc);
-  for (let e of fluentDoc.editItems){
-    if (e.primType && e.primType == "Circle" && e.pts.length > 0){
-      //what is the propoer distance formula here?
-      // console.log(e);
-      // let radius = fluentDoc.pointDist(e.pts[0], e.pts[1]);
-      // let center = e.pts[0];
-      //
-      // console.log(fluentDoc.mPt)
-    }
-  }
+function selUpdate(){
+
 }
 
 function selMv(){
-  // console.log(this);
+
 }
 //---SELECT---------------------------
 
 //---DRAW-----------------------------
 function drawEnter(){
-  // pushPopModeHint(this.name, "Begin Drawing!");
   HINT.pushModeHint(this.name, "Begin Drawing!");
   this.initUIModeButtons();
 
-  //add event to primitive select element
-  //this is going to move somewhere...
-  let sel = document.getElementById("primitive-select");
-  sel.addEventListener("change", selectPrimitive);
-
-  //turns on snapping to pts by default
-  //function should take some default settings at some point
-  var index = this.modifiers.findIndex(i => i.name === "snapPt");
-  this.modifiers[index].clck();
-
-  var index = this.modifiers.findIndex(i => i.name === "showPts");
-  this.modifiers[index].clck();
-
-  // var index = this.modifiers.findIndex(i => i.name === "drawPLine");
-  // this.modifiers[index].clck();
+  //turns on pt snapping by default
+  let snapPt = this.modifiers.find(mod => mod.name == "snapPt");
+  snapPt.clck();
 }
 
 function drawExit(){
   HINT.snackHint("End Drawing!");
-  // console.log(this);
-  //This should be more global
-  // let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
-  // let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
-  // let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
-  //
-  // let selMods = [pauseShader, hideGrid, screenshot];
-  // let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
-  // this.modeStack.push(select);
-  // this.modeStack.curr().enter();
+  // not implemented
 }
 
-function drawUpdate(fluentDoc){
-  //exit draw condition
-  //no primitive tool active
-  if(this.factors.currEditItem == null){
+//happens on every frame of draw mode
+function drawUpdate(){
+  let resolution = SDFUI.resolution;
+
+  //exit draw condition - no primitive tool active
+  if(this.options.currEditItem == null){
     this.exit();
     return;
   }
 
   let sel = document.getElementById("primitive-select");
+  let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
 
-  if(this.factors.currEditItem != sel.value){
-    if(fluentDoc.currEditItem.pts.length > 0){
-      fluentDoc = fluentDoc.currEditItem.end(fluentDoc);
-      fluentDoc.shaderUpdate = true;
-    }
+  if(type != sel.value){
     switch(sel.value){
-      case "PolyLine":
-        this.factors.currEditItem = "PolyLine";
-        fluentDoc.editItems.push(new PRIM.PolyLine(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
-        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "1");
+      case "polyline":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("polyline"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "1");
+        SDFUI.newEditTex();
         break;
-      case "Polygon":
-        this.factors.currEditItem = "Polygon";
-        fluentDoc.editItems.push(new PRIM.Polygon(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
-        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "5");
+      case "polygon":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("polygon"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "5");
+        SDFUI.newEditTex();
         break;
-      case "PolyCircle":
-        this.factors.currEditItem = "PolyCircle";
-        fluentDoc.editItems.push(new PRIM.PolyCircle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
-        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "2");
+      case "polycircle":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("polycircle"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "2");
+        SDFUI.newEditTex();
         break;
-      case "Circle":
-        this.factors.currEditItem = "Circle";
-        fluentDoc.editItems.push(new PRIM.Circle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
-        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "3");
+      case "circle":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("circle"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "3");
+        SDFUI.newEditTex();
         break;
-      case "Rectangle":
-        // console.log("Rectangle not yet implemented!");
-        this.factors.currEditItem = "Rectangle";
-        fluentDoc.editItems.push(new PRIM.Rectangle(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize));
-        fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "EDIT_SHAPE", "4");
+      case "rectangle":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("rectangle"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "4");
+        SDFUI.newEditTex();
         break;
     }
-    fluentDoc.shaderUpdate = true;
+    SDFUI.store.dispatch(ACT.statusUpdate(true));
   }
 
   sel = document.getElementById("filter-select");
-
-  if(this.factors.filter != sel.value){
-    this.factors.filter = sel.value;
-    switch(sel.value){
+  if(SDFUI.state.ui.properties.filter != sel.value){
+    SDFUI.store.dispatch(ACT.drawFilter(sel.value));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
+    switch(SDFUI.state.ui.properties.filter){
       case "None":
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "0");
+        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "0");
         break;
       case "Pencil":
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "1");
+        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "1");
         break;
       case "Crayon":
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "2");
+        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "2");
         break;
       case "SDF":
-        fluentDoc.shader = modifyDefine(fluentDoc.shader, "FILTER", "3");
+        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "3");
         break;
     }
-    fluentDoc.shaderUpdate = true;
+    SDFUI.store.dispatch(ACT.statusUpdate(true));
   }
 
   sel = document.getElementById("strokeColor-select");
-  if(this.factors.strokeColor != sel.value){
-    // console.log(sel.value);
-    // console.log(hexToRgb(sel.value));
-    this.factors.strokeColor = sel.value;
-    let rgb = hexToRgb(sel.value);
-    let newColor = new THREE.Vector3(rgb.r / 255, rgb.g / 255, rgb.b/255);
-    fluentDoc.editOptions.stroke = newColor;
-    fluentDoc.currEditItem.options.stroke = newColor;
-    // fluentDoc.shaderUpdate = true;
+  if(SDFUI.state.ui.properties.stroke != sel.value){
+    SDFUI.store.dispatch(ACT.drawStroke(sel.value));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
   }
 
   sel = document.getElementById("fillColor-select");
-  if(this.factors.fillColor != sel.value){
-    // console.log(sel.value);
-    // console.log(hexToRgb(sel.value));
-    this.factors.fillColor = sel.value;
-    let rgb = hexToRgb(sel.value);
-    let newColor = new THREE.Vector3(rgb.r / 255, rgb.g / 255, rgb.b/255);
-    fluentDoc.editOptions.fill = newColor;
-    fluentDoc.currEditItem.options.fill = newColor;
-    // fluentDoc.shaderUpdate = true;
+
+  if(SDFUI.state.ui.properties.fill != sel.value){
+    SDFUI.store.dispatch(ACT.drawFill(sel.value));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
+
   }
 
   sel = document.getElementById("strokeWeight-range");
-  if(this.factors.strokeWeight != sel.value){
-    // console.log(sel.value);
-    // console.log(hexToRgb(sel.value));
-    this.factors.strokeWeight = sel.value;
-    fluentDoc.editOptions.weight = sel.value / 2000;
-    fluentDoc.currEditItem.options.weight = sel.value / 2000;
-    // fluentDoc.shaderUpdate = true;
+  if(SDFUI.state.ui.properties.weight != sel.value){
+    SDFUI.store.dispatch(ACT.drawWeight(sel.value / 2000));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
   }
 
   sel = document.getElementById("radius-range");
-  if(this.factors.strokeWeight != sel.value){
-    // console.log(sel.value);
-    // console.log(hexToRgb(sel.value));
-    this.factors.radius = sel.value;
-    fluentDoc.editOptions.radius = sel.value / 100;
-    fluentDoc.currEditItem.options.radius = sel.value / 100;
-    // fluentDoc.shaderUpdate = true;
+  if(SDFUI.state.ui.properties.radius != sel.value / 100){
+    SDFUI.store.dispatch(ACT.drawRadius(sel.value / 100));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
   }
 
   for(let m of this.modifiers){
     //each update will deal with m.toggle on an individual basis
     if(m.update){
-      let newDoc = m.update(fluentDoc);
-      if (newDoc) fluentDoc = newDoc;
-      if (m.factors.exit && m.factors.exit == true){
+      let newDoc = m.update();
+      if (m.options.exit && m.options.exit == true){
         this.exit();
         return "exit";
       }
-
     }
   }
-  return fluentDoc;
+  return;
 }
 
-function drawMv(e, fluentDoc){
+function drawMv(e){
 
   for (let m of this.modifiers){
-    if(!m.mv) continue;
-    if(!m.toggle) continue;
-    if(m.update) continue;
-    let modState = m.mv(e, fluentDoc);
-    if(!modState) continue;
-    else fluentDoc = modState;
+    if(!m.mv || !m.toggle || m.update) continue;
+
+    let modState = m.mv(e, this.options);
   }
-  return fluentDoc;
+  return;
 }
 
-function drawUp(e, fluentDoc){
+function drawUp(e){
+  let resolution = SDFUI.resolution;
 
   for (let m of this.modifiers){
     if(!m.up) continue;
-    let modState = m.up(e, fluentDoc)
+    let modState = m.up(e)
     if(!modState) continue;
-    fluentDoc = modState;
   }
 
-  let addPt = {
-    x: 0,
-    y: 0,
-    tag: "none",
+  //returns a new point of type PRIM.vec()
+  let pt = SDFUI.editTex.addPoint(SDFUI.mPt, "plPoint");
+
+  SDFUI.store.dispatch(ACT.sceneAddPt(pt));
+
+  let item = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+  if ( (item.type == "circle" || item.type == "rectangle") && item.pts.length == 2){
+    SDFUI.store.dispatch(ACT.sceneItemUpdate(SDFUI.state.scene.editItem, true));
+    SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
+    SDFUI.store.dispatch(ACT.statusUpdate(true));
+    SDFUI.newEditTex();
   }
 
-  addPt.x = fluentDoc.mPt.x * fluentDoc.resolution.x;
-  addPt.y = fluentDoc.elem.height - (fluentDoc.mPt.y * fluentDoc.resolution.y);
-  addPt.tag = "plPoint";
 
-  //could have this return true / false to determine wether point should be pushed to tree
-  let plPt = fluentDoc.currEditItem.addPoint(addPt.x, addPt.y, addPt.tag);
-
-  //important to keep a simple array of pts for reconstructingree
-  fluentDoc.pts.push(plPt);
-  fluentDoc.tree.insert(plPt);
-
-  if (fluentDoc.currEditItem.pointPrim && fluentDoc.currEditItem.pts.length == 2) {
-    fluentDoc.shader = fluentDoc.currEditItem.bakeFunctionCall(fluentDoc);
-    // fluentDoc.editItemIndex++;
-    fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions));
-    fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-
-    fluentDoc.shaderUpdate = true;
-  }
-
-  return fluentDoc;
+  return;
 }
 
 //---DRAW-----------------------------
-
-function screenshotClck(){
-  this.toggle = !this.toggle;
-  HINT.pulseActive(this);
-}
-
-function printShaderClck(){
-  this.toggle = !this.toggle;
-  HINT.pulseActive(this);
-}
-
-function hideGridClck(){
-  this.toggle = !this.toggle;
-  HINT.pulseActive(this);
-}
-
-function pauseShaderClck(){
-  this.toggle = !this.toggle;
-  HINT.pulseActive(this);
-}
-
 function endDrawClck(){
   this.toggle = !this.toggle;
   HINT.pulseActive(this);
 }
-
-function escDrawClck(fluentDoc){
+//
+function escDrawClck(){
   this.toggle = !this.toggle;
   HINT.pulseActive(this);
 }
 
-function showPtsClck(fluentDoc){
+function endDrawUpdate(){
+  if(!this.toggle) return null;
+  // console.log("///////////////////////////////////////////////");
+
+  //get out of Draw UIMode
+  if(SDFUI.editTex.pts.length == 0) {
+    this.options.exit = true;
+    return null;
+  }
+
+  SDFUI.store.dispatch(ACT.statusUpdate(true));
+  SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+
+  let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
+
+  SDFUI.store.dispatch(ACT.scenePushEditItem(type));
+  SDFUI.newEditTex();
+
   this.toggle = !this.toggle;
-  HINT.toggleActive(this);
 }
 
-function pauseShaderUpdate(fluentDoc){
+function escDrawUpdate(){
   if(!this.toggle) return null;
 
-  fluentDoc.shaderPause = !fluentDoc.shaderPause;
+  if(SDFUI.editTex.pts.length == 0) {
+    this.options.exit = true;
+    return null;
+  }
+
+  for (let p of SDFUI.editTex.pts){
+    SDFUI.store.dispatch(ACT.sceneRmvPt(p));
+  }
+
+  SDFUI.newEditTex();
 
   this.toggle = !this.toggle;
-  return fluentDoc;
+  return;
 }
 
-function hideGridUpdate(fluentDoc){
+//this will eventually just operate on the shader
+//should move this to sdfui
+function showPtsUpdate(){
   if(!this.toggle) return null;
 
   let valString = "0";
 
-  if (!this.factors.grid) valString = "1";
+  if (!this.options.pts) valString = "1";
 
-  fluentDoc.shader = modifyDefine(fluentDoc.shader, "BG_GRID", valString);
-  fluentDoc.shaderUpdate = true;
+  SDFUI.store.dispatch(ACT.statusUpdate(true));
+  SDFUI.store.dispatch(ACT.uiPoints());
 
-  this.factors.grid = !this.factors.grid;
-
-  this.toggle = !this.toggle;
-  return fluentDoc;
-}
-
-function endDrawUpdate(fluentDoc){
-  if(!this.toggle) return null;
-
-  if(fluentDoc.currEditItem.pts.length == 0) {
-    this.factors.exit = true;
-    return null;
-  }
-
-  fluentDoc.shader = fluentDoc.currEditItem.end(fluentDoc).shader;
-  fluentDoc.shaderUpdate = true;
-
-  fluentDoc.editItems.push(fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions));
-  fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
+  this.options.pts = !this.options.pts;
 
   this.toggle = !this.toggle;
-  return fluentDoc;
-}
-
-function escDrawUpdate(fluentDoc){
-  if(!this.toggle) return null;
-
-  if(fluentDoc.currEditItem.pts.length == 0) {
-    this.factors.exit = true;
-    return null;
-  }
-
-  //remove all points from curr edit item before ending this polyline
-  for (let p of fluentDoc.currEditItem.pts){
-    var index = fluentDoc.pts.findIndex(i => i.id === p.id);
-
-    fluentDoc.pts.splice(index, 1);
-    fluentDoc.tree.remove(p);
-  }
-
-  fluentDoc.editItems[fluentDoc.editItems.length - 1] = fluentDoc.currEditItem.create(fluentDoc.resolution, fluentDoc.editOptions, fluentDoc.dataSize);
-  fluentDoc.currEditItem = fluentDoc.editItems[fluentDoc.editItems.length - 1];
-
-  this.toggle = !this.toggle;
-  return fluentDoc;
-}
-
-function showPtsUpdate(fluentDoc){
-  if(!this.toggle) return null;
-
-  let valString = "0";
-
-  if (!this.factors.pts) valString = "1";
-
-  fluentDoc.shader = modifyDefine(fluentDoc.shader, "SHOW_PTS", valString);
-  fluentDoc.shaderUpdate = true;
-
-  this.factors.pts = !this.factors.pts;
-
-  this.toggle = !this.toggle;
-  return fluentDoc;
-}
-
-function screenshotUpdate(fluentDoc){
-  if(!this.toggle) return null;
-
-  fluentDoc.screenshot = true;
-  this.toggle = !this.toggle;
-  return fluentDoc;
-}
-
-function printShaderUpdate(fluentDoc){
-  if(!this.toggle) return null;
-
-  console.log(fluentDoc.shader);
-  this.toggle = !this.toggle;
-  return fluentDoc;
-}
-
-function modifyDefine(shader, define, val){
-  //change #define
-  let insString = "#define " + define + " ";
-  let insIndex = shader.indexOf(insString);
-  insIndex += insString.length;
-
-  let startShader = shader.slice(0, insIndex);
-  let endShader = shader.slice(insIndex+2);
-
-  startShader += val + "\n";
-  shader = startShader + endShader;
-
-  return shader;
+  return;
 }
 
 //Ring buffer of states, type agnostic
@@ -733,8 +567,6 @@ class StateStack{
     this.incrementIndex();
 
     this.stack[this.index] = state;
-
-    //console.log(this);
   }
 
   //return previous state, decrement index
@@ -772,158 +604,12 @@ class StateStack{
   }
 }
 
-//What I want to do is remove parameters and shader from FluentDoc
-//and create a bakeParameters and bakeShader function in FluentDoc
-//the only input to those functions should be the list of edit items, and the shader
-//would be cool to know if a primitive needs an update
-
-//FluentDoc State state distince from ui state
-class FluentDoc{
-  // new Doc contains elem, curr shader, kd tree of all pts, curr editItem, editItems
-  constructor(elem, shader){
-    // should move shader logic in here
-    // maybe this class should get moved to sdfui
-    this.elem = elem;
-    this.resolution = new THREE.Vector2(elem.width, elem.height);
-
-    //uniforms might want to get moved here
-    this.shader = shader;
-    this.shaderUpdate = false;
-    this.shaderPause = false;
-    this.screenshot = false;
-
-    //mouse target position
-    this.mPt = new THREE.Vector3(0, 0, 1.0);
-
-    //grid scale
-    this.scale = 48;
-
-    this.addPt = {
-      x: 0,
-      y: 0,
-      tag: "",
-    };
-
-    //list of kdTree points, might not be necessary?
-    this.pts = [];
-    //all clickable / snappable points
-    this.tree = new kdTree(this.pts, this.pointDist, ["x", "y"]);
-
-    //current editItem
-    //this might want to get moved to UIMode some day...
-    this.editOptions = {
-      weight:0.003,
-      stroke:new THREE.Vector3(0.0, 0.0, 0.0),
-      fill:new THREE.Vector3(0.0, 0.384, 0.682),
-      fillToggle:false,
-      radius:0.125
-    }
-
-    // this.editItemIndex = 0;
-    this.currEditItem = new PRIM.PolyLine(this.resolution, this.editOptions, this.dataSize);
-    this.editItems = [this.currEditItem];
-
-    //document registry of paramters
-    this.parameters = new PRIM.PolyPoint(this.resolution, this.editOptions, 128);
-
-    //establishes grid offsets
-    //actually don't think this instantiation is necessary
-    // this.gridOffX = 0.0;
-    // this.gridOffY = 0.0;
-    // this.scaleX = 0.0;
-    // this.scaleyY = 0.0;
-    this.drawGrid();
-  }
-
-  // simple distance function for kdTree
-  pointDist(a, b){
-    var dx = a.x - b.x;
-    var dy = a.y - b.y;
-    return dx*dx + dy*dy;
-  }
-
-  //Establishes grid aligned with the shader
-  //Will be useful for document units
-  drawGrid(){
-    let scaleX = (this.resolution.x / this.scale) * (this.resolution.y / this.resolution.x);
-    let scaleY = this.resolution.y / this.scale;
-
-    this.gridScaleX = scaleX;
-    this.gridScaleY = scaleY;
-
-    //There has got to be a more elegant way to do this...
-    //Is the remainder odd or even?
-    let r = ((this.resolution.x / scaleX) - (this.resolution.x / scaleX) % 1) % 2;
-    //If even, add scaleX * 0.5;
-    r = Math.abs(r - 1);
-    // let offX = (((this.resolution.x / scaleX) % 2) * scaleX) * 0.5 + scaleX * 0.5;
-    let offX = (((this.resolution.x / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
-
-    let offY = scaleY * 0.5;
-
-    this.gridOffX = offX;
-    this.gridOffY = offY;
-
-    // console.log("this.scale = " + this.scale);
-    // console.log("offX = " + offX);
-    // console.log("offY = " + offY);
-    // console.log("scaleX = " + scaleX);
-    // console.log("scaleY = " + scaleY);
-
-    // console.log(this.grid);
-
-    // for (let i = offY; i <= this.resolution.y; i+=scaleY){
-    //   for (let j = offX; j <= this.resolution.x; j+=scaleX){
-    //     addSVGCircle("blah", j, i, 2);
-    //   }
-    // }
-  }
-
-  //clones FluentDoc, essential for document stack
-  clone(){
-    //elem is probably the only thing we want to retain a reference to
-    //also elem probably doesn't have to be a property of fluentDoc
-    var shader = (' ' + this.shader).slice(1);
-
-    let newDoc = new FluentDoc(this.elem, shader);
-
-    newDoc.shaderPause = this.shaderPause;
-    newDoc.shaderUpdate = this.shaderUpdate;
-    newDoc.screenshot = this.screenshot;
-
-    newDoc.mPt = this.mPt.clone();
-    let pts = [];
-    for (let p of this.pts){ pts.push(p.clone()) };
-
-    newDoc.tree = new kdTree(pts, newDoc.pointDist, ["x", "y"]);
-
-    newDoc.pts = pts;
-
-    //this may have to get a little more sofisticated...
-    newDoc.editOptions = {...this.editOptions};
-    // newDoc.editItemIndex = this.editItemIndex;
-
-    // let currEditItem = this.currEditItem.clone();
-    let editItems = [];
-    for (let item of this.editItems){editItems.push(item.clone());}
-    newDoc.editItems = editItems;
-    let currEditItem = editItems[editItems.length - 1];
-
-    newDoc.parameters = this.parameters.clone();
-
-    newDoc.currEditItem = currEditItem;
-    newDoc.editItems = editItems;
-
-    return newDoc;
-  }
-}
-
 //idea is to allow the creation of modes if/when that's necessary
 //modes are going to be collections of UIModifiers
 class UIMode{
   //bool, [], functions
   // constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
-  constructor(name, modifiers, enter, exit, update, _events, _factors){
+  constructor(name, modifiers, enter, exit, update, _events, _options){
     this.name = name;
     // this.toggle = toggle;
     this.modifiers = modifiers;
@@ -939,7 +625,7 @@ class UIMode{
     if(_events.dwn) this.dwn = _events.dwn;
     if(_events.scrll) this.scrll = _events.scrll;
 
-    this.factors = _factors || {factor:1.0};
+    this.options = _options || {factor:1.0};
   }
 
   initUIModeButtons(){
@@ -950,28 +636,29 @@ class UIMode{
         tags.push(m.tag);
         HINT.addButtonHeading(m);
       }
-      let newButton = new Button(HINT.addButtonHint(m), m)
+      let newButton = m.addButton();
       m.button = newButton;
     }
   }
 }
 
-//Modifier functions return null or a cloned modified FluentDoc
-//we can also include a list of what's changed
-//or we could check that it is a valid state for the program
-//I think there are ways of handling problems that might arise later
+//simple class to hold modifiers
 class UIModifier{
   //clck
-  constructor(name, tag, keyCut, toggle, events, _factors){
+  constructor(name, tag, keyCut, events, _pulse, _options, _elem){
     this.name = name;
     //tag e.g. snap, edit, view, export
     this.tag = tag;
     this.keyCut = keyCut;
 
-    this.toggle = toggle || false;
+    this.toggle = false;
     //whether this modifiers move function should be called on move or onUpdate
     if(events.update){
       this.update = events.update;
+    }
+    if(events.act){
+      this.act = events.act;
+      this.clck = this.dispatch;
     }
     if(events.clck){
       this.clck = events.clck.bind(this);
@@ -989,41 +676,48 @@ class UIModifier{
       this.scrll = events.scrll.bind(this);
     }
 
-    this.factors = _factors || {};
+    if(typeof _pulse == "boolean"){
+       this.pulse = _pulse;
+     }else{
+       this.pulse = false;
+     }
 
-    this.button = null;
+    this.options = _options || {};
+
+    //button element
+    this.elem = _elem || "";
+    if (this.elem != ""){
+      this.innerHTML = this.elem.innerHTML;
+
+      let style = window.getComputedStyle(elem);
+      this.top = style.getPropertyValue('top');
+      this.left = style.getPropertyValue('left');
+
+      elem.onclick = this.clck;
+    }
   }
-}
 
-class Button{
-  constructor(elem, uimodifier){
-    //for offsets, could clean up these names
-    this.pos1 = 0;
-    this.pos2 = 0;
-    this.pos3 = 0;
-    this.pos4 = 0;
+  addButton(){
+    let elem = HINT.addButtonHint(this);
 
+    //button element
     this.elem = elem;
-
     this.innerHTML = this.elem.innerHTML;
 
-    //bool for checking if input method is active
-    this.input = false;
-
-    this.uimodifier = uimodifier;
-
-    //original positions
-    let style = window.getComputedStyle(elem);
+    let style = window.getComputedStyle(this.elem);
     this.top = style.getPropertyValue('top');
     this.left = style.getPropertyValue('left');
 
-    this.onclick = this.uimodifier.clck.bind(this.uimodifier);
+    elem.onclick = this.clck;
+  }
 
-    //what happens onclick
-    elem.onclick = this.onclick;
-
-    //interpret type and color from html element
-    let classes = elem.classList;
+  dispatch(){
+    SDFUI.store.dispatch(this.act);
+    if(this.pulse){
+      HINT.pulseActive(this);
+    }else{
+      HINT.toggleActive(this);
+    }
   }
 }
 
@@ -1074,4 +768,4 @@ function addSVGCircle(id, x, y, r, opacity, fill, stroke, strokeWeight){
   return svg;
 }
 
-export {GhostUI, Button};
+export {GhostUI};
