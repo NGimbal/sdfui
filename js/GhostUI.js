@@ -102,13 +102,8 @@ class GhostUI{
     this.modeStack = new StateStack(draw, 5);
     this.modeStack.curr().enter();
 
-<<<<<<< HEAD
-    //should this be bound to docStack[] or this?
-    document.getElementById("c").addEventListener('mouseup', this.mouseUp.bind(this));
-=======
     //could pass elem around but...
     document.querySelector('#c').addEventListener('mouseup', this.mouseUp.bind(this));
->>>>>>> redux
     window.addEventListener('mousemove', this.mouseMove.bind(this));
 
     //cntrl+z
