@@ -1,4 +1,6 @@
 //actions.js
+"use strict";
+
 //actions named with reducer_property
 //action functions named with reducerProperty()
 //goal is clarity for future debugging easy

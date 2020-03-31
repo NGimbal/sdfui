@@ -190,10 +190,7 @@ function resizeRendererToDisplaySize(renderer) {
     renderer.setSize(resolution.x, resolution.y, false);
     store.dispatch(ACT.statusRes({x:width, y:height}));
     store.dispatch(ACT.cursorGridScale(48));
-    //this is convoluted
     store.dispatch(ACT.statusUpdate(true));
-    // ui.fluentStack.curr().shaderUpdate = true;
-
   }
 
   return needResize;
@@ -205,7 +202,7 @@ function render() {
   resizeRendererToDisplaySize(renderer);
 
   ui.update();
-  
+
   screenMesh.material.uniforms.posTex.value = editTex.ptsTex;
   screenMesh.material.uniforms.editCTexel.value = editTex.cTexel;
 
@@ -254,6 +251,8 @@ function render() {
     let vertexShader = sdfPrimVert;
 
     uniforms.iResolution.value = new THREE.Vector3(resolution.x, resolution.y, resolution.z);
+
+    //this is where primitives get rebaked to shader if they need it
     let index = 0;
     for (let prim of state.scene.editItems){
       if(prim.needsUpdate){

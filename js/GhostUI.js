@@ -6,7 +6,7 @@ import * as PRIM from './primitives.js';
 import * as SDFUI from './sdfui.js';
 import * as ACT from './actions.js';
 
-//GhostUI coordinates all UI functions, keeps FluentDocStack, and UI State
+//GhostUI coordinates all UI function
 //Implements UIMode and UIModifiers
 //UIMode is a collection of UIModifiers along with enter & exit functions
 //UIModifier is a collection of functions that are fired by events within uiModes
@@ -61,15 +61,7 @@ class GhostUI{
       points: false,
     };
 
-    //Doc State
-    // this.fluentDoc = new FluentDoc();
-    // this.fluentDoc.editItems.push(new PRIM.PolyLine(editOptions));
-    // this.fluentDoc.currEditItem = this.fluentDoc.editItems[this.fluentDoc.editItems.length - 1];
-
-    // this.fluentStack = new StateStack(fluentDoc, 10);
-
     //MODIFIERS
-    //Clck could be a built in function - looks like it will generally be a simple toggle
     let pauseShader = new UIModifier("pauseShader", "view", "/", {act:ACT.uiPause()},false, {});
     let hideGrid = new UIModifier("hideGrid", "view", ".", {act:ACT.uiGrid()},false, {});
     let showPts = new UIModifier("showPts", "view", "r", {act:ACT.uiPoints()},false, {});
@@ -95,7 +87,6 @@ class GhostUI{
     //if no drawing tools are selected, drawExit();
     let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, editOptions);
     let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
-    // let edit = new UIMode("select", false, edit)
     // let move
 
     //stack of UIModes
@@ -118,42 +109,6 @@ class GhostUI{
   // Helper to save a Uint8 data texture
   saveDataTUint8(pixels, name, width, height){
     // Create a 2D canvas to store the result
-    var canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    var context = canvas.getContext('2d');
-
-    // Copy the pixels to a 2D canvas
-    var imageData = context.createImageData(width, height);
-    imageData.data.set(pixels);
-    context.putImageData(imageData, 0, 0);
-
-    var img = new Image();
-    img.src = canvas.toDataURL();
-
-    var dlAnchorElem = document.getElementById('downloadAnchorElem');
-    dlAnchorElem.setAttribute("href",     img.src     );
-    dlAnchorElem.setAttribute("download", name);
-    dlAnchorElem.click();
-  }
-
-  // Placeholder
-  // Helper to save a HalfFloat16 data texture
-  saveDataTHalfFloat16(pixels, name, width, height){
-    // let buffer = new ArrayBuffer(10);
-    // let view = new DataView(buffer);
-    //
-    // for (let i = 0; i<pixels.length; i++){
-    //   view.setUint16(0, p.texData[0]);
-    //   let floatX = getFloat16(view, 0);
-    //   // console.log(getFloat16(view, 0));
-    //   // console.log(getFloat16(view, 0) * window.innerWidth);
-    //
-    //   view.setUint16(0, p.texData[1]);
-    //   let floatY = getFloat16(view, 0);
-    // }
-
-    // Create a 2D canvas to store the results
     var canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -504,24 +459,6 @@ function escDrawUpdate(){
   return;
 }
 
-//this will eventually just operate on the shader
-//should move this to sdfui
-function showPtsUpdate(){
-  if(!this.toggle) return null;
-
-  let valString = "0";
-
-  if (!this.options.pts) valString = "1";
-
-  SDFUI.store.dispatch(ACT.statusUpdate(true));
-  SDFUI.store.dispatch(ACT.uiPoints());
-
-  this.options.pts = !this.options.pts;
-
-  this.toggle = !this.toggle;
-  return;
-}
-
 //Ring buffer of states, type agnostic
 class StateStack{
   constructor(state, MAX){
@@ -714,21 +651,6 @@ class UIModifier{
       HINT.toggleActive(this);
     }
   }
-}
-
-function hexToRgb(hex) {
-  // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
-  var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-  hex = hex.replace(shorthandRegex, function(m, r, g, b) {
-    return r + r + g + g + b + b;
-  });
-
-  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
 }
 
 // good for debugging and for reference

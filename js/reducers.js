@@ -1,4 +1,6 @@
 //reducers
+"use strict";
+
 //current naive thinking
 //ui - state related to a user's view of the world
 //document - state related to a shared scene
@@ -12,6 +14,8 @@ import * as ACT from './actions.js';
 //although why not? state can always be updated
 //let's keep it out for now
 import { ptTree } from './sdfui.js';
+
+console.log(Automerge);
 
 const statusInit = {
   resolution: new PRIM.vec(0,0),

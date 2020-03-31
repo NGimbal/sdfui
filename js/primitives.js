@@ -154,8 +154,7 @@ export class PolyPoint {
     let pt = new vec(x, y, z, w);
 
     this.cTexel++;
-    console.log(this.cTexel);
-    console.log(this);
+    
     let index = this.cTexel * 4;
     //use view.setFloat16() to set the digits in the DataView
     //then use view.getUint16 to retrieve and write to data Texture
