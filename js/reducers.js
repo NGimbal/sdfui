@@ -53,18 +53,25 @@ const sceneInit = {
   //or should it be an id?
   editItem:0,
   //all points in doc
+  //eventually move to a Automerge.Table?
   pts:[],
   //points in doc to be removed
+  //eventually move to a Automerge.Table?
   rmPts:[],
   //all items in doc
   editItems:[new PRIM.prim("polyline", [], {...PRIM.propsDefault})],
 }
 
+const sceneDoc = Automerge.from(sceneInit);
+
+// console.log(sceneDoc);
+
 const initialState={
   status: statusInit,
   ui: uiInit,
   cursor: cursorInit,
-  scene: sceneInit,
+  //automerge object
+  scene: sceneDoc,
 }
 
 //app level status, resolution, update
@@ -249,114 +256,55 @@ function scene(_state=initialState, action) {
   switch(action.subtype){
     case ACT.SCENE_ADDPT:
       let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, action.pt.id, true);
-      return Object.assign({}, state,{
-          ...state,
+      return Automerge.change(state, 'added a point: ' + action.pt.id , doc=>{
           //add point to current edit item
-          editItems: state.editItems.map((item, index) => {
-            if(index !== state.editItem){
-              return item;
-            }
-            return {
-              ...item,
-              pts: [...item.pts, pt.id],
-            }
-          }),
+          doc.editItems[doc.editItem].pts.push(pt.id);
           //add point to pts array
-          pts:[...state.pts, pt]
+          doc.pts.push(pt);
       });
     case ACT.SCENE_RMVPT:
-      // let pt = action.pt;
       ptIndex = state.pts.findIndex(i => i.id === action.pt.id);
-      return Object.assign({}, state,{
-        ...state,
+      let editPtIndex = state.editItems[state.editItem].pts.findIndex(i => i === action.pt.id);
+      return Automerge.change(state, 'staged a point for removal: ' + action.pt.id, doc=>{
         //remove point from current edit item
-        editItems: state.editItems.map((item, index) => {
-          if(index !== state.editItem){
-            return item;
-          }
-          return {
-            ...item,
-            pts: [
-              ...item.pts.slice(0, ptIndex),
-              ...item.pts.slice(ptIndex + 1)
-            ],
-          }
-        }),
+        doc.editItems[doc.editItem].pts.deleteAt(editPtIndex);
+        //remove from kdTree and texture
+        doc.rmPts.push(doc.pts[ptIndex].id.slice());
         //remove point from pts array
-        pts: [
-          ...state.pts.slice(0, ptIndex),
-          ...state.pts.slice(ptIndex + 1)
-        ],
-        //add point to pts array, need to stage for removal from
-        //kdTree and texture
-        rmPts: [...state.rmPts, {...state.pts[ptIndex]}]
+        //this should maybe be a table
+        doc.pts.deleteAt(ptIndex);
       });
     case ACT.SCENE_FINRMVPT:
       //remove point from rmPts array
-      ptIndex = state.rmPts.findIndex(i => i.id === action.pt.id);
-      return Object.assign({}, state,{
-        ...state,
-        rmPts: [
-          ...state.rmPts.slice(0, ptIndex),
-          ...state.rmPts.slice(ptIndex + 1)
-        ]
+      //this also may be on a per user basis, kd tree needs to be updated by all users
+      ptIndex = state.rmPts.findIndex(i => i === action.id);
+      return Automerge.change(state, 'finished removing a pt: ' + action.id, doc=>{
+        doc.rmPts.deleteAt(ptIndex);
       });
     case ACT.SCENE_EDITUPDATE:
-      return Object.assign({}, state,{
-        ...state,
-        editItems: state.editItems.map((item, index) => {
-          if(index !== state.editItem){
-            return item;
-          }
-          return {
-            ...item,
-            needsUpdate: true,
-          }
-        })
+      //this really needs to be true on a per user basis
+      //like an item may need to be updated for someone but not for someone else
+      return Automerge.change(state, 'updated edit item properties', doc=>{
+        doc.editItems[doc.editItem].needsUpdate = true;
       });
     case ACT.SCENE_PUSHEDITITEM:
       if(state.editItems[state.editItem].pts.length > 0){
-        return Object.assign({}, state,{
-          ...state,
-          editItem: state.editItem = state.editItem + 1,
-          editItems: [...state.editItems, new PRIM.prim(action.prim, [], {..._state.ui.properties})],
+        return Automerge.change(state, 'push edit item', doc=>{
+          doc.editItem = state.editItem + 1;
+          doc.editItems.push(new PRIM.prim(action.prim, [], {..._state.ui.properties}));
         });
       } else {
-        return Object.assign({}, state,{
-          ...state,
-          // editItems: [...state.editItems, new prim(action.prim, [], {..._state.ui.properties})],
-          editItems: [
-            ...state.editItems.slice(0, state.editItem),
-            new PRIM.prim(action.prim, [], {..._state.ui.properties}),
-            ...state.editItems.slice(state.editItem + 1)
-          ]
+        return Automerge.change(state, 'push edit item', doc=>{
+          doc.editItems.insertAt(state.editItem, new PRIM.prim(action.prim, [], {..._state.ui.properties}));
         });
       }
     case ACT.SCENE_EDITPROPS:
-      return Object.assign({}, state,{
-        ...state,
-        editItems: state.editItems.map((item, index) => {
-          if(index !== state.editItem){
-            return item;
-          }
-          return {
-            ...item,
-            properties: {..._state.ui.properties},
-          }
-        })
+      return Automerge.change(state, 'update edit properties', doc=>{
+        doc.editItems[doc.editItem].properties = {..._state.ui.properties};
       });
     case ACT.SCENE_ITEMUPDATE:
-      return Object.assign({}, state,{
-        ...state,
-        editItems: state.editItems.map((item, index) => {
-          if(index !== action.index){
-            return item;
-          }
-          return {
-            ...item,
-            needsUpdate: action.toggle,
-          }
-        })
+      return Automerge.change(state, 'edit item update', doc=>{
+        doc.editItems[action.index].needsUpdate = action.toggle;
       });
     default:
       return state;

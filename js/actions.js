@@ -259,11 +259,11 @@ export function sceneRmvPt(pt){
 
 //removes points from rmPts[] list
 //call after points have been removed from kdTree or parameters tex
-export function sceneFinRmvPt(pt){
+export function sceneFinRmvPt(id){
   return {
     type: scene,
     subtype: SCENE_FINRMVPT,
-    pt
+    id
   };
 }
 

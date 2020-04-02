@@ -53,11 +53,11 @@ function listener(){
       p.update = false;
     }
   }
-  for(let p of state.scene.rmPts){
+  for(let pId of state.scene.rmPts){
     //normal tree search function doesnt work
-    let rmPt = searchTree(ptTree.root, p.id);
+    let rmPt = searchTree(ptTree.root, pId);
     ptTree.remove(rmPt);
-    store.dispatch(ACT.sceneFinRmvPt(p));
+    store.dispatch(ACT.sceneFinRmvPt(pId));
     //will also want to remove from parameters texture here as well
   }
   return state;
