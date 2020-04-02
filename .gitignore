@@ -1,4 +1,4 @@
 .DS_Store
 kdTree.js
 redux.min.js
-redux.js
+redux.min.module.js
