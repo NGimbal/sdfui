@@ -1,5 +1,7 @@
 //vert js
-const sdfPrimVert = `
+"use strict";
+
+export const sdfPrimVert = `
 //#version 300 es
 
 varying vec2 vUv;
@@ -10,5 +12,3 @@ void main() {
 }
 
 `;
-
-export {sdfPrimVert}
