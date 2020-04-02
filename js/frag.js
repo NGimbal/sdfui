@@ -263,8 +263,13 @@ float sceneDist(vec2 uv, inout vec3 finalColor) {
 //--------lighting functions
 //https://www.shadertoy.com/view/4dfXDn
 
-float fillMask(float d){
-  return 1.0 - clamp(d, 0.0, 1.0);
+// float fillMask(float d){
+//   return 1.0 - clamp(d, 0.0, 1.0);
+// }
+
+float fillMask(float dist)
+{
+	return clamp(-dist, 0.0, 1.0);
 }
 
 float shadow(vec2 p, vec2 pos, float radius, inout vec3 finalColor)
@@ -276,16 +281,17 @@ float shadow(vec2 p, vec2 pos, float radius, inout vec3 finalColor)
 	float lf = radius * dl;
 
 	// distance traveled
-	float dt = 0.01;
+	float dt = 0.000001;
 
 	for (int i = 0; i < 64; ++i)
 	{
 		// distance to scene at current position
 		float sd = sceneDist(p + dir * dt, finalColor);
 
-        // early out when this ray is guaranteed to be full shadow
-        if (sd < -radius)
-            return 0.0;
+    // early out when this ray is guaranteed to be full shadow
+    if (sd < -radius){
+      return 0.0;
+    }
 
 		// width of cone-overlap at light
 		// 0 in center, so 50% overlap: add one radius outside of loop to get total coverage
@@ -293,7 +299,7 @@ float shadow(vec2 p, vec2 pos, float radius, inout vec3 finalColor)
 		lf = min(lf, sd / dt);
 
 		// move ahead
-		dt += max(1.0, abs(sd));
+		dt += max(0.01, abs(sd));
 		if (dt > dl) break;
 	}
 
@@ -301,7 +307,7 @@ float shadow(vec2 p, vec2 pos, float radius, inout vec3 finalColor)
 	// add one radius, before between -radius and + radius
 	// normalize to 1 ( / 2*radius)
 	lf = clamp((lf*dl + radius) / (2.0 * radius), 0.0, 1.0);
-	lf = smoothstep(0.0, 1.0, lf);
+	lf = smoothstep(0.05, 1.0, lf);
 	return lf;
 }
 
@@ -311,7 +317,7 @@ vec4 drawLight(vec2 p, vec2 pos, vec4 color, float dist, float range, float radi
 	float ld = length(p - pos);
 
 	// out of range
-	if (ld > range) return vec4(0.0);
+	if (ld > range) return vec4(1.0);
 
 	// shadow and falloff
 	float shad = shadow(p, pos, radius, finalColor);
@@ -367,7 +373,7 @@ void main(){
     // vec2 index = vec2(0.);
     float radius = 0.125;
 
-    float dAccum = sceneDist(uv, finalColor);
+    float accumD = sceneDist(uv, finalColor);
 
     //current Mouse Position
     DrawPoint(uv, mPt, finalColor);
@@ -384,7 +390,9 @@ void main(){
       d = sdCircle(uv, center, radius);
     }
 
-    // dAccum = min(dAccum, d)
+    accumD = min(accumD, d);
+
+    // d = fillMask(d);
 
     //fill
     // vec3 fill = vec3(0.98, 0.35, 0.0);
@@ -428,7 +436,7 @@ void main(){
       vec2 rPt = abs(mPt.xy - center);
       d = sdBox(uv, center, rPt, editRadius);
     }
-    // dAccum = min(dAccum, d);
+    accumD = min(accumD, d);
 
     #if FILTER == 0
     finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
@@ -467,7 +475,7 @@ void main(){
 
         if (oldPos != vec2(0.)){
           d = drawLine(uv, oldPos, pos, editWeight, 0.0);
-          // dAccum = min(dAccum, d);
+          accumD = min(accumD, d);
 
           #if FILTER == 0
           finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
@@ -571,6 +579,7 @@ void main(){
     }
 
     d = s*sqrt(d);
+    accumD = min(accumD, d);
 
     float fill = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));
 
@@ -598,6 +607,7 @@ void main(){
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
       d = drawLine(uv, oldPos, mPt, editWeight, 1.0);
       d = min(d, drawLine(uv, mPt, first, editWeight, 1.0));
+      accumD = min(accumD, d);
 
 
       finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
@@ -623,6 +633,7 @@ void main(){
 
         d = sdCircle(uv, pos, editRadius);
         d = opSmoothUnion(d, oldDist, 0.05);
+        accumD = min(accumD, d);
 
         oldDist = d;
       }
@@ -633,8 +644,7 @@ void main(){
     finalColor = mix( finalColor, strokeColor, 1.0-smoothstep(0.0,editWeight,abs(d)) );
 
     d = opSmoothUnion(d, oldDist, 0.05);
-
-    // dAccum = min(dAccum, d);
+    accumD = min(accumD, d);
 
     vec3 cCol = vec3(0.98, 0.215, 0.262);
 
@@ -680,7 +690,11 @@ void main(){
     }
     #endif
 
-    // vec4 lightCol = drawLight(uv, vec2(0.,0.), vec4(0.75, 1.0, 0.5, 1.0), d, 0.01, 0.01, finalColor);
+    // vec4 drawLight(vec2 p, vec2 pos, vec4 color, float dist, float range, float radius, inout vec3 finalColor)
+    vec4 lCol = vec4(0.75, 1.0, 0.5, 1.0);
+    setLuminance(lCol, 0.6);
+
+    // vec4 lightCol = drawLight(uv, vec2(0.,0.), lCol, accumD, 0.4, 0.03, finalColor);
 
     //background grid
     #if BG_GRID == 1
@@ -689,7 +703,13 @@ void main(){
     finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.y) - 0.92)*4.0;
     #endif
 
-    pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0) * AO(uv, dAccum, 0.06, 0.5);
+    // AO for selection perhaps
+    // pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0) * AO(uv, accumD, 0.06, 0.5);
+    // finalColor *= vec3(0.15, 0.15, 0.15) * (1.0 - length(uv));
+
+    pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0);
+    // pc_fragColor = lightCol;
+
 }
 
 `;
