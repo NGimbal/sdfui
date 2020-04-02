@@ -13,6 +13,8 @@ import { reducer } from './reducers.js';
 import {sdfPrimFrag} from './frag.js';
 import {sdfPrimVert} from './vert.js';
 
+import {createStore} from './libjs/redux.mjs';
+
 var canvas, renderer, camera, ui, scene, plane, screenMesh;
 var material, uniforms;
 
@@ -20,7 +22,7 @@ export var dataShader;
 
 export var editTex;
 
-export const store = Redux.createStore(reducer);
+export const store = createStore(reducer);
 export var state = store.getState();
 
 function pointDist (a, b){
