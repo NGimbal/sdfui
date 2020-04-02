@@ -209,9 +209,8 @@ float opSmoothUnion( float d1, float d2, float k ) {
     return mix( d2, d1, h ) - k*h*(1.0-h);
 }
 
-float fillMask(float d){
-  return 1.0 - clamp(d, 0.0, 1.0);
-}
+float opSubtraction( float d1, float d2 ) { return max(-d1,d2); }
+
 
 //Filters take d and uv and return modified d
 //smooth Line Filter
@@ -250,14 +249,98 @@ float crayon(vec2 uv, float d, float w){
 
 float sceneDist(vec2 uv, inout vec3 finalColor) {
   float d = 1.0;
+  float accumD = 1.0;
   vec2 index = vec2(0.);
   float radius = 0.125;
   vec2 rect1 = vec2(0.);
   vec2 rect2 = vec2(0.);
   //$INSERT CALL$------
   //$ENDINSERT CALL$---
-  return d;
+  //make sure d is being calculated by the bake primitives
+  return accumD;
 }
+
+//--------lighting functions
+//https://www.shadertoy.com/view/4dfXDn
+
+float fillMask(float d){
+  return 1.0 - clamp(d, 0.0, 1.0);
+}
+
+float shadow(vec2 p, vec2 pos, float radius, inout vec3 finalColor)
+{
+	vec2 dir = normalize(pos - p);
+	float dl = length(p - pos);
+
+	// fraction of light visible, starts at one radius (second half added in the end);
+	float lf = radius * dl;
+
+	// distance traveled
+	float dt = 0.01;
+
+	for (int i = 0; i < 64; ++i)
+	{
+		// distance to scene at current position
+		float sd = sceneDist(p + dir * dt, finalColor);
+
+        // early out when this ray is guaranteed to be full shadow
+        if (sd < -radius)
+            return 0.0;
+
+		// width of cone-overlap at light
+		// 0 in center, so 50% overlap: add one radius outside of loop to get total coverage
+		// should be '(sd / dt) * dl', but '*dl' outside of loop
+		lf = min(lf, sd / dt);
+
+		// move ahead
+		dt += max(1.0, abs(sd));
+		if (dt > dl) break;
+	}
+
+	// multiply by dl to get the real projected overlap (moved out of loop)
+	// add one radius, before between -radius and + radius
+	// normalize to 1 ( / 2*radius)
+	lf = clamp((lf*dl + radius) / (2.0 * radius), 0.0, 1.0);
+	lf = smoothstep(0.0, 1.0, lf);
+	return lf;
+}
+
+vec4 drawLight(vec2 p, vec2 pos, vec4 color, float dist, float range, float radius, inout vec3 finalColor)
+{
+	// distance to light
+	float ld = length(p - pos);
+
+	// out of range
+	if (ld > range) return vec4(0.0);
+
+	// shadow and falloff
+	float shad = shadow(p, pos, radius, finalColor);
+	float fall = (range - ld)/range;
+	fall *= fall;
+	float source = fillMask(sdCircle(p - pos, vec2(0.,0.), radius));
+  vec4 col = (shad * fall + source) * color;
+  // finalColor *= col;
+  return col;
+}
+
+float luminance(vec4 col)
+{
+	return 0.2126 * col.r + 0.7152 * col.g + 0.0722 * col.b;
+}
+
+void setLuminance(inout vec4 col, float lum)
+{
+	lum /= luminance(col);
+	col *= lum;
+}
+
+float AO(vec2 p, float dist, float radius, float intensity)
+{
+	float a = clamp(dist / radius, 0.0, 1.0) - 1.0;
+	return 1.0 - (pow(abs(a), 5.0) + 1.0) * intensity + (1.0 - intensity);
+	//return smoothstep(0.0, 1.0, dist / radius);
+}
+//-------lighting
 
 void main(){
 
@@ -284,7 +367,7 @@ void main(){
     // vec2 index = vec2(0.);
     float radius = 0.125;
 
-    d = sceneDist(uv, finalColor);
+    float dAccum = sceneDist(uv, finalColor);
 
     //current Mouse Position
     DrawPoint(uv, mPt, finalColor);
@@ -300,6 +383,8 @@ void main(){
       radius = distance(center, rPt);
       d = sdCircle(uv, center, radius);
     }
+
+    // dAccum = min(dAccum, d)
 
     //fill
     // vec3 fill = vec3(0.98, 0.35, 0.0);
@@ -343,6 +428,7 @@ void main(){
       vec2 rPt = abs(mPt.xy - center);
       d = sdBox(uv, center, rPt, editRadius);
     }
+    // dAccum = min(dAccum, d);
 
     #if FILTER == 0
     finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
@@ -381,6 +467,7 @@ void main(){
 
         if (oldPos != vec2(0.)){
           d = drawLine(uv, oldPos, pos, editWeight, 0.0);
+          // dAccum = min(dAccum, d);
 
           #if FILTER == 0
           finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
@@ -547,6 +634,8 @@ void main(){
 
     d = opSmoothUnion(d, oldDist, 0.05);
 
+    // dAccum = min(dAccum, d);
+
     vec3 cCol = vec3(0.98, 0.215, 0.262);
 
     #if FILTER == 0
@@ -591,6 +680,8 @@ void main(){
     }
     #endif
 
+    // vec4 lightCol = drawLight(uv, vec2(0.,0.), vec4(0.75, 1.0, 0.5, 1.0), d, 0.01, 0.01, finalColor);
+
     //background grid
     #if BG_GRID == 1
     // Blue grid lines
@@ -598,7 +689,7 @@ void main(){
     finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.y) - 0.92)*4.0;
     #endif
 
-    pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0);
+    pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0) * AO(uv, dAccum, 0.06, 0.5);
 }
 
 `;

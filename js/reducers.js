@@ -262,20 +262,21 @@ function scene(_state=initialState, action) {
       });
     case ACT.SCENE_RMVPT:
       ptIndex = state.pts.findIndex(i => i.id === action.pt.id);
+      let editPtIndex = state.editItems[state.editItem].pts.findIndex(i => i === action.pt.id);
       return Automerge.change(state, 'staged a point for removal: ' + action.pt.id, doc=>{
         //remove point from current edit item
-        doc.editItems.deleteAt(ptIndex);
+        doc.editItems[doc.editItem].pts.deleteAt(editPtIndex);
+        //remove from kdTree and texture
+        doc.rmPts.push(doc.pts[ptIndex].id.slice());
         //remove point from pts array
         //this should maybe be a table
         doc.pts.deleteAt(ptIndex);
-        //remove from kdTree and texture
-        doc.rmPts.push(...doc.pts[ptIndex]);
       });
     case ACT.SCENE_FINRMVPT:
       //remove point from rmPts array
       //this also may be on a per user basis, kd tree needs to be updated by all users
-      ptIndex = state.rmPts.findIndex(i => i.id === action.pt.id);
-      return Automerge.change(state, 'finished removing a pt: ' + action.pt.id, doc=>{
+      ptIndex = state.rmPts.findIndex(i => i === action.id);
+      return Automerge.change(state, 'finished removing a pt: ' + action.id, doc=>{
         doc.rmPts.deleteAt(ptIndex);
       });
     case ACT.SCENE_EDITUPDATE:
