@@ -13,7 +13,7 @@ import { reducer } from './reducers.js';
 import {sdfPrimFrag} from './frag.js';
 import {sdfPrimVert} from './vert.js';
 
-import {createStore} from './libjs/redux.mjs';
+import {createStore} from './libjs/redux.js';
 
 var canvas, renderer, camera, ui, scene, plane, screenMesh;
 var material, uniforms;
