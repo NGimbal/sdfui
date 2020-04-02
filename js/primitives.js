@@ -173,7 +173,7 @@ export class PolyPoint {
     view.setFloat16(48, w, endD);
 
     this.ptsTex.image.data[index] = view.getUint16(0, endD);
-    this.ptsTex.image.data[index + 1] =9 view.getUint16(16, endD);
+    this.ptsTex.image.data[index + 1] = view.getUint16(16, endD);
     this.ptsTex.image.data[index + 2] = view.getUint16(32, endD);
     this.ptsTex.image.data[index + 3] = view.getUint16(48, endD);
 
