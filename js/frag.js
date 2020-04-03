@@ -249,32 +249,34 @@ float crayon(vec2 uv, float d, float w){
 
 //$ENDINSERT FUNCTION$---
 
-float sceneDist(vec2 uv, inout vec3 finalColor) {
+vec4 sceneDist(vec2 uv) {
+  //temp distance
   float d = 1.0;
+  //cumulative distance
   float accumD = 1.0;
+  //color to be returned
+  vec3 finalColor = vec3(1.);
+  //index in parameters texture
   vec2 index = vec2(0.);
+  //temp radius
   float radius = 0.125;
+  //rect corners
   vec2 rect1 = vec2(0.);
   vec2 rect2 = vec2(0.);
   //$INSERT CALL$------
   //$ENDINSERT CALL$---
-  //make sure d is being calculated by the bake primitives
-  return accumD;
+  return vec4(finalColor, accumD);
 }
 
 //--------lighting functions
 //https://www.shadertoy.com/view/4dfXDn
-
-// float fillMask(float d){
-//   return 1.0 - clamp(d, 0.0, 1.0);
-// }
 
 float fillMask(float dist)
 {
 	return clamp(-dist, 0.0, 1.0);
 }
 
-float shadow(vec2 p, vec2 pos, float radius, inout vec3 finalColor)
+float shadow(vec2 p, vec2 pos, float radius)
 {
 	vec2 dir = normalize(pos - p);
 	float dl = length(p - pos);
@@ -288,10 +290,13 @@ float shadow(vec2 p, vec2 pos, float radius, inout vec3 finalColor)
 	for (int i = 0; i < 64; ++i)
 	{
 		// distance to scene at current position
-		float sd = sceneDist(p + dir * dt, finalColor);
+		float sd = sceneDist(p + dir * dt).w;
 
     // early out when this ray is guaranteed to be full shadow
-    if (sd < -radius){
+    // if (sd < -radius){
+    //   return 0.0;
+    // }
+    if (sd < 0.){
       return 0.0;
     }
 
@@ -301,7 +306,7 @@ float shadow(vec2 p, vec2 pos, float radius, inout vec3 finalColor)
 		lf = min(lf, sd / dt);
 
 		// move ahead
-		dt += max(0.01, abs(sd));
+		dt += max(0.001, abs(sd));
 		if (dt > dl) break;
 	}
 
@@ -309,20 +314,20 @@ float shadow(vec2 p, vec2 pos, float radius, inout vec3 finalColor)
 	// add one radius, before between -radius and + radius
 	// normalize to 1 ( / 2*radius)
 	lf = clamp((lf*dl + radius) / (2.0 * radius), 0.0, 1.0);
-	lf = smoothstep(0.05, 1.0, lf);
+	lf = smoothstep(0.00, 1.0, lf);
 	return lf;
 }
 
-vec4 drawLight(vec2 p, vec2 pos, vec4 color, float dist, float range, float radius, inout vec3 finalColor)
+vec4 drawLight(vec2 p, vec2 pos, vec4 color, float dist, float range, float radius)
 {
 	// distance to light
 	float ld = length(p - pos);
 
 	// out of range
-	if (ld > range) return vec4(1.0);
+	if (ld > range) return vec4(0.0);
 
 	// shadow and falloff
-	float shad = shadow(p, pos, radius, finalColor);
+	float shad = shadow(p, pos, radius);
 	float fall = (range - ld)/range;
 	fall *= fall;
 	float source = fillMask(sdCircle(p - pos, vec2(0.,0.), radius));
@@ -357,10 +362,10 @@ void main(){
     //makes space more square setting scale to 1 visualizes this effect pretty well.
     uv.x *= iResolution.x / iResolution.y;
 
-    // Clear to white.
-    //this should defintely be parameterized
-    //also vingette
-    vec3 finalColor = vec3(1.0);
+    // Clear to white
+    vec4 scene = sceneDist(uv);
+    vec3 finalColor = scene.xyz;
+    float accumD = scene.w;
 
     float texelOffset = 0.5 * (1. / (16. * 16.));
 
@@ -375,10 +380,12 @@ void main(){
     // vec2 index = vec2(0.);
     float radius = 0.125;
 
-    float accumD = sceneDist(uv, finalColor);
+
+    //will just be used for edit Item, to indicate selection
+    accumD = 1.0;
 
     //current Mouse Position
-    DrawPoint(uv, mPt, finalColor);
+    // DrawPoint(uv, mPt, finalColor);
 
     //Circle--------
     #if EDIT_SHAPE == 3
@@ -510,7 +517,7 @@ void main(){
     //Next line while drawing
     if (oldPos != vec2(0.) && mousePt.z != -1.0){
       d = drawLine(uv, oldPos, mPt, editWeight, 1.0);
-
+      accumD = min(accumD, d);
       #if FILTER == 0
       finalColor = mix(finalColor, strokeColor, line(uv, d, editWeight));
       #endif
@@ -693,10 +700,24 @@ void main(){
     #endif
 
     // vec4 drawLight(vec2 p, vec2 pos, vec4 color, float dist, float range, float radius, inout vec3 finalColor)
-    vec4 lCol = vec4(0.75, 1.0, 0.5, 1.0);
-    setLuminance(lCol, 0.6);
+    // vec4 lCol = vec4(0.75, 1.0, 0.5, 1.0);
+    vec4 lCol = vec4(fillColor,1.0);
+    setLuminance(lCol, .5);
 
-    // vec4 lightCol = drawLight(uv, vec2(0.,0.), lCol, accumD, 0.4, 0.03, finalColor);
+    //uv, color, dist, range radius
+    vec4 lightCol = drawLight(uv, mPt.xy, lCol, accumD, editRadius * 20., 0.001);
+  // uv.x *= iResolution.x / iResolution.y;
+
+    // https://www.shadertoy.com/view/lsKSWR
+    float aspect = iResolution.y / iResolution.x;
+    vec2 vigUv = ((vUv * aspect * 0.25) + 0.5);
+    vigUv = vigUv * (1.0 - vigUv.yx);
+    float vig = vigUv.x*vigUv.y * 2.0;
+    vig = pow(vig, 0.2);
+    finalColor *= vec3(vig);
+
+    //ao interface hint for edit object
+    finalColor = mix(finalColor, strokeColor, 1.0 - clamp(AO(uv, accumD, 0.06, 0.5), 0.0, 1.0));
 
     //background grid
     #if BG_GRID == 1
@@ -705,12 +726,11 @@ void main(){
     finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.y) - 0.92)*4.0;
     #endif
 
-    // AO for selection perhaps
-    // pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0) * AO(uv, accumD, 0.06, 0.5);
-    // finalColor *= vec3(0.15, 0.15, 0.15) * (1.0 - length(uv));
+    finalColor += lightCol.xyz;
 
+    // AO for selection perhaps
     pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0);
-    // pc_fragColor = lightCol;
+    // pc_fragColor = 1.0 - clamp(lightCol, 0.0, 1.0);
 
 }
 

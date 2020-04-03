@@ -267,7 +267,6 @@ export function polgonFunc(prim, dataShader){
       posString += '\tw = tUv - pos;\n';
       posString += '\tb = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );\n';
       posString += '\td = min(d, dot(b,b));\n'
-      posString += '\n\taccumD = min(accumD, d);\n';
       // winding number from http://geomalgorithms.com/a03-_inclusion.html
       posString += '\tcond = bvec3( tUv.y>=pos.y, tUv.y<oldPos.y, e.x*w.y>e.y*w.x );\n';
       posString += '\tif(all(cond) || all(not(cond))) s*=-1.0;\n';
@@ -278,6 +277,7 @@ export function polgonFunc(prim, dataShader){
   }
 
   posString += '\td = s*sqrt(d) - radius;\n';
+  posString += '\n\taccumD = min(accumD, d);\n';
   posString += '\tfloat line = d;\n';
   posString += '\td = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));\n';
   posString += '\tfinalColor = mix(finalColor, ' + colorFill + ', d);\n';
@@ -543,9 +543,9 @@ export function circleCall(prim, dataShader){
   posString += '\tindex = vec2(' + indexX + ', ' + indexY + ');\n';
   posString += '\tradius = distance(texture2D(parameters, index).xy, texture2D(parameters, index).zw);\n';
   posString += '\td = sdCircle(uv, texture2D(parameters, index).xy, radius);\n';
+  posString += '\taccumD = min(accumD, d);';
   posString += '\td = clamp(abs(d) - '+ weight +', 0.0, 1.0);\n';
   posString += '\tfinalColor = mix( finalColor, ' + colorStroke + ', 1.0-smoothstep(0.0,0.003,abs(d)) );\n'
-  posString += '\taccumD = min(accumD, d);';
 
   startShader += posString;
   let fragShader = startShader + endShader;
@@ -618,9 +618,9 @@ export function rectangleCall(prim, dataShader){
   posString += '\trect1 = texture2D(parameters, index).xy;\n';
   posString += '\trect2 = texture2D(parameters, index).zw;\n';
   posString += '\td = sdBox(uv, 0.5 * (rect2 - rect1) + rect1, abs(rect2 - (0.5 * (rect2 - rect1) + rect1)), '+radius+');\n';
+  posString += '\taccumD = min(accumD, d);';
   posString += '\td = clamp(abs(d) - '+ weight +', 0.0, 1.0);\n';
   posString += '\tfinalColor = mix( finalColor, ' + colorStroke + ', 1.0-smoothstep(0.0,0.003,abs(d)) );\n'
-  posString += '\taccumD = min(accumD, d);';
 
   startShader += posString;
   let fragShader = startShader + endShader;
