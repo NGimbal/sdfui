@@ -276,6 +276,7 @@ function drawUpdate(){
     return;
   }
 
+  //sel is not defined in these instances cause dispatch.editProps to happen very frequently
   let sel = document.getElementById("primitive-select");
   let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
 
@@ -354,18 +355,17 @@ function drawUpdate(){
   if(SDFUI.state.ui.properties.fill != sel.value){
     SDFUI.store.dispatch(ACT.drawFill(sel.value));
     SDFUI.store.dispatch(ACT.sceneEditProps());
-
   }
 
   sel = document.getElementById("strokeWeight-range");
-  if(SDFUI.state.ui.properties.weight != sel.value){
+  if(SDFUI.state.ui.properties.weight != sel.value / 2000){
     SDFUI.store.dispatch(ACT.drawWeight(sel.value / 2000));
     SDFUI.store.dispatch(ACT.sceneEditProps());
   }
 
   sel = document.getElementById("radius-range");
-  if(SDFUI.state.ui.properties.radius != sel.value / 100){
-    SDFUI.store.dispatch(ACT.drawRadius(sel.value / 100));
+  if(SDFUI.state.ui.properties.radius != sel.value / 250){
+    SDFUI.store.dispatch(ACT.drawRadius(sel.value / 250));
     SDFUI.store.dispatch(ACT.sceneEditProps());
   }
 
