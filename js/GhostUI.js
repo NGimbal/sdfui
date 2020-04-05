@@ -65,20 +65,21 @@ class GhostUI{
     let pauseShader = new UIModifier("pauseShader", "view", "/", {act:ACT.uiPause()},false, {});
     let hideGrid = new UIModifier("hideGrid", "view", ".", {act:ACT.uiGrid()},false, {});
     let showPts = new UIModifier("showPts", "view", "r", {act:ACT.uiPoints()},false, {});
+    let darkMode = new UIModifier("darkMode", "view", "d", {act:ACT.uiDarkMode()},false, {});
 
     let screenshot = new UIModifier("screenshot", "export", "l", {act:ACT.statusRaster()},true, {});
     let printShader = new UIModifier("printShader", "export", "c", {act:ACT.statusExport()},true, {});
 
-    let snapPt = new UIModifier("snapPt", "snap", "p", {act:ACT.cursorSnapPt()},false, {dist:100});
-    let snapRef = new UIModifier("snapRef", "snap", "s", {act:ACT.cursorSnapRef()},false, {angle:30});
-    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", {act:ACT.cursorSnapGlobal()},false, {angle:45});
+    let snapPt = new UIModifier("snapPt", "snap", "p", {act:ACT.cursorSnapPt()},false, {});
+    let snapRef = new UIModifier("snapRef", "snap", "s", {act:ACT.cursorSnapRef()},false, {});
+    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", {act:ACT.cursorSnapGlobal()},false, {});
     let snapGrid = new UIModifier("snapGrid", "snap", "g", {act:ACT.cursorSnapGrid()},false, {});
 
     let endDraw = new UIModifier("endDraw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true, {exit:false});
     let escDraw = new UIModifier("escDraw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true, {exit:false});
 
     //MODES
-    let globalMods = [pauseShader, hideGrid, showPts, screenshot, printShader];
+    let globalMods = [pauseShader, hideGrid, showPts, darkMode, screenshot, printShader];
     let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
     drawMods = globalMods.concat(drawMods);
 
@@ -160,6 +161,7 @@ class GhostUI{
 
   mouseUp(e) {
     // let fluentDoc = this.fluentStack.curr().clone();
+
     let mode = this.modeStack.curr();
     if(!mode.up)return;
 

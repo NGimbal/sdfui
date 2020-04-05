@@ -24,6 +24,7 @@ export const STATUS_RASTER      = 'STATUS_RASTER'; //resolution
 export const UI_PAUSE           = 'UI_PAUSE'; //pause rendering
 export const UI_GRID            = 'UI_GRID'; //toggle grid
 export const UI_POINTS          = 'UI_POINTS'; //toggle show points
+export const UI_DARKMODE        = 'UI_DARKMODE'; //toggle darkmode
 //CURSOR
 export const CURSOR_SET         = 'CURSOR_SET';  //curr cursor position
 export const CURSOR_SNAPGRID    = 'CURSOR_SNAPGRID'; //snap to grid
@@ -87,7 +88,7 @@ export function statusRaster(toggle){
   }
 }
 
-//records when shader needs to be recompiled - bool
+//toggle pause shader rendering
 export function uiPause(toggle){
   return{
     type: ui,
@@ -97,7 +98,7 @@ export function uiPause(toggle){
 }
 
 
-//records when shader needs to be recompiled - bool
+//toggle show grid
 export function uiGrid(toggle){
   return{
     type: ui,
@@ -106,11 +107,20 @@ export function uiGrid(toggle){
   }
 }
 
-//records when shader needs to be recompiled - bool
+//toggles show points
 export function uiPoints(toggle){
   return{
     type: ui,
     subtype: UI_POINTS,
+    toggle,
+  }
+}
+
+//toggle dark mode
+export function uiDarkMode(toggle){
+  return{
+    type: ui,
+    subtype: UI_DARKMODE,
     toggle,
   }
 }

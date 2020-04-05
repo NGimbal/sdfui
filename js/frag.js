@@ -18,7 +18,7 @@ export const sdfPrimFrag =`
 #define EDIT_VERTS 0
 #define BG_GRID 1
 #define SHOW_PTS 0
-#define DARK_MODE 1
+#define DARK_MODE 0
 
 // https://www.shadertoy.com/view/4tc3DX
 uniform vec3      iResolution;           // viewport resolution (in pixels)

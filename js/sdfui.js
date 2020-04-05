@@ -76,8 +76,8 @@ function searchTree(node, id){
 }
 
 //substcribe to store changes - run listener to set relevant variables
-store.subscribe(() => console.log(listener()));
-// store.subscribe(() => listener());
+// store.subscribe(() => console.log(listener()));
+store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
@@ -243,6 +243,17 @@ function render() {
 
     if (!state.ui.points) valString = "1";
     modifyDefine(dataShader, "SHOW_PTS", valString);
+
+    store.dispatch(ACT.statusUpdate(true));
+  }
+
+  //if we're changing the status of showing/hiding points
+  if (state.ui.darkmode != dataShader.parameters.properties.darkmode){
+    dataShader.parameters.properties.darkmode = state.ui.darkmode;
+    let valString = "0";
+
+    if (state.ui.darkmode) valString = "1";
+    modifyDefine(dataShader, "DARK_MODE", valString);
 
     store.dispatch(ACT.statusUpdate(true));
   }

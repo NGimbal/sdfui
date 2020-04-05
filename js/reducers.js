@@ -31,6 +31,7 @@ const uiInit = {
   pause: false, //pause shader
   grid: false, //show background grid
   points: false, //show points
+  darkmode: false, //toggle darkmode
 }
 
 const cursorInit = {
@@ -113,6 +114,10 @@ function ui(_state=initialState, action){
     case ACT.UI_POINTS:
       return Object.assign({}, state,{
         points: !state.points
+      });
+    case ACT.UI_DARKMODE:
+      return Object.assign({}, state,{
+        darkmode: !state.darkmode
       });
     case ACT.DRAW_WEIGHT:
       return Object.assign({}, state,{
