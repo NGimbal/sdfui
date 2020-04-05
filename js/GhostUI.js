@@ -315,6 +315,7 @@ function drawUpdate(){
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
         SDFUI.store.dispatch(ACT.scenePushEditItem("pointlight"));
         SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "6");
+        SDFUI.store.dispatch(ACT.uiDarkMode(true));
         SDFUI.newEditTex();
         break;
     }

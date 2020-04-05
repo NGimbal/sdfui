@@ -117,7 +117,7 @@ function ui(_state=initialState, action){
       });
     case ACT.UI_DARKMODE:
       return Object.assign({}, state,{
-        darkmode: !state.darkmode
+        darkmode: action.toggle || !state.darkmode
       });
     case ACT.DRAW_WEIGHT:
       return Object.assign({}, state,{
@@ -300,7 +300,7 @@ function scene(_state=initialState, action) {
         });
       } else {
         return Automerge.change(state, 'push edit item', doc=>{
-          doc.editItems.insertAt(state.editItem, new PRIM.prim(action.prim, [], {..._state.ui.properties}));
+          doc.editItems[state.editItem] = new PRIM.prim(action.prim, [], {..._state.ui.properties});
         });
       }
     case ACT.SCENE_EDITPROPS:
