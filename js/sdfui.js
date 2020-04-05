@@ -273,8 +273,10 @@ function render() {
             break;
           case "rectangle":
             dataShader = BAKE.rectangle(prim, dataShader);
+            break;
           case "pointlight":
             dataShader = BAKE.pointLight(prim, dataShader);
+            break;
           default:
             break;
         }

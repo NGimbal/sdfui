@@ -684,19 +684,8 @@ export function pointLightCall(prim, dataShader){
   let radius = prim.properties.radius.toFixed(4);
 
   posString += '\tvec2 '+prim.id+' = vec2(' + indexX + ', ' + indexY + ');\n';
-  // posString += '\trect1 = texture2D(parameters, index).xy;\n';
-  // posString += '\td = sdBox(uv, 0.5 * (rect2 - rect1) + rect1, abs(rect2 - (0.5 * (rect2 - rect1) + rect1)), '+radius+');\n';
-  // posString += '\taccumD = min(accumD, d);';
-  // posString += '\td = clamp(abs(d) - '+ weight +', 0.0, 1.0);\n';
   posString += '\tfinalColor += drawLight(uv, texture2D(parameters, '+prim.id+').xy, setLuminance('+colorFill+', 0.6), accumD, '+radius+' * 20., 0.1).xyz;\n'
-  //
-  // vec4 lCol = vec4(fillColor,1.0);
-  // setLuminance(vec4(fillColor,1.0), 0.6);
-  //
-  // //uv, color, dist, range radius
-  // vec4 lightCol = drawLight(uv, mPt.xy, lCol, accumD, editRadius * 20., 0.1);
-  // finalColor += lightCol.xyz;
-  //
+
   startShader += posString;
   let fragShader = startShader + endShader;
 

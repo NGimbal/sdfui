@@ -388,8 +388,8 @@ void main(){
     #if DARK_MODE == 1
 
     float aspect = iResolution.y / iResolution.x;
-    vec2 q = (vUv * aspect * .3) + 0.5;
-    finalColor *= pow( 15.5*q.x*q.y*(1.0-q.x)*(1.0-q.y), 2. ) - 0.2; //Vign
+    vec2 q = (vUv * aspect * .2) + 0.5;
+    finalColor *= pow( 15.5*q.x*q.y*(1.0-q.x)*(1.0-q.y), 2. ); //Vign
     // finalColor = vec3(0.5, 0.5, 0.5) * (1.0 - length((iResolution.xy/2.0) - uv)/iResolution.x);
 
     #endif
