@@ -8,6 +8,7 @@ export const sdfPrimFrag =`
 //3 = Circle
 //4 = Rectangle
 //5 = Polygon
+//6 = Point light
 #define EDIT_SHAPE 1
 //Filter
 //0 = None
@@ -17,6 +18,7 @@ export const sdfPrimFrag =`
 #define EDIT_VERTS 0
 #define BG_GRID 1
 #define SHOW_PTS 0
+#define DARK_MODE 1
 
 // https://www.shadertoy.com/view/4tc3DX
 uniform vec3      iResolution;           // viewport resolution (in pixels)
@@ -201,7 +203,7 @@ float sdCircle( vec2 uv, vec2 p, float r )
 }
 
 void DrawPoint(vec2 uv, vec2 p, inout vec3 col) {
-    col = mix(col, vec3(1.0, 0.25, 0.25), 1.0 - smoothstep(0.0,0.003,clamp(sdCircle(uv, p, 0.009), 0.0,1.0)));
+    col = mix(col, vec3(1.0, 0.25, 0.25), 1.0 - smoothstep(0.0,0.007,clamp(sdCircle(uv, p, 0.003), 0.0,1.0)));
 }
 
 //Merge Operations
@@ -287,7 +289,7 @@ float shadow(vec2 p, vec2 pos, float radius)
 	// distance traveled
 	float dt = 0.000001;
 
-	for (int i = 0; i < 64; ++i)
+	for (int i = 0; i < 100; ++i)
 	{
 		// distance to scene at current position
 		float sd = sceneDist(p + dir * dt).w;
@@ -331,9 +333,8 @@ vec4 drawLight(vec2 p, vec2 pos, vec4 color, float dist, float range, float radi
 	float fall = (range - ld)/range;
 	fall *= fall;
 	float source = fillMask(sdCircle(p - pos, vec2(0.,0.), radius));
-  vec4 col = (shad * fall + source) * color;
-  // finalColor *= col;
-  return col;
+
+  return (shad * fall + source) * color;
 }
 
 float luminance(vec4 col)
@@ -341,10 +342,10 @@ float luminance(vec4 col)
 	return 0.2126 * col.r + 0.7152 * col.g + 0.0722 * col.b;
 }
 
-void setLuminance(inout vec4 col, float lum)
+vec4 setLuminance(vec4 col, float lum)
 {
 	lum /= luminance(col);
-	col *= lum;
+	return col *= lum;
 }
 
 float AO(vec2 p, float dist, float radius, float intensity)
@@ -380,12 +381,19 @@ void main(){
     // vec2 index = vec2(0.);
     float radius = 0.125;
 
-
     //will just be used for edit Item, to indicate selection
     accumD = 1.0;
 
-    //current Mouse Position
-    // DrawPoint(uv, mPt, finalColor);
+    //darkmode
+    #if DARK_MODE == 1
+
+    float aspect = iResolution.y / iResolution.x;
+    vec2 q = (vUv * aspect * .3) + 0.5;
+    finalColor *= pow( 15.5*q.x*q.y*(1.0-q.x)*(1.0-q.y), 2. ) - 0.2; //Vign
+    // finalColor = vec3(0.5, 0.5, 0.5) * (1.0 - length((iResolution.xy/2.0) - uv)/iResolution.x);
+
+    #endif
+    //darkmode
 
     //Circle--------
     #if EDIT_SHAPE == 3
@@ -401,11 +409,8 @@ void main(){
 
     accumD = min(accumD, d);
 
-    // d = fillMask(d);
-
     //fill
-    // vec3 fill = vec3(0.98, 0.35, 0.0);
-    // finalColor = mix(finalColor, fill, 1.0-smoothstep(0.0,0.003, fillMask(d)));
+    // finalColor = mix(finalColor, fillColor, smoothstep(0.0,0.003, fillMask(d)));
 
     //No filter
     #if FILTER == 0
@@ -679,6 +684,21 @@ void main(){
     #endif
     //PolyCircle--------
 
+    //Pointlight--------
+    #if EDIT_SHAPE == 6
+
+    // vec4 drawLight(vec2 p, vec2 pos, vec4 color, float dist, float range, float radius, inout vec3 finalColor)
+    vec4 lCol = vec4(fillColor,1.0);
+    lCol = setLuminance(lCol, 0.6);
+
+    //uv, color, dist, range radius
+    vec4 lightCol = drawLight(uv, mPt.xy, lCol, accumD, editRadius * 20., 0.1);
+    finalColor += lightCol.xyz;
+    #endif
+    //Pointlight--------
+    //$INSERT LIGHTING$------
+    //$ENDINSERT LIGHTING$---
+
     //Show points in parameters.
     #if SHOW_PTS == 1
     for (float i = 0.; i < 128.; i++ ){
@@ -698,23 +718,10 @@ void main(){
       }
     }
     #endif
+    //Show points in parameters.
 
-    // vec4 drawLight(vec2 p, vec2 pos, vec4 color, float dist, float range, float radius, inout vec3 finalColor)
-    // vec4 lCol = vec4(0.75, 1.0, 0.5, 1.0);
-    vec4 lCol = vec4(fillColor,1.0);
-    setLuminance(lCol, .5);
-
-    //uv, color, dist, range radius
-    vec4 lightCol = drawLight(uv, mPt.xy, lCol, accumD, editRadius * 20., 0.001);
-  // uv.x *= iResolution.x / iResolution.y;
-
-    // https://www.shadertoy.com/view/lsKSWR
-    float aspect = iResolution.y / iResolution.x;
-    vec2 vigUv = ((vUv * aspect * 0.25) + 0.5);
-    vigUv = vigUv * (1.0 - vigUv.yx);
-    float vig = vigUv.x*vigUv.y * 2.0;
-    vig = pow(vig, 0.2);
-    finalColor *= vec3(vig);
+    //current Mouse Position
+    DrawPoint(uv, mPt, finalColor);
 
     //ao interface hint for edit object
     finalColor = mix(finalColor, strokeColor, 1.0 - clamp(AO(uv, accumD, 0.06, 0.5), 0.0, 1.0));
@@ -726,12 +733,7 @@ void main(){
     finalColor -= vec3(1.0, 1.0, 0.2) * saturate(repeat(scale * uv.y) - 0.92)*4.0;
     #endif
 
-    finalColor += lightCol.xyz;
-
-    // AO for selection perhaps
     pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0);
-    // pc_fragColor = 1.0 - clamp(lightCol, 0.0, 1.0);
-
 }
 
 `;

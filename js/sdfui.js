@@ -261,26 +261,24 @@ function render() {
         switch(prim.type){
           case "polyline":
             dataShader = BAKE.polyLine(prim, dataShader);
-            store.dispatch(ACT.sceneItemUpdate(index, false));
             break;
           case "polygon":
             dataShader = BAKE.polygon(prim, dataShader);
-            store.dispatch(ACT.sceneItemUpdate(index, false));
             break;
           case "polycircle":
             dataShader = BAKE.polyCircle(prim, dataShader);
-            store.dispatch(ACT.sceneItemUpdate(index, false));
             break;
           case "circle":
             dataShader = BAKE.circle(prim, dataShader);
-            store.dispatch(ACT.sceneItemUpdate(index, false));
             break;
           case "rectangle":
             dataShader = BAKE.rectangle(prim, dataShader);
-            store.dispatch(ACT.sceneItemUpdate(index, false));
+          case "pointlight":
+            dataShader = BAKE.pointLight(prim, dataShader);
           default:
             break;
         }
+        store.dispatch(ACT.sceneItemUpdate(index, false));
       }
       index++;
     }

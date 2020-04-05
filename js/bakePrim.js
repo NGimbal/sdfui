@@ -629,6 +629,82 @@ export function rectangleCall(prim, dataShader){
 }
 //RECTANGE-------------------------------------------------------------------
 
+//POINTLIGHT---------------------------------------------------------
+//takes prim and datashader and bakes prim as pointlight
+export function pointLight(prim, dataShader){
+  let shader = dataShader.shader;
+  let parameters = dataShader.parameters;
+
+  if(prim.pts.length == 0) return dataShader;
+
+  dataShader = pointLightCall(prim, dataShader);
+
+  return dataShader;
+}
+
+//creates function calls that draws prim
+export function pointLightCall(prim, dataShader){
+  let shader = dataShader.shader;
+  let parameters = dataShader.parameters;
+
+  //bakes pointPrim data the fluentDoc.parameters
+  let _pt0 = prim.pts[0];
+
+  let i = SDFUI.state.scene.pts.findIndex(i => i.id === _pt0);
+  let pt0 = SDFUI.state.scene.pts[i];
+
+  let _pt = {x:pt0.x, y:pt0.y};
+  parameters.addPoint(_pt, prim.id);
+
+  let cTexel = parameters.cTexel;
+  let dataSize = parameters.dataSize;
+
+  let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+
+  let indexX = (cTexel % dataSize) / dataSize + texelOffset;
+  let indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
+
+  //eventually address these functions using id in place of d
+  //then perform scene merge operation when modifying finalColor
+  let insString = "//$INSERT LIGHTING$------";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex);
+
+  //create function call
+  let posString = '\n';
+
+  let rgbFill = hexToRgb(prim.properties.fill);
+  let colorFill = 'vec4(' + (rgbFill.r/255).toFixed(4) + ',' + (rgbFill.g/255).toFixed(4)  + ',' + (rgbFill.b/255).toFixed(4)  +',1.)';
+  // let rgbStroke = hexToRgb(prim.properties.stroke);
+  // let colorStroke = 'vec3(' + rgbStroke.r/255 + ',' + rgbStroke.g/255 + ',' + rgbStroke.b/255 +')';
+  // let weight = prim.properties.weight.toFixed(4);
+  let radius = prim.properties.radius.toFixed(4);
+
+  posString += '\tvec2 '+prim.id+' = vec2(' + indexX + ', ' + indexY + ');\n';
+  // posString += '\trect1 = texture2D(parameters, index).xy;\n';
+  // posString += '\td = sdBox(uv, 0.5 * (rect2 - rect1) + rect1, abs(rect2 - (0.5 * (rect2 - rect1) + rect1)), '+radius+');\n';
+  // posString += '\taccumD = min(accumD, d);';
+  // posString += '\td = clamp(abs(d) - '+ weight +', 0.0, 1.0);\n';
+  posString += '\tfinalColor += drawLight(uv, texture2D(parameters, '+prim.id+').xy, setLuminance('+colorFill+', 0.6), accumD, '+radius+' * 20., 0.1).xyz;\n'
+  //
+  // vec4 lCol = vec4(fillColor,1.0);
+  // setLuminance(vec4(fillColor,1.0), 0.6);
+  //
+  // //uv, color, dist, range radius
+  // vec4 lightCol = drawLight(uv, mPt.xy, lCol, accumD, editRadius * 20., 0.1);
+  // finalColor += lightCol.xyz;
+  //
+  startShader += posString;
+  let fragShader = startShader + endShader;
+
+  return new PRIM.DataShader(fragShader, parameters);
+}
+//POINTLIGHT-------------------------------------------------------------------
+
+
 function hexToRgb(hex) {
   // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
   var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;

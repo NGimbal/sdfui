@@ -309,6 +309,12 @@ function drawUpdate(){
         SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "4");
         SDFUI.newEditTex();
         break;
+      case "pointlight":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("pointlight"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "6");
+        SDFUI.newEditTex();
+        break;
     }
     SDFUI.store.dispatch(ACT.statusUpdate(true));
   }
@@ -405,6 +411,12 @@ function drawUp(e){
     SDFUI.newEditTex();
   }
 
+  if(item.type == "pointlight"){
+    SDFUI.store.dispatch(ACT.sceneItemUpdate(SDFUI.state.scene.editItem, true));
+    SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
+    SDFUI.store.dispatch(ACT.statusUpdate(true));
+    SDFUI.newEditTex();
+  }
 
   return;
 }
@@ -425,10 +437,10 @@ function endDrawUpdate(){
   // console.log("///////////////////////////////////////////////");
 
   //get out of Draw UIMode
-  if(SDFUI.editTex.pts.length == 0) {
-    this.options.exit = true;
-    return null;
-  }
+  // if(SDFUI.editTex.pts.length == 0) {
+  //   this.options.exit = true;
+  //   return null;
+  // }
 
   SDFUI.store.dispatch(ACT.statusUpdate(true));
   SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
@@ -444,10 +456,10 @@ function endDrawUpdate(){
 function escDrawUpdate(){
   if(!this.toggle) return null;
 
-  if(SDFUI.editTex.pts.length == 0) {
-    this.options.exit = true;
-    return null;
-  }
+  // if(SDFUI.editTex.pts.length == 0) {
+  //   this.options.exit = true;
+  //   return null;
+  // }
 
   for (let p of SDFUI.editTex.pts){
     SDFUI.store.dispatch(ACT.sceneRmvPt(p));
@@ -485,10 +497,7 @@ class StateStack{
 
   //push new state
   push(_state){
-    //this is hacky, need to figure out what to do
-    //1. we don't need to clone the state (unlikely in the case of fluentDoc)
-    //2. we clone the state before push
-    //3. implement clone for UIMode
+    //clone the state before push
     let state;
     if(_state.clone) {
       state = _state.clone();
