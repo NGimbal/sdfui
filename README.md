@@ -1,13 +1,20 @@
-# What problem does Fluent Solve?
-More productive collaboration on technical documentation.
+![alt text](https://github.com/NGimbal/sdfui/blob/master/assets/lamina.svg "Lamina Logo")
+
+# What problem does Lamina Solve?
+Lamina is a collaborative drafting app built for streamlined design communication.
 
 # What's the story?
-Designing, engineering and building buildings is increasingly a collaborative effort that requires coordination of details between multiple offices across large distances. This has been caused by increasing regulatory and technological complexities that have required professionals to specialize and collaborate with other specialists. Today the bulk of this coordination is done through PDF’s that are edited and emailed back and forth between offices. Fluent will increase the productivity of this collaboration.
-
-# Describe Fluent:
-Fluent / SDFUI is a drafting application that uses signed distance functions to render 2d shapes and effects. The application holds a current edit object and some un-rendered geometry in javascript (GhostUI) and passes the geometry to a fragment shader via a couple uniforms about UI state and a dataTexture that holds x,y coordinates. After a user finishes editing a shape (i.e. a polyline), GhostUI bakes the shape to a parameterized signed distance field function within the fragment shader. Ultimately calls to those shape functions will take parameter values from a data texture that is edited by the user. That interaction will be managed through javascript.
+Designing, engineering and building buildings is increasingly a collaborative effort that requires coordination of details between multiple offices across large distances. This has been caused by increasing regulatory and technological complexities that have required professionals to specialize and collaborate with other specialists. Today the bulk of this coordination is done through PDF’s that are edited and emailed back and forth between offices. Lamina will increase the productivity of this collaboration.
 
 # Sources and Links:
+Explaining Signed Distance Functions:
+https://www.youtube.com/watch?v=s5NGeUV2EyU&app=desktop
+
+Inspiring Shaders:
+https://www.shadertoy.com/view/4dfXDn
+
+Automerge:
+https://github.com/automerge/automerge
 
 UI:
 Bret Victor:
@@ -21,3 +28,5 @@ https://github.com/ubilabs/kd-tree-javascript
 
 HalfFloat16:
 https://github.com/petamoriken/float16
+
+
