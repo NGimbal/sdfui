@@ -95,50 +95,50 @@ float sdSegment( in vec2 p, in vec2 a, in vec2 b )
 
 //https://www.shadertoy.com/view/MlKcDD
 //signed distance to a quadratic bezier
-float sdBezier( in vec2 pos, in vec2 A, in vec2 B, in vec2 C )
-{
-    vec2 a = B - A;
-    vec2 b = A - 2.0*B + C;
-    vec2 c = a * 2.0;
-    vec2 d = A - pos;
-
-    float kk = 1.0/dot(b,b);
-    float kx = kk * dot(a,b);
-    float ky = kk * (2.0*dot(a,a)+dot(d,b))/3.0;
-    float kz = kk * dot(d,a);
-
-    float res = 0.0;
-    float sgn = 0.0;
-
-    float p = ky - kx*kx;
-    float p3 = p*p*p;
-    float q = kx*(2.0*kx*kx - 3.0*ky) + kz;
-    float h = q*q + 4.0*p3;
-
-    if( h>=0.0 )
-    {   // 1 root
-        h = sqrt(h);
-        vec2 x = (vec2(h,-h)-q)/2.0;
-        vec2 uv = sign(x)*pow(abs(x), vec2(1.0/3.0));
-        float t = clamp( uv.x+uv.y-kx, 0.0, 1.0 );
-        vec2  q = d+(c+b*t)*t;
-        res = dot2(q);
-    	sgn = cross2(c+2.0*b*t,q);
-    }
-    else
-    {   // 3 roots
-        float z = sqrt(-p);
-        float v = acos(q/(p*z*2.0))/3.0;
-        float m = cos(v);
-        float n = sin(v)*1.732050808;
-        vec3  t = clamp( vec3(m+m,-n-m,n-m)*z-kx, 0.0, 1.0 );
-        vec2  qx=d+(c+b*t.x)*t.x; float dx=dot2(qx), sx = cross2(c+2.0*b*t.x,qx);
-        vec2  qy=d+(c+b*t.y)*t.y; float dy=dot2(qy), sy = cross2(c+2.0*b*t.y,qy);
-        if( dx<dy ) { res=dx; sgn=sx; } else {res=dy; sgn=sy; }
-    }
-
-    return sqrt( res )*sign(sgn);
-}
+// float sdBezier( in vec2 pos, in vec2 A, in vec2 B, in vec2 C )
+// {
+//     vec2 a = B - A;
+//     vec2 b = A - 2.0*B + C;
+//     vec2 c = a * 2.0;
+//     vec2 d = A - pos;
+//
+//     float kk = 1.0/dot(b,b);
+//     float kx = kk * dot(a,b);
+//     float ky = kk * (2.0*dot(a,a)+dot(d,b))/3.0;
+//     float kz = kk * dot(d,a);
+//
+//     float res = 0.0;
+//     float sgn = 0.0;
+//
+//     float p = ky - kx*kx;
+//     float p3 = p*p*p;
+//     float q = kx*(2.0*kx*kx - 3.0*ky) + kz;
+//     float h = q*q + 4.0*p3;
+//
+//     if( h>=0.0 )
+//     {   // 1 root
+//         h = sqrt(h);
+//         vec2 x = (vec2(h,-h)-q)/2.0;
+//         vec2 uv = sign(x)*pow(abs(x), vec2(1.0/3.0));
+//         float t = clamp( uv.x+uv.y-kx, 0.0, 1.0 );
+//         vec2  q = d+(c+b*t)*t;
+//         res = dot2(q);
+//     	sgn = cross2(c+2.0*b*t,q);
+//     }
+//     else
+//     {   // 3 roots
+//         float z = sqrt(-p);
+//         float v = acos(q/(p*z*2.0))/3.0;
+//         float m = cos(v);
+//         float n = sin(v)*1.732050808;
+//         vec3  t = clamp( vec3(m+m,-n-m,n-m)*z-kx, 0.0, 1.0 );
+//         vec2  qx=d+(c+b*t.x)*t.x; float dx=dot2(qx), sx = cross2(c+2.0*b*t.x,qx);
+//         vec2  qy=d+(c+b*t.y)*t.y; float dy=dot2(qy), sy = cross2(c+2.0*b*t.y,qy);
+//         if( dx<dy ) { res=dx; sgn=sx; } else {res=dy; sgn=sy; }
+//     }
+//
+//     return sqrt( res )*sign(sgn);
+// }
 
 // https://www.shadertoy.com/view/wdBXRW
 // iq signed distance to polygon
