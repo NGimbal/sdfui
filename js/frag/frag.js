@@ -1,14 +1,10 @@
-"use strict";
+'use strict';
 
-export const sdfPrimFrag =`
-//Eventually this should go point, circle, rect, polyline,polycircle
-//0 = Nothing
-//1 = PolyLine
-//2 = PolyCircle
-//3 = Circle
-//4 = Rectangle
-//5 = Polygon
-//6 = Point light
+export const sdfPrimFrag=
+`//#version 300 es
+/////////////////////////////////////////////////
+
+
 #define EDIT_SHAPE 1
 //Filter
 //0 = None
@@ -762,6 +758,4 @@ void main(){
     #endif
 
     pc_fragColor = vec4(sqrt(saturate(finalColor)), 1.0);
-}
-
-`;
+}`;

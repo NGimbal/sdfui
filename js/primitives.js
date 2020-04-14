@@ -9,10 +9,11 @@ SVG() //returns svg of polyline
 
 */
 
-"use strict";
+'use strict';
 
 import * as THREE from './libjs/three.module.js';
 import * as HINT from './uihints.js';
+import * as SDFUI from './sdfui.js';
 
 //simple class for packaging shader and polypoint
 export class DataShader{
@@ -107,7 +108,19 @@ export class PolyPoint {
 
     this.data = new Uint16Array(4 * this.dataSize * this.dataSize);
 
+    // look more at this later
+    // let testTex = twgl.createTexture(SDFUI.gl);
+
+    // twgl.setTextureFromArray(SDFUI.gl, testTex, this.data, {
+    //   internalFormat: SDFUI.gl.R16F,
+    //   format: SDFUI.gl.RED,
+    //   type: SDFUI.gl.HALF_FLOAT,
+    //   // src: this.data,
+    //   diffuseOffset: [ 0, 0, 0, 1 ],
+    // });
+
     this.ptsTex = new THREE.DataTexture(this.data, this.dataSize, this.dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
+    console.log(this.ptsTex);
 
     this.ptsTex.magFilter = THREE.NearestFilter;
     this.ptsTex.minFilter = THREE.NearestFilter;
