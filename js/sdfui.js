@@ -112,6 +112,7 @@ function setGrid(scale){
 
 function main() {
   canvas = document.querySelector('#c');
+  twgl.setDefaults({attribPrefix: "a_"});
 
   //set the document resolution
   store.dispatch(ACT.statusRes({x:window.innerWidth, y:window.innerHeight}));
@@ -127,18 +128,6 @@ function main() {
 
   console.log(gl.getSupportedExtensions());
 
-  // renderer = new THREE.WebGLRenderer({canvas: canvas, context: gl});
-  // renderer.autoClearColor = false;
-
-  // camera = new THREE.OrthographicCamera(
-  //   -1, // left
-  //    1, // right
-  //    1, // top
-  //   -1, // bottom
-  //   -1, // near,
-  //    1, // far
-  // );
-
   ui = new GhostUI();
 
   twgl.resizeCanvasToDisplaySize(gl.canvas);
@@ -146,9 +135,10 @@ function main() {
   //the copy of ui Options in parameters will trigger shader recompilation
   //basically a record of what has actually been instantiated in the shader
   //versus the ui state
+
   let parameters = new PRIM.PolyPoint({...state.ui.properties}, 128);
   editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
-  //
+
   // uniforms = {
   //   iResolution:  { value: twgl.vec3.create(resolution.x, resolution.y, resolution.z)},
   //   //uniform for curr edit polypoint prims, should be factored out
@@ -167,142 +157,44 @@ function main() {
   //   //global scale variables, mostly unused
   //   scale: {value: state.cursor.scale},
   // };
-  //
-  // scene = new THREE.Scene();
-  // plane = new THREE.PlaneBufferGeometry(2, 2);
-  //
-  // let fragmentShader = sdfPrimFrag;
-  // let vertexShader = sdfPrimVert;
-  //
-  // material = new THREE.ShaderMaterial({
-  //   uniforms,
-  //   vertexShader,
-  //   fragmentShader
-  // });
+
+  let fragmentShader = sdfPrimFrag;
+  let vertexShader = sdfPrimVert;
 
 //------------------------------------------------------------------------------
+  var programInfo = twgl.createProgramInfo(gl, [SF.simpleVert, SF.gridFrag]);
+  console.log(programInfo);
 
-  var program = twgl.createProgramFromSources(gl, [SF.simpleVert, SF.gridFrag]);
-  // look up where the vertex data needs to go.
-  var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-  var texcoordAttributeLocation = gl.getAttribLocation(program, "a_texcoord");
-  // lookup uniforms
-  matrixLocation = gl.getUniformLocation(program, "u_matrix");
-  textureLocation = gl.getUniformLocation(program, "u_texture");
+  //create the texture layer
+  let src = new Uint8Array(gl.canvas.width * gl.canvas.height * 4);
 
-  // Create a vertex array object (attribute state)
-  vao = gl.createVertexArray();
+  let tex = twgl.createTexture(gl, {
+    width: gl.canvas.width,
+    height: gl.canvas.height,
+    wrap: gl.CLAMP_TO_EDGE,
+    src: src,
+    normalize: true,
+  });
 
-  // and make it the one we're currently working with
-  gl.bindVertexArray(vao);
-
-  // create the position buffer, make it the current ARRAY_BUFFER
-  // and copy in the color values
-  var positionBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  // Put a unit quad in the buffer
-  var positions = [
-    0, 0,
-    0, 1,
-    1, 0,
-    1, 0,
-    0, 1,
-    1, 1,
-  ];
-
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-  // Turn on the attribute
-  gl.enableVertexAttribArray(positionAttributeLocation);
-
-  // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-  var size = 2;          // 2 components per iteration
-  var type = gl.FLOAT;   // the data is 32bit floats
-  var normalize = false; // don't normalize the data
-  var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-  var offset = 0;        // start at the beginning of the buffer
-  gl.vertexAttribPointer(
-      positionAttributeLocation, size, type, normalize, stride, offset);
-
-  // create the texcoord buffer, make it the current ARRAY_BUFFER
-  // and copy in the texcoord values
-  var texcoordBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-  // Put texcoords in the buffer
-  var texcoords = [
-   0, 0,
-   0, 1,
-   1, 0,
-   1, 0,
-   0, 1,
-   1, 1,
-  ];
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texcoords), gl.STATIC_DRAW);
-
-  // Turn on the attribute
-  gl.enableVertexAttribArray(texcoordAttributeLocation);
-
-  // Tell the attribute how to get data out of colorBuffer (ARRAY_BUFFER)
-  var size = 2;          // 3 components per iteration
-  var type = gl.FLOAT;   // the data is 32bit floats
-  var normalize = true;  // convert from 0-255 to 0.0-1.0
-  var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next color
-  var offset = 0;        // start at the beginning of the buffer
-  gl.vertexAttribPointer(
-      texcoordAttributeLocation, size, type, normalize, stride, offset);
-
-  // creates a texture info { width: w, height: h, texture: tex }
-  // The texture will start with 1x1 pixels and be updated
-  // when the image has loaded
-  function loadImageAndCreateTextureInfo(url) {
-    var tex = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    // Fill the texture with a 1x1 blue pixel.
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-                  new Uint8Array([0, 0, 255, 255]));
-
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    var textureInfo = {
-      width: 1,   // we don't know the size until it loads
-      height: 1,
-      texture: tex,
-    };
-    var img = new Image();
-    img.addEventListener('load', function() {
-      textureInfo.width = gl.canvas.width;
-      textureInfo.height = gl.canvas.height;
-
-      gl.bindTexture(gl.TEXTURE_2D, textureInfo.texture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      gl.generateMipmap(gl.TEXTURE_2D);
-    });
-    img.src = url;
-
-    return textureInfo;
-  }
-
-  var textureInfos = [
-    loadImageAndCreateTextureInfo('../assets/textures/star.jpg'),
-    loadImageAndCreateTextureInfo('../assets/textures/leaves.jpg'),
-    loadImageAndCreateTextureInfo('../assets/textures/keyboard.jpg'),
-  ];
+  let textureInfo = {
+    width: gl.canvas.width,
+    height: gl.canvas.height,
+    texture: tex,
+  };
 
   //eventually this is going to come from layers in redux store
   //new edit layer is full screen layer that allows for user to input data
   layers = [];
-  var numToDraw = layers.length;
-  for (var ii = 0; ii <  1; ++ii) {
-    var drawInfo = {
-      program: program,
-      x: 0,//gl.canvas.width / 2.0,
-      y: 0,//gl.canvas.height / 2.0,
-      dx: Math.random() > 0.5 ? -1 : 1,
-      dy: Math.random() > 0.5 ? -1 : 1,
-      textureInfo: textureInfos[Math.random() * textureInfos.length | 0],
-    };
-    layers.push(drawInfo);
+
+  let uniforms = {
+    // u_matrix: matrix,
+    u_texture: textureInfo.texture,
+    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
   }
+
+  let layer = createLayer(textureInfo, programInfo, uniforms);
+  console.log(layer);
+  layers.push(layer);
 
   requestAnimationFrame(render);
 
@@ -313,29 +205,18 @@ function main() {
   dataShader = new PRIM.DataShader(fragmentShader, parameters);
 }
 
-
 function update(deltaTime) {
   let speed = 60;
   layers.forEach(function(drawInfo) {
-    // drawInfo.x += drawInfo.dx * speed * deltaTime;
-    // drawInfo.y += drawInfo.dy * speed * deltaTime;
-    // if (drawInfo.x < 0) {
-    //   drawInfo.dx = 1;
-    // }
-    // if (drawInfo.x >= gl.canvas.width) {
-    //   drawInfo.dx = -1;
-    // }
-    // if (drawInfo.y < 0) {
-    //   drawInfo.dy = 1;
-    // }
-    // if (drawInfo.y >= gl.canvas.height) {
-    //   drawInfo.dy = -1;
-    // }
+    //Will have to translate by user input here
   });
 }
 
 function draw() {
-  twgl.resizeCanvasToDisplaySize(gl.canvas);
+  if(twgl.resizeCanvasToDisplaySize(gl.canvas)){
+    layers[0].uniforms.u_resolution = twgl.v3.create(gl.canvas.width, gl.canvas.height, 0)
+    twgl.setUniforms(layers[0].programInfo, layers[0].uniforms);
+  }
 
   // Tell WebGL how to convert from clip space to pixels
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -344,15 +225,7 @@ function draw() {
   gl.clearColor(1, 1, 1, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  layers.forEach(function(drawInfo) {
-    drawImage(
-      drawInfo.program,
-      drawInfo.textureInfo.texture,
-      drawInfo.textureInfo.width,
-      drawInfo.textureInfo.height,
-      drawInfo.x,
-      drawInfo.y);
-  });
+  twgl.drawObjectList(gl, layers);
 }
 
 var then = 0;
@@ -366,6 +239,8 @@ function render(time) {
 
   requestAnimationFrame(render);
 }
+
+
 
 //gotta resize the screen sometimes
 // function resizeRendererToDisplaySize(renderer) {
@@ -516,60 +391,50 @@ function render(time) {
 //   requestAnimationFrame(animate);
 // }
 
+//textureInfo could before layer class at some point
+function createLayer(textureInfo, programInfo, uniforms){
+
+    //matrix transformation, transformation can be baked into textureInfo
+    let matrix = twgl.m4.ortho(0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
+    // translate our quad to dstX, dstY
+    matrix = twgl.m4.translate(matrix, twgl.v3.create(0, 0, 0));
+
+    // scale our 1 unit quad
+    // from 1 unit to texWidth, texHeight units
+    // will also want to translate/rotate plane at some point
+    matrix = twgl.m4.scale(matrix, twgl.v3.create(textureInfo.width, textureInfo.height, 1));
+
+    uniforms.u_matrix = matrix;
+
+    //create plane
+    let positions = new Float32Array([0,0, 0,1, 1,0, 1,0, 0,1, 1,1,]);
+
+    let texcoords = new Float32Array([0,0, 0,1, 1,0, 1,0, 0,1, 1,1,]);
+
+    var arrays = {
+      position: {numComponents: 2, data: positions},
+      texcoord: {numComponents: 2, data:texcoords}
+    }
+
+    let plane = twgl.createBufferInfoFromArrays(gl, arrays);
+
+    gl.useProgram(programInfo.program);
+
+    twgl.setBuffersAndAttributes(gl, programInfo, plane);
+
+    // this method is not working
+    // let plane = twgl.primitives.createPlaneBufferInfo(gl);
+
+    return({
+      programInfo: programInfo,
+      bufferInfo: plane,
+      uniforms: uniforms,
+    });
+}
+
 export function newEditTex(){
   editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
 }
-
-//Utility Functions-----------------------------------------------
-// Unlike images, textures do not have a width and height associated
-// with them so we'll pass in the width and height of the texture
-function drawImage(program, tex, texWidth, texHeight, dstX, dstY) {
-  gl.useProgram(program);
-
-  // Setup the attributes for the quad
-  gl.bindVertexArray(vao);
-
-  var textureUnit = 0;
-  // The the shader we're putting the texture on texture unit 0
-  gl.uniform1i(textureLocation, textureUnit);
-
-  // Bind the texture to texture unit 0
-  gl.activeTexture(gl.TEXTURE0 + textureUnit);
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-
-  // this matrix will convert from pixels to clip space
-  var matrix = twgl.m4.ortho(
-      0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
-
-  // translate our quad to dstX, dstY
-  matrix = twgl.m4.translate(matrix, twgl.v3.create(dstX, dstY, 0));
-
-  // scale our 1 unit quad
-  // from 1 unit to texWidth, texHeight units
-  matrix = twgl.m4.scale(matrix, twgl.v3.create(texWidth, texHeight, 1));
-
-  // Set the matrix.
-  gl.uniformMatrix4fv(matrixLocation, false, matrix);
-
-  // draw the quad (2 triangles, 6 vertices)
-  var offset = 0;
-  var count = 6;
-  gl.drawArrays(gl.TRIANGLES, offset, count);
-}
-
-const saveBlob = (function(){
-  let a = document.createElement('a');
-  document.body.appendChild(a);
-  a.style.display = 'none';
-
-  return function saveData(blob, fileName) {
-     const url = window.URL.createObjectURL(blob);
-     a.href = url;
-     a.download = fileName;
-     a.click();
-  };
-}());
-
 
 export function modifyDefine(_dataShader, define, val){
   let shader = _dataShader.shader.slice();

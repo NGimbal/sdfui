@@ -37,13 +37,16 @@ precision mediump float;
 
 in vec2 v_texcoord;
 
+uniform vec3 u_resolution;
+
 out vec4 outColor;
 
 float repeat(float x) { return abs(fract(x*0.5+0.5)-0.5)*2.0; }
 
 void main() {
   outColor = vec4(1.0);
-  //uv.x *= iResolution.x / iResolution.y;
-  outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(96.0 * v_texcoord.x) - 0.92)*4.0;
-  outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(96.0 * v_texcoord.y) - 0.92)*4.0;
+  vec2 uv = vec2(v_texcoord);
+  uv.x *= u_resolution.x / u_resolution.y;
+  outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(64.0 * uv.x) - 0.92)*4.0;
+  outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(64.0 * uv.y) - 0.92)*4.0;
 }`;
