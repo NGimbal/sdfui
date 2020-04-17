@@ -95,8 +95,8 @@ class GhostUI{
     this.modeStack.curr().enter();
 
     //could pass elem around but...
-    document.querySelector('#c').addEventListener('mouseup', this.mouseUp.bind(this));
-    window.addEventListener('mousemove', this.mouseMove.bind(this));
+    SDFUI.gl.canvas.addEventListener('mouseup', this.mouseUp.bind(this));
+    SDFUI.gl.canvas.addEventListener('mousemove', this.mouseMove.bind(this));
 
     //cntrl+z
     this.cntlPressed = false;
@@ -170,18 +170,19 @@ class GhostUI{
 
   mouseMove(e) {
     let resolution = SDFUI.resolution;
+    let canvas = SDFUI.gl.canvas;
+    let rect = canvas.getBoundingClientRect();
+    // let resolution = new PRIM.vec(rect.width, rect.height);
 
     let evPt = {
-      x: e.clientX,
-      y: e.clientY
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
     };
 
     // transforms window / js space to sdf / frag space
-    evPt.x = ((evPt.x / resolution.x) - 0.5) * resolution.x/resolution.y;
-    evPt.y = ((resolution.y - evPt.y) / resolution.y) - 0.5;
-
-    evPt.x = (evPt.x * resolution.x) / (resolution.x * 0.5);
-    evPt.y = (evPt.y * resolution.y) / (resolution.y * 0.5);
+    evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - SDFUI.dPt.x;
+    evPt.y = (evPt.y/resolution.y)  - SDFUI.dPt.y;
+    // console.log(evPt);
 
     SDFUI.store.dispatch(ACT.cursorSet({x:evPt.x, y:evPt.y}));
 

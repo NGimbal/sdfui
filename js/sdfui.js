@@ -43,6 +43,7 @@ function pointDist (a, b){
 
 export var resolution;
 export var mPt = new PRIM.vec(0, 0);
+export var dPt = new PRIM.vec(0, 0);
 
 export var ptTree = new kdTree([], pointDist, ["x", "y"]);
 
@@ -113,13 +114,14 @@ function setGrid(scale){
 function main() {
   canvas = document.querySelector('#c');
   twgl.setDefaults({attribPrefix: "a_"});
+  gl = canvas.getContext( 'webgl2', { alpha: false, antialias: false } );
+  twgl.resizeCanvasToDisplaySize(gl.canvas);
 
   //set the document resolution
-  store.dispatch(ACT.statusRes({x:window.innerWidth, y:window.innerHeight}));
+  store.dispatch(ACT.statusRes({x:canvas.width, y:canvas.height}));
+
   store.dispatch(ACT.cursorGridScale(48));
   setGrid(state.cursor.scale);
-
-  gl = canvas.getContext( 'webgl2', { alpha: false, antialias: false } );
 
   if (!gl){
     console.log("your browser/OS/drivers do not support WebGL2");
@@ -130,7 +132,7 @@ function main() {
 
   ui = new GhostUI();
 
-  twgl.resizeCanvasToDisplaySize(gl.canvas);
+  canvas.addEventListener('mousedown', startDrag);
 
   //the copy of ui Options in parameters will trigger shader recompilation
   //basically a record of what has actually been instantiated in the shader
@@ -139,6 +141,18 @@ function main() {
   let parameters = new PRIM.PolyPoint({...state.ui.properties}, 128);
   editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
 
+  let pts = [
+    {x:0.5, y:0.5},
+    {x:1.0, y:0.0},
+    {x:0.0, y:1.0},
+    {x:1.0, y:1.0},
+    {x:0.3, y:0.3},
+    {x:0.4, y:0.5},
+    {x:0.2, y:0.8},
+  ]
+  for(let p of pts){
+    editTex.addPoint(p);
+  }
   // uniforms = {
   //   iResolution:  { value: twgl.vec3.create(resolution.x, resolution.y, resolution.z)},
   //   //uniform for curr edit polypoint prims, should be factored out
@@ -162,8 +176,8 @@ function main() {
   let vertexShader = sdfPrimVert;
 
 //------------------------------------------------------------------------------
-  var programInfo = twgl.createProgramInfo(gl, [SF.simpleVert, SF.gridFrag]);
-  console.log(programInfo);
+  var gridProgram = twgl.createProgramInfo(gl, [SF.simpleVert, SF.gridFrag]);
+  console.log(gridProgram);
 
   //create the texture layer
   let src = new Uint8Array(gl.canvas.width * gl.canvas.height * 4);
@@ -186,15 +200,33 @@ function main() {
   //new edit layer is full screen layer that allows for user to input data
   layers = [];
 
-  let uniforms = {
+  let gridUniforms = {
     // u_matrix: matrix,
-    u_texture: textureInfo.texture,
+    // u_texture: textureInfo.texture,
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+    u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
   }
 
-  let layer = createLayer(textureInfo, programInfo, uniforms);
-  console.log(layer);
-  layers.push(layer);
+  // grid layer
+  let gridLayer = createLayer(textureInfo, gridProgram, gridUniforms);
+  console.log(gridLayer);
+  layers.push(gridLayer);
+
+  let editUniforms = {
+    // u_matrix: matrix,
+    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+    u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
+    u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
+    u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
+
+    u_eTex: editTex.texture,
+  }
+
+  var editProgram = twgl.createProgramInfo(gl, [SF.simpleVert, SF.circleFrag]);
+
+  // edit layer
+  let editLayer = createLayer(textureInfo, editProgram, editUniforms);
+  layers.push(editLayer);
 
   requestAnimationFrame(render);
 
@@ -205,18 +237,39 @@ function main() {
   dataShader = new PRIM.DataShader(fragmentShader, parameters);
 }
 
-function update(deltaTime) {
+function update() {
   let speed = 60;
-  layers.forEach(function(drawInfo) {
-    //Will have to translate by user input here
+  let resize = twgl.resizeCanvasToDisplaySize(gl.canvas);
+  if(resize){
+    store.dispatch(ACT.statusRes({x:gl.canvas.width, y:gl.canvas.height}));
+  }
+  //update uniforms - might want a needsUpdate on these at some point
+  layers.forEach(function(layer) {
+    gl.useProgram(layer.programInfo.program);
+    if(resize){
+      layer.uniforms.u_resolution['0'] = gl.canvas.width;
+      layer.uniforms.u_resolution['1'] = gl.canvas.height;
+    }
+    if(layer.uniforms.u_mPt){
+      layer.uniforms.u_mPt['0'] = mPt.x;
+      layer.uniforms.u_mPt['1'] = mPt.y;
+    }
+    if(layer.uniforms.u_dPt){
+      layer.uniforms.u_dPt['0'] = dPt.x;
+      layer.uniforms.u_dPt['1'] = dPt.y;
+    }
+
+    twgl.setUniforms(layer.programInfo, layer.uniforms);
   });
 }
 
 function draw() {
-  if(twgl.resizeCanvasToDisplaySize(gl.canvas)){
-    layers[0].uniforms.u_resolution = twgl.v3.create(gl.canvas.width, gl.canvas.height, 0)
-    twgl.setUniforms(layers[0].programInfo, layers[0].uniforms);
-  }
+  // if(twgl.resizeCanvasToDisplaySize(gl.canvas)){
+    // layers[0].uniforms.u_resolution = twgl.v3.create(gl.canvas.width, gl.canvas.height, 0)
+  // }
+
+  // layers[0].uniforms.u_panOffset = twgl.v3.create(dPt.x, dPt.y, 0);
+  // twgl.setUniforms(layers[0].programInfo, layers[0].uniforms);
 
   // Tell WebGL how to convert from clip space to pixels
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -240,7 +293,24 @@ function render(time) {
   requestAnimationFrame(render);
 }
 
+let mouseDragStart = new PRIM.vec(0, 0);
+function startDrag(e){
+  PRIM.vecSet(mouseDragStart, state.cursor.pos.x, state.cursor.pos.y);
+  // console.log('start drag');
+  canvas.addEventListener('mousemove', doDrag);
+  canvas.addEventListener('mouseup', endDrag);
+}
 
+function doDrag(e){
+  PRIM.vecSet(dPt, (state.cursor.pos.x - mouseDragStart.x)/2, (state.cursor.pos.y - mouseDragStart.y)/ 2);
+  console.log(dPt);
+}
+
+function endDrag(e){
+  // console.log('endDrag');
+  canvas.removeEventListener('mousemove', doDrag);
+  canvas.removeEventListener('mouseup', endDrag);
+}
 
 //gotta resize the screen sometimes
 // function resizeRendererToDisplaySize(renderer) {
