@@ -32,6 +32,7 @@ const uiInit = {
   grid: false, //show background grid
   points: false, //show points
   darkmode: false, //toggle darkmode
+  drag: false,
 }
 
 const cursorInit = {
@@ -140,7 +141,7 @@ function ui(_state=initialState, action){
     case ACT.DRAW_STROKE:
       return Object.assign({}, state,{
         properties: Object.assign({}, state.properties,{
-          stroke: action.hexString,
+          stroke: [...action.array],
         }),
       });
     case ACT.DRAW_FILTER:

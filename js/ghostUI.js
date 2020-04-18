@@ -182,6 +182,9 @@ class GhostUI{
     // transforms window / js space to sdf / frag space
     evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - SDFUI.dPt.x;
     evPt.y = (evPt.y/resolution.y)  - SDFUI.dPt.y;
+    evPt.x = evPt.x * (SDFUI.dPt.z / 64.);
+    evPt.y = evPt.y * (SDFUI.dPt.z / 64.);
+    // console.log(SDFUI.dPt.z / 64.);
     // console.log(evPt);
 
     SDFUI.store.dispatch(ACT.cursorSet({x:evPt.x, y:evPt.y}));
@@ -346,8 +349,9 @@ function drawUpdate(){
   }
 
   sel = document.getElementById("strokeColor-select");
-  if(SDFUI.state.ui.properties.stroke != sel.value){
-    SDFUI.store.dispatch(ACT.drawStroke(sel.value));
+  let selVal = chroma(sel.value).gl();
+  if(SDFUI.state.ui.properties.stroke != selVal){
+    SDFUI.store.dispatch(ACT.drawStroke(selVal));
     SDFUI.store.dispatch(ACT.sceneEditProps());
   }
 

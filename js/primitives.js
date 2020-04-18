@@ -70,10 +70,10 @@ export function angleVec(_vec){
 export var propsDefault = {
   type:"",
   filter:"",
-  stroke:"",
-  fill:"",
-  weight:0,
-  radius:0
+  stroke: [0.0, 0.435, 0.3137, 1.0],
+  fill: [0.0, 0.435, 0.3137, 1.0],
+  weight:0.001,
+  radius:0.001
 }
 
 export class prim{

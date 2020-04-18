@@ -43,7 +43,8 @@ function pointDist (a, b){
 
 export var resolution;
 export var mPt = new PRIM.vec(0, 0);
-export var dPt = new PRIM.vec(0, 0);
+//dPt z is scale
+export var dPt = new PRIM.vec(0, 0, 64);
 
 export var ptTree = new kdTree([], pointDist, ["x", "y"]);
 
@@ -120,7 +121,7 @@ function main() {
   //set the document resolution
   store.dispatch(ACT.statusRes({x:canvas.width, y:canvas.height}));
 
-  store.dispatch(ACT.cursorGridScale(48));
+  store.dispatch(ACT.cursorGridScale(64));
   setGrid(state.cursor.scale);
 
   if (!gl){
@@ -133,6 +134,8 @@ function main() {
   ui = new GhostUI();
 
   canvas.addEventListener('mousedown', startDrag);
+  // canvas.addEventListener('scroll', scrollPan);
+  canvas.onwheel = scrollPan;
 
   //the copy of ui Options in parameters will trigger shader recompilation
   //basically a record of what has actually been instantiated in the shader
@@ -141,18 +144,19 @@ function main() {
   let parameters = new PRIM.PolyPoint({...state.ui.properties}, 128);
   editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
 
-  let pts = [
-    {x:0.5, y:0.5},
-    {x:1.0, y:0.0},
-    {x:0.0, y:1.0},
-    {x:1.0, y:1.0},
-    {x:0.3, y:0.3},
-    {x:0.4, y:0.5},
-    {x:0.2, y:0.8},
-  ]
-  for(let p of pts){
-    editTex.addPoint(p);
-  }
+  // let pts = [
+  //   {x:0.5, y:0.5},
+  //   {x:1.0, y:0.0},
+  //   {x:0.0, y:1.0},
+  //   {x:1.0, y:1.0},
+  //   {x:0.3, y:0.3},
+  //   {x:0.4, y:0.5},
+  //   {x:0.2, y:0.8},
+  // ]
+  // for(let p of pts){
+  //   editTex.addPoint(p);
+  // }
+
   // uniforms = {
   //   iResolution:  { value: twgl.vec3.create(resolution.x, resolution.y, resolution.z)},
   //   //uniform for curr edit polypoint prims, should be factored out
@@ -204,7 +208,7 @@ function main() {
     // u_matrix: matrix,
     // u_texture: textureInfo.texture,
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
+    u_dPt: twgl.v3.create(dPt.x, dPt.y, dPt.z),
   }
 
   // grid layer
@@ -220,6 +224,8 @@ function main() {
     u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
 
     u_eTex: editTex.texture,
+    u_weight: state.ui.properties.weight,
+    u_stroke: twgl.v3.create(0.0, 0.435, 0.3137),
   }
 
   var editProgram = twgl.createProgramInfo(gl, [SF.simpleVert, SF.circleFrag]);
@@ -238,6 +244,9 @@ function main() {
 }
 
 function update() {
+
+  ui.update();
+
   let speed = 60;
   let resize = twgl.resizeCanvasToDisplaySize(gl.canvas);
   if(resize){
@@ -246,6 +255,7 @@ function update() {
   //update uniforms - might want a needsUpdate on these at some point
   layers.forEach(function(layer) {
     gl.useProgram(layer.programInfo.program);
+    console.log(layer.uniforms);
     if(resize){
       layer.uniforms.u_resolution['0'] = gl.canvas.width;
       layer.uniforms.u_resolution['1'] = gl.canvas.height;
@@ -257,6 +267,16 @@ function update() {
     if(layer.uniforms.u_dPt){
       layer.uniforms.u_dPt['0'] = dPt.x;
       layer.uniforms.u_dPt['1'] = dPt.y;
+      layer.uniforms.u_dPt['2'] = dPt.z;
+    }
+    if(layer.uniforms.u_stroke){
+      layer.uniforms.u_stroke['0'] = state.ui.properties.stroke[0];
+      layer.uniforms.u_stroke['1'] = state.ui.properties.stroke[1];
+      layer.uniforms.u_stroke['2'] = state.ui.properties.stroke[2];
+    }
+    if(layer.uniforms.u_weight){
+      console.log(state.ui.properties.weight);
+      layer.uniforms.u_weight = state.ui.properties.weight;
     }
 
     twgl.setUniforms(layer.programInfo, layer.uniforms);
@@ -294,7 +314,28 @@ function render(time) {
 }
 
 let mouseDragStart = new PRIM.vec(0, 0);
+
+// var scale = 64;
+function scrollPan(e){
+  e.preventDefault();
+
+  if (e.ctrlKey) {
+    // Your zoom/scale factor
+    dPt.z += e.deltaY * 0.1;
+    // console.log("scale: " + scale);
+  } else {
+    dPt.x += e.deltaX * 0.001;
+    dPt.y += e.deltaY * 0.001;
+  }
+
+  // this isn't working
+  // let nPt = {...mPt};
+  // PRIM.vecSet(nPt, nPt.x  * (dPt.z / 64.), nPt.y * (dPt.z / 64.));
+  // store.dispatch(ACT.cursorSet({x:nPt.x, y:nPt.y}));
+}
+
 function startDrag(e){
+  if(!state.ui.drag)return;
   PRIM.vecSet(mouseDragStart, state.cursor.pos.x, state.cursor.pos.y);
   // console.log('start drag');
   canvas.addEventListener('mousemove', doDrag);
@@ -302,7 +343,7 @@ function startDrag(e){
 }
 
 function doDrag(e){
-  PRIM.vecSet(dPt, (state.cursor.pos.x - mouseDragStart.x)/2, (state.cursor.pos.y - mouseDragStart.y)/ 2);
+  PRIM.vecSet(dPt, (state.cursor.pos.x - mouseDragStart.x), (state.cursor.pos.y - mouseDragStart.y));
   console.log(dPt);
 }
 

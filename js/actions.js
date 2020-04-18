@@ -213,11 +213,11 @@ export function drawFilter(filter){
 }
 
 //what is the current stroke color - vec(r, g, b, a)
-export function drawStroke(hexString){
+export function drawStroke(array){
   return{
     type: ui,
     subtype: DRAW_STROKE,
-    hexString,
+    array,
   }
 }
 
