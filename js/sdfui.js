@@ -14,6 +14,8 @@ import {sdfPrimFrag} from './frag/frag.js';
 import {sdfPrimVert} from './vert.js';
 
 import * as SF from './frag/simpleFrag.js';
+import {Layer} from './layer.js';
+
 
 import {createStore} from './libjs/redux.js';
 
@@ -25,7 +27,7 @@ var material, uniforms;
 export var gl;
 var vao;
 var matrixLocation, textureLocation;
-var layers;
+export var layers;
 //------
 
 export var dataShader;
@@ -137,21 +139,13 @@ function main() {
     console.log("your browser/OS/drivers do not support WebGL2");
     return;
   }
-
   console.log(gl.getSupportedExtensions());
 
   ui = new GhostUI();
 
   canvasContainer.addEventListener('mousedown', startDrag);
-  // canvas.addEventListener('scroll', scrollPan);
+
   canvasContainer.onwheel = scrollPan;
-
-  //the copy of ui Options in parameters will trigger shader recompilation
-  //basically a record of what has actually been instantiated in the shader
-  //versus the ui state
-
-  let parameters = new PRIM.PolyPoint({...state.ui.properties}, 128);
-  editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
 
   // let pts = [
   //   {x:0.5, y:0.5},
@@ -166,31 +160,7 @@ function main() {
   //   editTex.addPoint(p);
   // }
 
-  // uniforms = {
-  //   iResolution:  { value: twgl.vec3.create(resolution.x, resolution.y, resolution.z)},
-  //   //uniform for curr edit polypoint prims, should be factored out
-  //   posTex: { value: editTex},
-  //   //index of texel being currently edited
-  //   editCTexel : {value: editTex.cTexel},
-  //   //global points texture
-  //   parameters: {value: parameters},
-  //   //current mouse position - surprised mPt works here
-  //   mousePt: {value: mPt},
-  //   //current edit options
-  //   editWeight : {value: state.ui.properties.weight},
-  //   strokeColor: {value: twgl.vec3.create(0.0, 0.0, 0.0)},
-  //   fillColor: {value: twgl.vec3.create(0.0, 0.384, 0.682)},
-  //   editRadius : {value: state.ui.properties.radius},
-  //   //global scale variables, mostly unused
-  //   scale: {value: state.cursor.scale},
-  // };
-
-  let fragmentShader = sdfPrimFrag;
-  let vertexShader = sdfPrimVert;
-
 //------------------------------------------------------------------------------
-  var gridProgram = twgl.createProgramInfo(gl, [SF.simpleVert, SF.gridFrag]);
-  // console.log(gridProgram);
 
   //eventually this is going to come from layers in redux store
   //new edit layer is full screen layer that allows for user to input data
@@ -198,13 +168,12 @@ function main() {
 
   let gridUniforms = {
     // u_matrix: matrix,
-    // u_texture: textureInfo.texture,
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
     u_dPt: twgl.v3.create(dPt.x, dPt.y, dPt.z),
   }
 
   // grid layer
-  let gridLayer = createLayer("grid", gridProgram, gridUniforms);
+  let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, gridUniforms);
 
   layers.push(gridLayer);
 
@@ -214,26 +183,19 @@ function main() {
     u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
     u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
     u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
-
-    u_eTex: editTex.texture,
+    u_eTex: new PRIM.PolyPoint(16),
     u_weight: state.ui.properties.weight,
     u_stroke: twgl.v3.create(0.0, 0.435, 0.3137),
   }
 
-  var editProgram = twgl.createProgramInfo(gl, [SF.simpleVert, SF.circleFrag]);
-
   // edit layer
-  let editLayer = createLayer("polyline", editProgram, editUniforms);
+  let editLayer = new Layer({type:"polyline"}, SF.simpleVert, SF.circleFrag, editUniforms);
 
   layers.push(editLayer);
 
   requestAnimationFrame(render);
 
 //------------------------------------------------------------------------------
-
-  //simple data structure for combination of fragment shader and texture
-  //both are generated from the list / tree of primitives in the scene
-  dataShader = new PRIM.DataShader(fragmentShader, parameters);
 }
 
 function update() {
@@ -298,7 +260,6 @@ function update() {
     if(layer.uniforms.u_weight){
       layer.uniforms.u_weight = state.ui.properties.weight;
     }
-
     twgl.setUniforms(layer.programInfo, layer.uniforms);
   });
 }
@@ -545,49 +506,6 @@ function updateCtx(){
 //
 //   requestAnimationFrame(animate);
 // }
-
-//textureInfo could before layer class at some point
-function createLayer(name, programInfo, uniforms){
-
-    //matrix transformation, transformation can be baked into textureInfo
-    let matrix = twgl.m4.ortho(0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
-    // translate our quad to dstX, dstY
-    matrix = twgl.m4.translate(matrix, twgl.v3.create(0, 0, 0));
-
-    // scale our 1 unit quad
-    // from 1 unit to texWidth, texHeight units
-    // will also want to translate/rotate plane at some point
-    matrix = twgl.m4.scale(matrix, twgl.v3.create(gl.canvas.width, gl.canvas.height, 1));
-
-    uniforms.u_matrix = matrix;
-
-    //create plane
-    let positions = new Float32Array([0,0, 0,1, 1,0, 1,0, 0,1, 1,1,]);
-
-    let texcoords = new Float32Array([0,0, 0,1, 1,0, 1,0, 0,1, 1,1,]);
-
-    var arrays = {
-      position: {numComponents: 2, data: positions},
-      texcoord: {numComponents: 2, data:texcoords}
-    }
-
-    let plane = twgl.createBufferInfoFromArrays(gl, arrays);
-
-    gl.useProgram(programInfo.program);
-
-    twgl.setBuffersAndAttributes(gl, programInfo, plane);
-
-    // this method is not working
-    // let plane = twgl.primitives.createPlaneBufferInfo(gl);
-
-    return({
-      name: name,
-      needsUpdate: false,
-      programInfo: programInfo,
-      bufferInfo: plane,
-      uniforms: uniforms,
-    });
-}
 
 export function newEditTex(){
   editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);

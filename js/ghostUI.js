@@ -281,98 +281,98 @@ function drawUpdate(){
   }
 
   //sel is not defined in these instances cause dispatch.editProps to happen very frequently
-  let sel = document.getElementById("primitive-select");
-  let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
-
-  if(type != sel.value){
-    switch(sel.value){
-      case "polyline":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("polyline"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "1");
-        SDFUI.newEditTex();
-        break;
-      case "polygon":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("polygon"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "5");
-        SDFUI.newEditTex();
-        break;
-      case "polycircle":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("polycircle"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "2");
-        SDFUI.newEditTex();
-        break;
-      case "circle":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("circle"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "3");
-        SDFUI.newEditTex();
-        break;
-      case "rectangle":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("rectangle"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "4");
-        SDFUI.newEditTex();
-        break;
-      case "pointlight":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("pointlight"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "6");
-        SDFUI.store.dispatch(ACT.uiDarkMode(true));
-        SDFUI.newEditTex();
-        break;
-    }
-    SDFUI.store.dispatch(ACT.statusUpdate(true));
-  }
-
-  sel = document.getElementById("filter-select");
-  if(SDFUI.state.ui.properties.filter != sel.value){
-    SDFUI.store.dispatch(ACT.drawFilter(sel.value));
-    SDFUI.store.dispatch(ACT.sceneEditProps());
-    switch(SDFUI.state.ui.properties.filter){
-      case "None":
-        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "0");
-        break;
-      case "Pencil":
-        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "1");
-        break;
-      case "Crayon":
-        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "2");
-        break;
-      case "SDF":
-        SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "3");
-        break;
-    }
-    SDFUI.store.dispatch(ACT.statusUpdate(true));
-  }
-
-  sel = document.getElementById("strokeColor-select");
-  let selVal = chroma(sel.value).gl();
-  if(SDFUI.state.ui.properties.stroke != selVal){
-    SDFUI.store.dispatch(ACT.drawStroke(selVal));
-    SDFUI.store.dispatch(ACT.sceneEditProps());
-  }
-
-  sel = document.getElementById("fillColor-select");
-
-  if(SDFUI.state.ui.properties.fill != sel.value){
-    SDFUI.store.dispatch(ACT.drawFill(sel.value));
-    SDFUI.store.dispatch(ACT.sceneEditProps());
-  }
-
-  sel = document.getElementById("strokeWeight-range");
-  if(SDFUI.state.ui.properties.weight != sel.value / 2000){
-    SDFUI.store.dispatch(ACT.drawWeight(sel.value / 2000));
-    SDFUI.store.dispatch(ACT.sceneEditProps());
-  }
-
-  sel = document.getElementById("radius-range");
-  if(SDFUI.state.ui.properties.radius != sel.value / 250){
-    SDFUI.store.dispatch(ACT.drawRadius(sel.value / 250));
-    SDFUI.store.dispatch(ACT.sceneEditProps());
-  }
+  // let sel = document.getElementById("primitive-select");
+  // let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
+  //
+  // if(type != sel.value){
+  //   switch(sel.value){
+  //     case "polyline":
+  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+  //       SDFUI.store.dispatch(ACT.scenePushEditItem("polyline"));
+  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "1");
+  //       SDFUI.newEditTex();
+  //       break;
+  //     case "polygon":
+  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+  //       SDFUI.store.dispatch(ACT.scenePushEditItem("polygon"));
+  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "5");
+  //       SDFUI.newEditTex();
+  //       break;
+  //     case "polycircle":
+  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+  //       SDFUI.store.dispatch(ACT.scenePushEditItem("polycircle"));
+  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "2");
+  //       SDFUI.newEditTex();
+  //       break;
+  //     case "circle":
+  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+  //       SDFUI.store.dispatch(ACT.scenePushEditItem("circle"));
+  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "3");
+  //       SDFUI.newEditTex();
+  //       break;
+  //     case "rectangle":
+  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+  //       SDFUI.store.dispatch(ACT.scenePushEditItem("rectangle"));
+  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "4");
+  //       SDFUI.newEditTex();
+  //       break;
+  //     case "pointlight":
+  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+  //       SDFUI.store.dispatch(ACT.scenePushEditItem("pointlight"));
+  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "6");
+  //       SDFUI.store.dispatch(ACT.uiDarkMode(true));
+  //       SDFUI.newEditTex();
+  //       break;
+  //   }
+  //   SDFUI.store.dispatch(ACT.statusUpdate(true));
+  // }
+  //
+  // sel = document.getElementById("filter-select");
+  // if(SDFUI.state.ui.properties.filter != sel.value){
+  //   SDFUI.store.dispatch(ACT.drawFilter(sel.value));
+  //   SDFUI.store.dispatch(ACT.sceneEditProps());
+  //   switch(SDFUI.state.ui.properties.filter){
+  //     case "None":
+  //       SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "0");
+  //       break;
+  //     case "Pencil":
+  //       SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "1");
+  //       break;
+  //     case "Crayon":
+  //       SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "2");
+  //       break;
+  //     case "SDF":
+  //       SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "3");
+  //       break;
+  //   }
+  //   SDFUI.store.dispatch(ACT.statusUpdate(true));
+  // }
+  //
+  // sel = document.getElementById("strokeColor-select");
+  // let selVal = chroma(sel.value).gl();
+  // if(SDFUI.state.ui.properties.stroke != selVal){
+  //   SDFUI.store.dispatch(ACT.drawStroke(selVal));
+  //   SDFUI.store.dispatch(ACT.sceneEditProps());
+  // }
+  //
+  // sel = document.getElementById("fillColor-select");
+  //
+  // if(SDFUI.state.ui.properties.fill != sel.value){
+  //   SDFUI.store.dispatch(ACT.drawFill(sel.value));
+  //   SDFUI.store.dispatch(ACT.sceneEditProps());
+  // }
+  //
+  // sel = document.getElementById("strokeWeight-range");
+  // if(SDFUI.state.ui.properties.weight != sel.value / 2000){
+  //   SDFUI.store.dispatch(ACT.drawWeight(sel.value / 2000));
+  //   SDFUI.store.dispatch(ACT.sceneEditProps());
+  // }
+  //
+  // sel = document.getElementById("radius-range");
+  // if(SDFUI.state.ui.properties.radius != sel.value / 250){
+  //   SDFUI.store.dispatch(ACT.drawRadius(sel.value / 250));
+  //   SDFUI.store.dispatch(ACT.sceneEditProps());
+  // }
 
   for(let m of this.modifiers){
     //each update will deal with m.toggle on an individual basis
@@ -407,7 +407,8 @@ function drawUp(e){
   }
 
   //returns a new point of type PRIM.vec()
-  let pt = SDFUI.editTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
+  // this is going to be retrieving from the redux store here pretty soon
+  let pt = SDFUI.layers[SDFUI.layers.length - 1].editTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
 
   SDFUI.store.dispatch(ACT.sceneAddPt(pt));
 
@@ -452,16 +453,6 @@ function endDrawUpdate(){
 
   SDFUI.store.dispatch(ACT.statusUpdate(true));
   SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-
-  //build list of points from edit items
-  let pts = [];
-  for(let p of SDFUI.state.scene.pts){
-    if(p.parentId == SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id){
-      pts.push(p);
-    }
-  }
-  //build bounding box from points
-  let bbox = new PRIM.bbox(pts);
 
   let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
 

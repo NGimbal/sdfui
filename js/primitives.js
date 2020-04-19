@@ -112,11 +112,11 @@ export class prim{
 
 //PolyPoint is an array of points, a texture representation and properties
 //Another class e.g. PolyLine extends PolyPoint to manipulate and bake
-export class PolyPoint {
+export class PolyPoint{
 
   //creates empty PolyPoint object
-  constructor(properties, _dataSize){
-    this.properties = properties;
+  constructor(_dataSize){
+    // this.properties = properties;
     this.dataSize = _dataSize || 16;
 
     //list of points
