@@ -280,53 +280,53 @@ function drawUpdate(){
     return;
   }
 
-  //sel is not defined in these instances cause dispatch.editProps to happen very frequently
-  // let sel = document.getElementById("primitive-select");
-  // let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
-  //
-  // if(type != sel.value){
-  //   switch(sel.value){
-  //     case "polyline":
-  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-  //       SDFUI.store.dispatch(ACT.scenePushEditItem("polyline"));
-  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "1");
-  //       SDFUI.newEditTex();
-  //       break;
-  //     case "polygon":
-  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-  //       SDFUI.store.dispatch(ACT.scenePushEditItem("polygon"));
-  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "5");
-  //       SDFUI.newEditTex();
-  //       break;
-  //     case "polycircle":
-  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-  //       SDFUI.store.dispatch(ACT.scenePushEditItem("polycircle"));
-  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "2");
-  //       SDFUI.newEditTex();
-  //       break;
-  //     case "circle":
-  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-  //       SDFUI.store.dispatch(ACT.scenePushEditItem("circle"));
-  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "3");
-  //       SDFUI.newEditTex();
-  //       break;
-  //     case "rectangle":
-  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-  //       SDFUI.store.dispatch(ACT.scenePushEditItem("rectangle"));
-  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "4");
-  //       SDFUI.newEditTex();
-  //       break;
-  //     case "pointlight":
-  //       SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-  //       SDFUI.store.dispatch(ACT.scenePushEditItem("pointlight"));
-  //       SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "6");
-  //       SDFUI.store.dispatch(ACT.uiDarkMode(true));
-  //       SDFUI.newEditTex();
-  //       break;
-  //   }
-  //   SDFUI.store.dispatch(ACT.statusUpdate(true));
-  // }
-  //
+  // sel is not defined in these instances cause dispatch.editProps to happen very frequently
+  let sel = document.getElementById("primitive-select");
+  let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
+
+  if(type != sel.value){
+    switch(sel.value){
+      case "polyline":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("polyline"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "1");
+        SDFUI.newEditTex();
+        break;
+      case "polygon":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("polygon"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "5");
+        SDFUI.newEditTex();
+        break;
+      case "polycircle":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("polycircle"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "2");
+        SDFUI.newEditTex();
+        break;
+      case "circle":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("circle"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "3");
+        SDFUI.newEditTex();
+        break;
+      case "rectangle":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("rectangle"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "4");
+        SDFUI.newEditTex();
+        break;
+      case "pointlight":
+        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+        SDFUI.store.dispatch(ACT.scenePushEditItem("pointlight"));
+        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "6");
+        SDFUI.store.dispatch(ACT.uiDarkMode(true));
+        SDFUI.newEditTex();
+        break;
+    }
+    SDFUI.store.dispatch(ACT.statusUpdate(true));
+  }
+
   // sel = document.getElementById("filter-select");
   // if(SDFUI.state.ui.properties.filter != sel.value){
   //   SDFUI.store.dispatch(ACT.drawFilter(sel.value));
@@ -347,32 +347,32 @@ function drawUpdate(){
   //   }
   //   SDFUI.store.dispatch(ACT.statusUpdate(true));
   // }
-  //
-  // sel = document.getElementById("strokeColor-select");
-  // let selVal = chroma(sel.value).gl();
-  // if(SDFUI.state.ui.properties.stroke != selVal){
-  //   SDFUI.store.dispatch(ACT.drawStroke(selVal));
-  //   SDFUI.store.dispatch(ACT.sceneEditProps());
-  // }
-  //
-  // sel = document.getElementById("fillColor-select");
-  //
-  // if(SDFUI.state.ui.properties.fill != sel.value){
-  //   SDFUI.store.dispatch(ACT.drawFill(sel.value));
-  //   SDFUI.store.dispatch(ACT.sceneEditProps());
-  // }
-  //
-  // sel = document.getElementById("strokeWeight-range");
-  // if(SDFUI.state.ui.properties.weight != sel.value / 2000){
-  //   SDFUI.store.dispatch(ACT.drawWeight(sel.value / 2000));
-  //   SDFUI.store.dispatch(ACT.sceneEditProps());
-  // }
-  //
-  // sel = document.getElementById("radius-range");
-  // if(SDFUI.state.ui.properties.radius != sel.value / 250){
-  //   SDFUI.store.dispatch(ACT.drawRadius(sel.value / 250));
-  //   SDFUI.store.dispatch(ACT.sceneEditProps());
-  // }
+
+  sel = document.getElementById("strokeColor-select");
+  let selVal = chroma(sel.value).gl();
+  if(SDFUI.state.ui.properties.stroke != selVal){
+    SDFUI.store.dispatch(ACT.drawStroke(selVal));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
+  }
+
+  sel = document.getElementById("fillColor-select");
+
+  if(SDFUI.state.ui.properties.fill != sel.value){
+    SDFUI.store.dispatch(ACT.drawFill(sel.value));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
+  }
+
+  sel = document.getElementById("strokeWeight-range");
+  if(SDFUI.state.ui.properties.weight != sel.value / 10000){
+    SDFUI.store.dispatch(ACT.drawWeight(sel.value / 10000));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
+  }
+
+  sel = document.getElementById("radius-range");
+  if(SDFUI.state.ui.properties.radius != sel.value / 250){
+    SDFUI.store.dispatch(ACT.drawRadius(sel.value / 250));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
+  }
 
   for(let m of this.modifiers){
     //each update will deal with m.toggle on an individual basis

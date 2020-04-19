@@ -148,7 +148,7 @@ void main(){
   float dist = sdCircle(uv, u_mPt.xy, 0.003);
 
   vec2 prevPt = texture(u_eTex, vec2(texelOffset, texelOffset)).xy;
-
+  float one = 1.0;
   //may need another texture to display current mouse pos
   //that sounds more performant anyway
   if(prevPt == vec2(0.)) {discard;}
@@ -156,7 +156,10 @@ void main(){
   for (float i = 0.; i < 16.; i++ ){
     float yIndex = i / 16. + texelOffset;
 
-    for (float j = 1.; j < 16.; j++ ){
+    for (float j = 0.; j < 16.; j++ ){
+      //this is to skip the first point only;
+      j += one;
+      one = 0.;
 
       float xIndex = j / 16.  + texelOffset;
       vec2 vIndex = vec2(xIndex, yIndex);

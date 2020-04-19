@@ -302,10 +302,6 @@ function scrollPan(e){
     dPt.y += e.deltaY * 0.001;
   }
 
-  // this isn't working
-  // let nPt = {...mPt};
-  // PRIM.vecSet(nPt, nPt.x  * (dPt.z / 64.), nPt.y * (dPt.z / 64.));
-  // store.dispatch(ACT.cursorSet({x:nPt.x, y:nPt.y}));
 }
 
 function startDrag(e){
@@ -338,8 +334,8 @@ function updateCtx(){
       y: p.y
     }
 
-    pixelPt.x = (((p.x + dPt.x) * (64 / dPt.z)) * resolution.x) * (resolution.y/resolution.x) ;
-    pixelPt.y = (((p.y + dPt.y) * (64 / dPt.z)) * resolution.y);
+    pixelPt.x = ((p.x * (64. / dPt.z) + dPt.x) * resolution.x) * (resolution.y/resolution.x) ;
+    pixelPt.y = ((p.y * (64. / dPt.z) + dPt.y) * resolution.y);
 
     let mPtString = '(' + p.x.toFixed(3) + ', ' + p.y.toFixed(3) + ')';
 
@@ -351,8 +347,8 @@ function updateCtx(){
     y: mPt.y
   }
 
-  pixelPt.x = (((mPt.x + dPt.x) * (64. / dPt.z)) * resolution.x) * (resolution.y/resolution.x);
-  pixelPt.y = (((mPt.y + dPt.y) * (64. / dPt.z)) * resolution.y);
+  pixelPt.x = ((mPt.x * (64. / dPt.z) + dPt.x) * resolution.x) * (resolution.y/resolution.x);
+  pixelPt.y = ((mPt.y * (64. / dPt.z) + dPt.y) * resolution.y);
 
   let mPtString = '(' + mPt.x.toFixed(3) + ', ' + mPt.y.toFixed(3) + ')';
 
