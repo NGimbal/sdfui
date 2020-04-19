@@ -6,7 +6,7 @@ import * as SDFUI from './sdfui.js';
 
 //POLYLINE-------------------------------------------------------
 //takes prim and datashader and bakes as a polyline
-export function polyLine(prim, dataShader){
+export function polyLine(prim, layer){
   let shader = dataShader.shader;
   let parameters = dataShader.parameters;
 

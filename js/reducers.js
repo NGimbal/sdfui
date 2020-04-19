@@ -261,7 +261,7 @@ function scene(_state=initialState, action) {
   let ptIndex = -1;
   switch(action.subtype){
     case ACT.SCENE_ADDPT:
-      let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, action.pt.id, true);
+      let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItems[state.editItem].id , action.pt.id, true);
       return Automerge.change(state, 'added a point: ' + action.pt.id , doc=>{
           //add point to current edit item
           doc.editItems[doc.editItem].pts.push(pt.id);

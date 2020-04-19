@@ -95,8 +95,8 @@ class GhostUI{
     this.modeStack.curr().enter();
 
     //could pass elem around but...
-    SDFUI.gl.canvas.addEventListener('mouseup', this.mouseUp.bind(this));
-    SDFUI.gl.canvas.addEventListener('mousemove', this.mouseMove.bind(this));
+    document.querySelector('#canvasContainer').addEventListener('mouseup', this.mouseUp.bind(this));
+    document.querySelector('#canvasContainer').addEventListener('mousemove', this.mouseMove.bind(this));
 
     //cntrl+z
     this.cntlPressed = false;
@@ -407,7 +407,7 @@ function drawUp(e){
   }
 
   //returns a new point of type PRIM.vec()
-  let pt = SDFUI.editTex.addPoint(SDFUI.mPt, "plPoint");
+  let pt = SDFUI.editTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
 
   SDFUI.store.dispatch(ACT.sceneAddPt(pt));
 
@@ -452,6 +452,16 @@ function endDrawUpdate(){
 
   SDFUI.store.dispatch(ACT.statusUpdate(true));
   SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+
+  //build list of points from edit items
+  let pts = [];
+  for(let p of SDFUI.state.scene.pts){
+    if(p.parentId == SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id){
+      pts.push(p);
+    }
+  }
+  //build bounding box from points
+  let bbox = new PRIM.bbox(pts);
 
   let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
 

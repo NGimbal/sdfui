@@ -13,7 +13,7 @@ SVG() //returns svg of polyline
 
 // import * as THREE from './libjs/three.module.js';
 import * as HINT from './uihints.js';
-import {gl} from './sdfui.js';
+import {gl, dPt} from './sdfui.js';
 
 //simple class for packaging shader and polypoint
 export class DataShader{
@@ -25,15 +25,16 @@ export class DataShader{
 
 //simple point, color vector
 export class vec{
-  constructor(x, y, z, w, id, update, pId){
+  constructor(x, y, z, w, pId, id, update){
     this.x = x || 0;
     this.y = y || 0;
     this.z = z || 0;
     this.w = w || 0;
-    this.id = id || (+new Date).toString(36).slice(-8);
-    this.update = update || false;
     //parentId
     this.parentId = pId || "";
+
+    this.id = id || (+new Date).toString(36).slice(-8);
+    this.update = update || false;
   }
 }
 
@@ -65,6 +66,25 @@ export function dotVec(_vecA, _vecB){
 
 export function angleVec(_vec){
   return (Math.atan2( - _vec.y, - _vec.x ) + Math.PI);
+}
+
+export class bbox{
+  //input array of points calculate min, max, width, height
+  constructor(points){
+  //   if (typeof points === 'undefined'){
+  //     //is this right?
+  //     this.min = new vec(0 - dPt, 0 - dPt);
+  //     this.max = new vec(gl.canvas.width/gl.canvas.height - dPt, 1 - dPt);
+  //   }else{
+      //goal is to sort points wher [0] is top left and [n] is bottom right
+      points.sort((a,b) => (lengthVec(a) < lengthVec(b)) ? -1 : 1);
+      this.min = points[0];
+      this.max = points[points.length-1];
+  // }
+    this.width = this.max.x - this.min.x;
+    this.height = this.max.y - this.min.y;
+    console.log(this);
+  }
 }
 
 export var propsDefault = {
@@ -175,13 +195,13 @@ export class PolyPoint {
   //adds point to polyPoint
   //point x, y, z, w are stored as HalfFloat16
   //https://github.com/petamoriken/float16
-  addPoint(_pt, tag){
+  addPoint(_pt, pId){
     let x = _pt.x;
     let y = _pt.y;
     let z = _pt.z || 1.0;
     let w = _pt.w || 1.0;
 
-    let pt = new vec(x, y, z, w);
+    let pt = new vec(x, y, z, w, pId);
 
     this.cTexel++;
 
@@ -215,8 +235,6 @@ export class PolyPoint {
     this.data[index + 2] = view.getUint16(32, endD);
     this.data[index + 3] = view.getUint16(48, endD);
 
-    console.log(this.data);
-
     twgl.setTextureFromArray(gl, this.texture, this.data, {
       internalFormat: gl.RGBA16F,
       format: gl.RGBA,
@@ -225,7 +243,6 @@ export class PolyPoint {
 
     // console.log(this.textures.data);
 
-    let _tag = tag || "none";
     let texData = [view.getUint16(0, endD), view.getUint16(16, endD), view.getUint16(32, endD), view.getUint16(48, endD)];
 
     this.pts.push(pt);

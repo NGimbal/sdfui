@@ -17,7 +17,7 @@ import * as SF from './frag/simpleFrag.js';
 
 import {createStore} from './libjs/redux.js';
 
-var canvas, renderer, camera, ui, scene, plane, screenMesh;
+var canvas, ctx, renderer, camera, ui, scene, plane, screenMesh;
 var material, uniforms;
 
 //------
@@ -113,10 +113,19 @@ function setGrid(scale){
 }
 
 function main() {
+
+  let canvasContainer = document.querySelector('#canvasContainer');
+
+  let textCanvas = document.querySelector('#text');
+  ctx = textCanvas.getContext('2d');
+
   canvas = document.querySelector('#c');
-  twgl.setDefaults({attribPrefix: "a_"});
   gl = canvas.getContext( 'webgl2', { alpha: false, antialias: false } );
+
+  twgl.setDefaults({attribPrefix: "a_"});
   twgl.resizeCanvasToDisplaySize(gl.canvas);
+  twgl.resizeCanvasToDisplaySize(ctx.canvas);
+
 
   //set the document resolution
   store.dispatch(ACT.statusRes({x:canvas.width, y:canvas.height}));
@@ -133,9 +142,9 @@ function main() {
 
   ui = new GhostUI();
 
-  canvas.addEventListener('mousedown', startDrag);
+  canvasContainer.addEventListener('mousedown', startDrag);
   // canvas.addEventListener('scroll', scrollPan);
-  canvas.onwheel = scrollPan;
+  canvasContainer.onwheel = scrollPan;
 
   //the copy of ui Options in parameters will trigger shader recompilation
   //basically a record of what has actually been instantiated in the shader
@@ -181,24 +190,7 @@ function main() {
 
 //------------------------------------------------------------------------------
   var gridProgram = twgl.createProgramInfo(gl, [SF.simpleVert, SF.gridFrag]);
-  console.log(gridProgram);
-
-  //create the texture layer
-  let src = new Uint8Array(gl.canvas.width * gl.canvas.height * 4);
-
-  let tex = twgl.createTexture(gl, {
-    width: gl.canvas.width,
-    height: gl.canvas.height,
-    wrap: gl.CLAMP_TO_EDGE,
-    src: src,
-    normalize: true,
-  });
-
-  let textureInfo = {
-    width: gl.canvas.width,
-    height: gl.canvas.height,
-    texture: tex,
-  };
+  // console.log(gridProgram);
 
   //eventually this is going to come from layers in redux store
   //new edit layer is full screen layer that allows for user to input data
@@ -212,8 +204,8 @@ function main() {
   }
 
   // grid layer
-  let gridLayer = createLayer(textureInfo, gridProgram, gridUniforms);
-  console.log(gridLayer);
+  let gridLayer = createLayer("grid", gridProgram, gridUniforms);
+
   layers.push(gridLayer);
 
   let editUniforms = {
@@ -231,7 +223,8 @@ function main() {
   var editProgram = twgl.createProgramInfo(gl, [SF.simpleVert, SF.circleFrag]);
 
   // edit layer
-  let editLayer = createLayer(textureInfo, editProgram, editUniforms);
+  let editLayer = createLayer("polyline", editProgram, editUniforms);
+
   layers.push(editLayer);
 
   requestAnimationFrame(render);
@@ -247,15 +240,43 @@ function update() {
 
   ui.update();
 
+  updateCtx();
+
   let speed = 60;
   let resize = twgl.resizeCanvasToDisplaySize(gl.canvas);
+
   if(resize){
+    twgl.resizeCanvasToDisplaySize(ctx.canvas);
     store.dispatch(ACT.statusRes({x:gl.canvas.width, y:gl.canvas.height}));
   }
   //update uniforms - might want a needsUpdate on these at some point
   layers.forEach(function(layer) {
+    if(layer.needsUpdate){
+      switch(layer.name){
+        case "polyline":
+          dataShader = BAKE.polyLine(prim, dataShader);
+          break;
+        case "polygon":
+          dataShader = BAKE.polygon(prim, dataShader);
+          break;
+        case "polycircle":
+          dataShader = BAKE.polyCircle(prim, dataShader);
+          break;
+        case "circle":
+          dataShader = BAKE.circle(prim, dataShader);
+          break;
+        case "rectangle":
+          dataShader = BAKE.rectangle(prim, dataShader);
+          break;
+        case "pointlight":
+          dataShader = BAKE.pointLight(prim, dataShader);
+          break;
+        default:
+          break;
+      }
+      store.dispatch(ACT.sceneItemUpdate(index, false));
+    }
     gl.useProgram(layer.programInfo.program);
-    console.log(layer.uniforms);
     if(resize){
       layer.uniforms.u_resolution['0'] = gl.canvas.width;
       layer.uniforms.u_resolution['1'] = gl.canvas.height;
@@ -275,7 +296,6 @@ function update() {
       layer.uniforms.u_stroke['2'] = state.ui.properties.stroke[2];
     }
     if(layer.uniforms.u_weight){
-      console.log(state.ui.properties.weight);
       layer.uniforms.u_weight = state.ui.properties.weight;
     }
 
@@ -284,12 +304,6 @@ function update() {
 }
 
 function draw() {
-  // if(twgl.resizeCanvasToDisplaySize(gl.canvas)){
-    // layers[0].uniforms.u_resolution = twgl.v3.create(gl.canvas.width, gl.canvas.height, 0)
-  // }
-
-  // layers[0].uniforms.u_panOffset = twgl.v3.create(dPt.x, dPt.y, 0);
-  // twgl.setUniforms(layers[0].programInfo, layers[0].uniforms);
 
   // Tell WebGL how to convert from clip space to pixels
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -322,7 +336,6 @@ function scrollPan(e){
   if (e.ctrlKey) {
     // Your zoom/scale factor
     dPt.z += e.deltaY * 0.1;
-    // console.log("scale: " + scale);
   } else {
     dPt.x += e.deltaX * 0.001;
     dPt.y += e.deltaY * 0.001;
@@ -338,8 +351,8 @@ function startDrag(e){
   if(!state.ui.drag)return;
   PRIM.vecSet(mouseDragStart, state.cursor.pos.x, state.cursor.pos.y);
   // console.log('start drag');
-  canvas.addEventListener('mousemove', doDrag);
-  canvas.addEventListener('mouseup', endDrag);
+  canvasContainer.addEventListener('mousemove', doDrag);
+  canvasContainer.addEventListener('mouseup', endDrag);
 }
 
 function doDrag(e){
@@ -349,8 +362,40 @@ function doDrag(e){
 
 function endDrag(e){
   // console.log('endDrag');
-  canvas.removeEventListener('mousemove', doDrag);
-  canvas.removeEventListener('mouseup', endDrag);
+  canvasContainer.removeEventListener('mousemove', doDrag);
+  canvasContainer.removeEventListener('mouseup', endDrag);
+}
+
+function updateCtx(){
+  ctx.clearRect(0,0, ctx.canvas.width, ctx.canvas.height);
+
+  let pixelPt = {x:0, y:0};
+
+  for(let p of state.scene.pts){
+    pixelPt = {
+      x: p.x,
+      y: p.y
+    }
+
+    pixelPt.x = (((p.x + dPt.x) * (64 / dPt.z)) * resolution.x) * (resolution.y/resolution.x) ;
+    pixelPt.y = (((p.y + dPt.y) * (64 / dPt.z)) * resolution.y);
+
+    let mPtString = '(' + p.x.toFixed(3) + ', ' + p.y.toFixed(3) + ')';
+
+    ctx.fillText(mPtString, pixelPt.x, pixelPt.y);
+  }
+
+  pixelPt = {
+    x: mPt.x,
+    y: mPt.y
+  }
+
+  pixelPt.x = (((mPt.x + dPt.x) * (64. / dPt.z)) * resolution.x) * (resolution.y/resolution.x);
+  pixelPt.y = (((mPt.y + dPt.y) * (64. / dPt.z)) * resolution.y);
+
+  let mPtString = '(' + mPt.x.toFixed(3) + ', ' + mPt.y.toFixed(3) + ')';
+
+  ctx.fillText(mPtString, pixelPt.x, pixelPt.y);
 }
 
 //gotta resize the screen sometimes
@@ -374,9 +419,9 @@ function endDrag(e){
 // //render the scene
 // function render() {
 //
-//   resizeRendererToDisplaySize(renderer);
+//x   resizeRendererToDisplaySize(renderer);
 //
-//   ui.update();
+//x   ui.update();
 //
 //   screenMesh.material.uniforms.posTex.value = editTex.ptsTex;
 //   screenMesh.material.uniforms.editCTexel.value = editTex.cTexel;
@@ -385,8 +430,8 @@ function endDrag(e){
 //   let uiOptions = state.ui.properties;
 //
 //   //mPt is converted into a vector3 in the listener at the top
-//   screenMesh.material.uniforms.mousePt.value = mPt;
-//   screenMesh.material.uniforms.editWeight.value = state.ui.properties.weight;
+//x   screenMesh.material.uniforms.mousePt.value = mPt;
+//x  screenMesh.material.uniforms.editWeight.value = state.ui.properties.weight;
 //
 //   //should be able to get more expressive colors at some point...
 //   let stroke = hexToRgb(state.ui.properties.stroke);
@@ -420,7 +465,6 @@ function endDrag(e){
 //     store.dispatch(ACT.statusUpdate(true));
 //   }
 //
-//   //if we're changing the status of showing/hiding points
 //   if (state.ui.darkmode != dataShader.parameters.properties.darkmode){
 //     dataShader.parameters.properties.darkmode = state.ui.darkmode;
 //     let valString = "0";
@@ -503,7 +547,7 @@ function endDrag(e){
 // }
 
 //textureInfo could before layer class at some point
-function createLayer(textureInfo, programInfo, uniforms){
+function createLayer(name, programInfo, uniforms){
 
     //matrix transformation, transformation can be baked into textureInfo
     let matrix = twgl.m4.ortho(0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
@@ -513,7 +557,7 @@ function createLayer(textureInfo, programInfo, uniforms){
     // scale our 1 unit quad
     // from 1 unit to texWidth, texHeight units
     // will also want to translate/rotate plane at some point
-    matrix = twgl.m4.scale(matrix, twgl.v3.create(textureInfo.width, textureInfo.height, 1));
+    matrix = twgl.m4.scale(matrix, twgl.v3.create(gl.canvas.width, gl.canvas.height, 1));
 
     uniforms.u_matrix = matrix;
 
@@ -537,6 +581,8 @@ function createLayer(textureInfo, programInfo, uniforms){
     // let plane = twgl.primitives.createPlaneBufferInfo(gl);
 
     return({
+      name: name,
+      needsUpdate: false,
       programInfo: programInfo,
       bufferInfo: plane,
       uniforms: uniforms,
@@ -560,21 +606,6 @@ export function modifyDefine(_dataShader, define, val){
   startShader += val + "\n";
   shader = startShader + endShader;
   dataShader.shader = shader;
-}
-
-function hexToRgb(hex) {
-  // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
-  var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-  hex = hex.replace(shorthandRegex, function(m, r, g, b) {
-    return r + r + g + g + b + b;
-  });
-
-  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
 }
 
 //Run-----------------------------------------------------------
