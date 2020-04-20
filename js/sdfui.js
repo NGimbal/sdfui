@@ -10,10 +10,7 @@ import {GhostUI} from './ghostUI.js';
 import * as ACT from './actions.js';
 import { reducer } from './reducers.js';
 
-import {sdfPrimFrag} from './frag/frag.js';
-import {sdfPrimVert} from './vert.js';
-
-import * as SF from './frag/simpleFrag.js';
+import * as SF from './frag/frags.js';
 import {Layer} from './layer.js';
 
 
@@ -189,7 +186,7 @@ function main() {
   }
 
   // edit layer
-  let editLayer = new Layer({type:"polyline"}, SF.simpleVert, SF.circleFrag, editUniforms);
+  let editLayer = new Layer({type:"polyline"}, SF.simpleVert, SF.pLineEditFrag, editUniforms);
 
   layers.push(editLayer);
 

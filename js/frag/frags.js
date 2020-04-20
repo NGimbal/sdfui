@@ -56,7 +56,7 @@ void main() {
 }`;
 
 
-export const circleFrag =
+export const pLineEditFrag =
 `#version 300 es
 #define saturate(a) clamp(a, 0.0, 1.0)
 
@@ -79,36 +79,30 @@ out vec4 outColor;
 float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
     // Don't let it get more round than circular.
     rounded = min(thick.y, rounded);
-    // midpoint
+
     vec2 mid = (pB + pA) * 0.5;
-    // vector from point A to B
     vec2 delta = pB - pA;
-    // Distance between endpoints
     float lenD = length(delta);
-    // unit vector pointing in the line's direction
     vec2 unit = delta / lenD;
+
     // Check for when line endpoints are the same
     if (lenD < 0.0001) unit = vec2(1.0, 0.0);	// if pA and pB are same
+    
     // Perpendicular vector to unit - also length 1.0
     vec2 perp = unit.yx * vec2(-1.0, 1.0);
+    
     // position along line from midpoint
     float dpx = dot(unit, uv - mid);
+    
     // distance away from line at a right angle
     float dpy = dot(perp, uv - mid);
+    
     // Make a distance function that is 0 at the transition from black to white
     float disty = abs(dpy) - thick.y + rounded;
     float distx = abs(dpx) - lenD * 0.5 - thick.x + rounded;
 
-    // Too tired to remember what this does. Something like rounded endpoints for distance function.
     float dist = length(vec2(max(0.0, distx), max(0.0,disty))) - rounded;
     dist = min(dist, max(distx, disty));
-
-    // This is for animated dashed lines. Delete if you don't like dashes.
-    // float dashScale = 2.0*thick.y;
-    // Make a distance function for the dashes
-    // float dash = (repeat(dpx/dashScale + 0.0)-0.5)*dashScale;
-    // Combine this distance function with the line's.
-    // dist = max(dist, dash-(1.0-dashOn*1.0)*10000.0);
 
     return dist;
 }
@@ -150,7 +144,6 @@ void main(){
   vec2 prevPt = texture(u_eTex, vec2(texelOffset, texelOffset)).xy;
   float one = 1.0;
   //may need another texture to display current mouse pos
-  //that sounds more performant anyway
   if(prevPt == vec2(0.)) {discard;}
 
   for (float i = 0.; i < 16.; i++ ){
@@ -168,7 +161,6 @@ void main(){
       if (tPt == vec2(0.)){ break; }
 
       dist = min(dist, drawLine(uv, prevPt, tPt, u_weight, 0.0));
-
       dist = min(dist, sdCircle(uv, tPt, 0.003));
 
       prevPt = tPt;
@@ -183,6 +175,118 @@ void main(){
 
   // dist = 1.0 - smoothstep(0.0,0.005,clamp(dist, 0.0, 1.0));
 
+  //TODO: try alpha = dist, enable gl.BLEND
+  outColor = vec4(col, 1.0);
+}`;
+
+
+export const pLineEditStub =
+`#version 300 es
+#define saturate(a) clamp(a, 0.0, 1.0)
+
+precision mediump float;
+
+in vec2 v_texcoord;
+
+uniform vec3 u_resolution;
+
+uniform sampler2D u_eTex;
+uniform float u_weight;
+uniform vec3 u_stroke;
+
+out vec4 outColor;
+
+//https://www.shadertoy.com/view/4tc3DX
+float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
+    // Don't let it get more round than circular.
+    rounded = min(thick.y, rounded);
+
+    vec2 mid = (pB + pA) * 0.5;
+    vec2 delta = pB - pA;
+    float lenD = length(delta);
+    vec2 unit = delta / lenD;
+
+    // Check for when line endpoints are the same
+    if (lenD < 0.0001) unit = vec2(1.0, 0.0);	// if pA and pB are same
+    
+    // Perpendicular vector to unit - also length 1.0
+    vec2 perp = unit.yx * vec2(-1.0, 1.0);
+    
+    // position along line from midpoint
+    float dpx = dot(unit, uv - mid);
+    
+    // distance away from line at a right angle
+    float dpy = dot(perp, uv - mid);
+    
+    // Make a distance function that is 0 at the transition from black to white
+    float disty = abs(dpy) - thick.y + rounded;
+    float distx = abs(dpx) - lenD * 0.5 - thick.x + rounded;
+
+    float dist = length(vec2(max(0.0, distx), max(0.0,disty))) - rounded;
+    dist = min(dist, max(distx, disty));
+
+    return dist;
+}
+
+float drawLine(vec2 uv, vec2 pA, vec2 pB, float weight, float dash){
+  float line = LineDistField(uv, pA, pB, vec2(weight), weight, dash);
+  // line = 1.0 - smoothstep(0.0, 0.003, line);
+  return line;
+}
+
+float sdCircle(vec2 uv, vec2 p, float r){
+  uv = uv - p;
+  return length(uv) - r;
+}
+
+//smooth Line Filter
+float line(float d, float w){
+  d = clamp(abs(d) - w, 0.0, 1.0);
+  d = 1.0 - smoothstep(0.0,0.003,abs(d));
+  return d;
+}
+
+vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
+    vec3 color = mix(col, vec3(1.0, 0.25, 0.25), dist);
+    return color;
+}
+
+//$INSERT FUNCTION$------
+
+//$ENDINSERT FUNCTION$---
+
+vec4 sceneDist(vec2 uv) {
+  //temp distance
+  float d = 1.0;
+  //cumulative distance
+  float accumD = 1.0;
+  //color to be returned
+  vec3 finalColor = vec3(1.);
+  //index in parameters texture
+  vec2 index = vec2(0.);
+
+  //$INSERT CALL$------
+
+  //$ENDINSERT CALL$---
+
+  return vec4(finalColor, accumD);
+}
+
+void main(){
+  outColor = vec4(1.0);
+  vec2 uv = vec2(v_texcoord);
+  uv.x *= u_resolution.x / u_resolution.y;
+  uv -= u_dPt.xy;
+  uv *= (u_dPt.z / 64.);
+
+  vec4 scene = sceneDist(uv);
+  vec3 col = scene.xyz;
+  float dist = scene.w;
+
+  dist = line(dist, u_weight);
+  col = mix(vec3(1.0), col, dist);
+
+  if ( dist < 0.0000000000000001) discard;
 
   //TODO: try alpha = dist, enable gl.BLEND
   outColor = vec4(col, 1.0);

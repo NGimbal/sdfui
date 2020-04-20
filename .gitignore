@@ -1,3 +1,2 @@
 .DS_Store
-redux.min.js
-redux.min.module.js
+node_modules
