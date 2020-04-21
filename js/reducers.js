@@ -50,23 +50,17 @@ const cursorInit = {
 }
 
 const sceneInit = {
-  //curr edit Item
-  //this is just going to be an index in editItems
-  //or should it be an id?
+  //curr edit Item - an index in editItems
   editItem:0,
-  //all points in doc
-  //eventually move to a Automerge.Table?
+  //all points in scene - eventually move to a Automerge.Table?
   pts:[],
-  //points in doc to be removed
-  //eventually move to a Automerge.Table?
+  //points in scene to be removed - eventually move to a Automerge.Table?
   rmPts:[],
-  //all items in doc
+  //all items in scene
   editItems:[new PRIM.prim("polyline", [], {...PRIM.propsDefault})],
 }
 
 const sceneDoc = Automerge.from(sceneInit);
-
-// console.log(sceneDoc);
 
 const initialState={
   status: statusInit,

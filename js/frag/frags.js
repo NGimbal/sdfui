@@ -13,7 +13,7 @@ out vec4 outColor;
 void main() {
    outColor = texture(u_texture, v_texcoord);
 }`;
-
+//---------------------------------------------
 export const simpleVert =
 `#version 300 es
 
@@ -54,9 +54,8 @@ void main() {
   outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(uv.x) - 0.92)*4.0;
   outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(uv.y) - 0.92)*4.0;
 }`;
-
-
-export const pLineEditFrag =
+//---------------------------------------------
+export const pLineEdit =
 `#version 300 es
 #define saturate(a) clamp(a, 0.0, 1.0)
 
@@ -179,8 +178,8 @@ void main(){
   outColor = vec4(col, 1.0);
 }`;
 
-
-export const pLineEditStub =
+//---------------------------------------------
+export const pLineStub =
 `#version 300 es
 #define saturate(a) clamp(a, 0.0, 1.0)
 
@@ -189,6 +188,7 @@ precision mediump float;
 in vec2 v_texcoord;
 
 uniform vec3 u_resolution;
+uniform vec3 u_dPt;
 
 uniform sampler2D u_eTex;
 uniform float u_weight;
@@ -258,18 +258,14 @@ vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
 vec4 sceneDist(vec2 uv) {
   //temp distance
   float d = 1.0;
-  //cumulative distance
-  float accumD = 1.0;
-  //color to be returned
-  vec3 finalColor = vec3(1.);
+  //xyz:color, w:cumulative distance 
+  vec4 colDist = vec4(1.);
   //index in parameters texture
   vec2 index = vec2(0.);
-
   //$INSERT CALL$------
 
   //$ENDINSERT CALL$---
-
-  return vec4(finalColor, accumD);
+  return colDist;
 }
 
 void main(){
@@ -283,8 +279,8 @@ void main(){
   vec3 col = scene.xyz;
   float dist = scene.w;
 
-  dist = line(dist, u_weight);
-  col = mix(vec3(1.0), col, dist);
+  // dist = line(dist, u_weight);
+  // col = mix(vec3(1.0), col, dist);
 
   if ( dist < 0.0000000000000001) discard;
 

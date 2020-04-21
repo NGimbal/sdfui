@@ -186,7 +186,7 @@ function main() {
   }
 
   // edit layer
-  let editLayer = new Layer({type:"polyline"}, SF.simpleVert, SF.pLineEditFrag, editUniforms);
+  let editLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit, editUniforms);
 
   layers.push(editLayer);
 
@@ -201,7 +201,6 @@ function update() {
 
   updateCtx();
 
-  let speed = 60;
   let resize = twgl.resizeCanvasToDisplaySize(gl.canvas);
 
   if(resize){
@@ -235,6 +234,7 @@ function update() {
       }
       store.dispatch(ACT.sceneItemUpdate(index, false));
     }
+
     gl.useProgram(layer.programInfo.program);
     if(resize){
       layer.uniforms.u_resolution['0'] = gl.canvas.width;

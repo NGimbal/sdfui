@@ -28,26 +28,32 @@
 import {gl, state, mPt, dPt} from './sdfui.js';
 import * as FS from './frag/frags.js';
 import * as BAKE from './bakeLayer.js';
+import * as PRIM from './primitives.js';
 
 // to be treated as a drawObject by twgl we need these properties
 // { programInfo: programInfo,
 //   bufferInfo: plane,
 //   uniforms: this.uniforms,}
+// can't have property named "type"
 export class Layer {
   constructor(prim, vert, frag, uniforms){
     if(typeof prim != 'object' || typeof vert != 'string' || typeof frag != 'string' || typeof uniforms != 'object'){
       console.log('layer constructor is invalid, check inputs');
       return;
     }
-
-    this.prim = prim;
-    this.vert = vert;
-    this.frag = frag;
-    this.uniforms = uniforms;
+    //not allowed to have prop named type
+    this.primType = prim.type.slice();
+    if(prim.id){
+      this.prim = prim.id.slice();  
+    }
+    
+    this.vert = vert.slice();
+    this.frag = frag.slice();
+    this.uniforms = {...uniforms};
 
     // data texture
-    // this.editTex = new PRIM.PolyPoint(16);
-    this.editTex = uniforms.u_eTex;
+    this.editTex = new PRIM.PolyPoint(16);
+    this.uniforms.u_eTex = this.editTex;
 
     //layer properties
     this.properties = {...state.ui.properties};
@@ -90,7 +96,7 @@ export class Layer {
 }
 
 export function setBoundingBox(layer){
-  layer.bbox = new PRIM.bbox(this.editTex.pts);
+  layer.bbox = new PRIM.bbox(layer.editTex.pts);
 }
 
 //when baking object properties should remain parameterized
@@ -100,17 +106,22 @@ export function bakeLayer(layer){
   //set bounding box
   setBoundingBox(layer);
   //compile shader
-  BAKE.bake(layer.prim, layer);
   //let shader = BAKE.bake
-
+  let fs = BAKE.bake(layer);
+  layer.frag = fs;
+  // console.log(fs);
+  layer.programInfo = twgl.createProgramInfo(gl, [layer.vert, fs]);
+  gl.useProgram(layer.programInfo.program);
+  twgl.setUniforms(layer.programInfo, layer.uniforms);
+  console.log(layer);
   //transform bounding box
   //profit
 }
 
+//this just creates a new 
 export function bakePrim(prim){
   let layer = createLayerFromPrim(prim);
   bakeLayer(layer);
-
 }
 
 //this is great - can make a raw layer, or create from prim
@@ -159,9 +170,9 @@ export function createLayerFromPrim(prim){
 export function getFragStub(type){
   switch(type){
     case'polyline':
-      return FS.pLineFrag.slice();
+      return FS.pLineStub.slice();
     default:
-      return FS.pLineFrag.slice();
+      return FS.pLineStub.slice();
   }
 }
 

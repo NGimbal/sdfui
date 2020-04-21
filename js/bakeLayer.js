@@ -6,11 +6,14 @@ import * as SDFUI from './sdfui.js';
 import * as LAYER from './layer.js';
 
 //could also get frag stub here
-export function bake(prim, layer){
-  switch(ptrim.type){
+export function bake(layer){
+  let prim = {};
+  switch(layer.primType){
     case'polyline':
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
       return polyLine(prim, layer);
     default:
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
       return polyLine(prim, layer);
   }
 }
@@ -21,16 +24,12 @@ function polyLine(prim, layer){
   let shader = LAYER.getFragStub(prim.type);
   let parameters = layer.editTex;
 
-  if(prim.pts.length == 0) return dataShader;
-
-  //one huge difference with this way of working is that every layer
-  //will have its own edit texture... I guess that's fine
-  //shouldn't need to reference other pts in a texture
+  //every layer gets its own parameters texture
   shader = polyLineFunc(prim, shader, parameters);
   shader = polyLineCall(prim, shader);
   
   //need to recompile layer program
-
+  //probably after returning the compiled shader
   return shader;
 }
 
@@ -67,9 +66,9 @@ function polyLineFunc(prim, shader, parameters){
   posString += '//$START-' + prim.id + '\n';
 
   // p is a translation for polyLine
-  posString += 'float ' + prim.id + '(vec2 uv, vec2 p, inout vec3 finalColor) {';
+  posString += 'vec4 ' + prim.id + '(vec2 uv, vec2 p) {';
 
-  posString += '\n\tvec2 tUv = uv - p;\n';
+  posString += '\n\tvec2 tUv = uv - p;';
 
   let indexX = 0;
   let indexY = 0;
@@ -77,9 +76,9 @@ function polyLineFunc(prim, shader, parameters){
   let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
   let dataSize = parameters.dataSize;
 
-  let rgbStroke = hexToRgb(prim.properties.stroke);
-  let colorStroke = 'vec3(' + rgbStroke.r/255 + ',' + rgbStroke.g/255 + ',' + rgbStroke.b/255 +')';
-  let weight = prim.properties.weight.toFixed(4);
+  let rgbStroke = prim.properties.stroke;
+  let colorStroke = 'vec3(' + rgbStroke[0].toFixed(4) + ',' + rgbStroke[1].toFixed(4) + ',' + rgbStroke[2].toFixed(4) +')';
+  let weight = prim.properties.weight.toFixed(6);
 
   // let count = 0;
 
@@ -95,35 +94,33 @@ function polyLineFunc(prim, shader, parameters){
     if(cTexel == 0){
       indexX = (cTexel % dataSize) / dataSize + texelOffset;
       indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
-
-      posString += '\n\tvec2 pos = vec2(0.0);\n';
-      posString += '\n\tfloat d = 0.0;\n';
-      posString += '\n\tfloat accumD = 100.0;\n';
-      posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');\n';
-      posString += '\n\tvec2 oldPos = texture2D(parameters, index).xy;\n';
-
+      posString += '\n\tvec3 finalColor = vec3(1.0);';
+      posString += '\n\tvec2 pos = vec2(0.0);';
+      posString += '\n\tfloat d = 0.0;';
+      posString += '\n\tfloat accumD = 100.0;';
+      posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');';
+      posString += '\n\tvec2 oldPos = texture(u_eTex, index).xy;';
       cTexel++;
       continue;
     }else{
       indexX = (cTexel % dataSize) / dataSize + texelOffset;
       indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
 
-      posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');\n';
-      posString += '\n\tpos = texture2D(parameters, index).xy;\n';
-      posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);\n';
-      posString += '\n\taccumD = min(accumD, d);\n';
-      posString += '\tfinalColor = mix(finalColor, ' + colorStroke + ', line(tUv, d, '+weight+'));\n';
-      posString += '\toldPos = pos;\n';
+      posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');';
+      posString += '\n\tpos = texture(u_eTex, index).xy;';
+      posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);';
+      posString += '\n\taccumD = min(accumD, d);';
+      posString += '\n\toldPos = pos;';
 
       cTexel++;
     }
   }
-
-  posString += '\n\treturn accumD;';
-
+  posString += '\n\taccumD = line(accumD, '+weight+');\n';
+  posString += '\n\tfinalColor = mix(finalColor, ' + colorStroke + ', accumD);';
+  posString += '\n\treturn vec4(finalColor, accumD);';
   posString += '\n}\n';
   posString += '//$END-' + prim.id + '\n';
-
+  console.log(posString);
   prim.fragShaer = posString;
   startShader += posString;
   let fragShader = startShader + endShader;
@@ -132,9 +129,7 @@ function polyLineFunc(prim, shader, parameters){
 }
 
 //creates function call for prim specific function
-function polyLineCall(prim, layer){
-  let shader = dataShader.shader;
-  let parameters = dataShader.parameters;
+function polyLineCall(prim, shader){
 
   let insString = "//$INSERT CALL$------";
   let insIndex = shader.indexOf(insString);
@@ -147,7 +142,7 @@ function polyLineCall(prim, layer){
   let posString = '\n';
 
   // p here vec2(0.0,0.0) is a translation for polygon
-  posString += '\t accumD = min(accumD, ' + prim.id + '(uv, vec2(0.0,0.0), finalColor));\n';
+  posString += '\t colDist = ' + prim.id + '(uv, vec2(0.0,0.0));\n';
   startShader += posString;
 
   let fragShader = startShader + endShader;
@@ -704,19 +699,3 @@ function pointLightCall(prim, dataShader){
   return new PRIM.DataShader(fragShader, parameters);
 }
 //POINTLIGHT-------------------------------------------------------------------
-
-
-function hexToRgb(hex) {
-  // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
-  var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-  hex = hex.replace(shorthandRegex, function(m, r, g, b) {
-    return r + r + g + g + b + b;
-  });
-
-  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
-}

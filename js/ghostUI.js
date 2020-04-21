@@ -1,10 +1,10 @@
 "use strict";
 
-import * as THREE from './libjs/three.module.js';
 import * as HINT from './uihints.js';
-import * as PRIM from './primitives.js';
 import * as SDFUI from './sdfui.js';
 import * as ACT from './actions.js';
+import {Layer, bakeLayer} from './layer.js';
+import * as SF from './frag/frags.js';
 
 //GhostUI coordinates all UI function
 //Implements UIMode and UIModifiers
@@ -53,8 +53,8 @@ class GhostUI{
       strokeColor:"#0063ae",
       filter:"None",
       weight:0.003,
-      stroke:new THREE.Vector3(0.0, 0.0, 0.0),
-      fill:new THREE.Vector3(0.0, 0.384, 0.682),
+      stroke: twgl.v3.create(0.0, 0.0, 0.0),
+      fill: twgl.v3.create(0.0, 0.384, 0.682),
       fillToggle:false,
       radius:0.125,
       grid: true,
@@ -455,9 +455,20 @@ function endDrawUpdate(){
   SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
 
   let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
-
   SDFUI.store.dispatch(ACT.scenePushEditItem(type));
-  SDFUI.newEditTex();
+
+  //list of layers should probably go in redux store at some point
+  let layer = SDFUI.layers[SDFUI.layers.length - 1];
+  //unis get cloned in object, wonder what the best practice around this is
+  let uniforms = layer.uniforms;
+  
+  let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+  let newLayer = new Layer(nextPrim, SF.simpleVert, SF.pLineEdit, uniforms);
+
+  bakeLayer(layer);
+  SDFUI.layers.push(newLayer);
+
+  // SDFUI.newEditTex();
 
   this.toggle = !this.toggle;
 }
