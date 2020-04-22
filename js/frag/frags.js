@@ -21,12 +21,13 @@ in vec4 a_position;
 in vec2 a_texcoord;
 
 uniform mat4 u_matrix;
+uniform mat4 u_textureMatrix;
 
 out vec2 v_texcoord;
 
 void main() {
   gl_Position = u_matrix * a_position;
-  v_texcoord = a_texcoord;
+  v_texcoord = (u_textureMatrix * vec4(a_texcoord, 0, 1)).xy;
 }`;
 
 export const gridFrag =
@@ -42,7 +43,7 @@ uniform vec3 u_dPt;
 
 out vec4 outColor;
 
-float repeat(float x) { return abs(fract(x*0.5+0.5)-0.5)*2.0; }
+float repeat(float x) { return abs(fract(x*0.25+0.25)-0.5)*2.0; }
 
 void main() {
   outColor = vec4(1.0);
@@ -120,13 +121,20 @@ float sdCircle(vec2 uv, vec2 p, float r){
 //smooth Line Filter
 float line(float d, float w){
   d = clamp(abs(d) - w, 0.0, 1.0);
-  d = 1.0 - smoothstep(0.0,0.003,abs(d));
+  d = 1.0 - smoothstep(0.0,0.001 * (u_dPt.z * 0.07),abs(d));
   return d;
 }
 
 vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
     vec3 color = mix(col, vec3(1.0, 0.25, 0.25), dist);
     return color;
+}
+
+float AO(vec2 p, float dist, float radius, float intensity)
+{
+	float a = clamp(dist / radius, 0.0, 1.0) - 1.0;
+	return 1.0 - (pow(abs(a), 5.0) + 1.0) * intensity + (1.0 - intensity);
+	//return smoothstep(0.0, 1.0, dist / radius);
 }
 
 void main(){
@@ -170,12 +178,17 @@ void main(){
   dist = line(dist, u_weight);
   vec3 col = mix(vec3(1.0), u_stroke, dist);
 
-  if ( dist < 0.0000000000000001) discard;
+  // this is the prev. implementation
+  // finalColor = mix(finalColor, strokeColor, 1.0 - clamp(AO(uv, accumD, 0.06, 0.5), 0.0, 1.0));
+  // this is not working :(
+  // float ao = 1.0 - clamp(AO(uv, dist, 0.06, 0.5), 0.0, 1.0);
+  // col = mix(col, u_stroke, ao);
+  if ( dist < .0001) discard;
 
   // dist = 1.0 - smoothstep(0.0,0.005,clamp(dist, 0.0, 1.0));
 
   //TODO: try alpha = dist, enable gl.BLEND
-  outColor = vec4(col, 1.0);
+  outColor = vec4(col, dist);
 }`;
 
 //---------------------------------------------
@@ -190,9 +203,13 @@ in vec2 v_texcoord;
 uniform vec3 u_resolution;
 uniform vec3 u_dPt;
 
+uniform vec3 u_scale;
+
 uniform sampler2D u_eTex;
 uniform float u_weight;
 uniform vec3 u_stroke;
+
+uniform vec3 u_idCol;
 
 out vec4 outColor;
 
@@ -242,7 +259,8 @@ float sdCircle(vec2 uv, vec2 p, float r){
 //smooth Line Filter
 float line(float d, float w){
   d = clamp(abs(d) - w, 0.0, 1.0);
-  d = 1.0 - smoothstep(0.0,0.003,abs(d));
+  //very simple lod
+  d = 1.0 - smoothstep(0.0,0.001 * (u_dPt.z * 0.07),abs(d));
   return d;
 }
 
@@ -269,9 +287,10 @@ vec4 sceneDist(vec2 uv) {
 }
 
 void main(){
-  outColor = vec4(1.0);
+  outColor = vec4(u_idCol, 0.125);
   vec2 uv = vec2(v_texcoord);
   uv.x *= u_resolution.x / u_resolution.y;
+  // uv.xy = u_scale.xy;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
 
@@ -282,8 +301,16 @@ void main(){
   // dist = line(dist, u_weight);
   // col = mix(vec3(1.0), col, dist);
 
-  if ( dist < 0.0000000000000001) discard;
+  // if ( dist < 0.0000000000000001){
+  //   discard;
+  // }
+
+  if ( dist > 0.0000000000000001){
+    outColor = vec4(col, dist);
+  }
+
+  // outColor = vec4(col, dist);
 
   //TODO: try alpha = dist, enable gl.BLEND
-  outColor = vec4(col, 1.0);
+  
 }`;

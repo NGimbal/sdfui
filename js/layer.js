@@ -25,7 +25,7 @@
 //point = (scene.points.['id']) => { scene.points.['id'] }
 //point a = 5units from point b
 //point = (scene.points.['id'], dist) => { (scene.points.['id'] - point) * dist }
-import {gl, state, mPt, dPt} from './sdfui.js';
+import {gl, state, resolution, mPt, dPt} from './sdfui.js';
 import * as FS from './frag/frags.js';
 import * as BAKE from './bakeLayer.js';
 import * as PRIM from './primitives.js';
@@ -61,6 +61,8 @@ export class Layer {
     this.bbox = null;
     this.needsUpdate = false;
     this.id = (+new Date).toString(36).slice(-8);
+    let idCol = chroma.random().gl();
+    this.idCol = twgl.v3.create(idCol[0], idCol[1], idCol[2]);
 
     //creates a full screen layer
     //matrix transformation, transformation can be baked into layer
@@ -72,6 +74,7 @@ export class Layer {
     this.matrix = twgl.m4.scale(this.matrix, twgl.v3.create(gl.canvas.width, gl.canvas.height, 1));
 
     this.uniforms.u_matrix = this.matrix;
+    this.uniforms.u_idCol = this.idCol;
 
     //create program
     this.programInfo = twgl.createProgramInfo(gl, [vert, frag]);
@@ -97,6 +100,33 @@ export class Layer {
 
 export function setBoundingBox(layer){
   layer.bbox = new PRIM.bbox(layer.editTex.pts);
+  console.log(layer.bbox);
+  updateMatrices(layer);
+}
+
+export function updateMatrices(layer){
+  // ------
+  // texture clipping per:
+  // https://webgl2fundamentals.org/webgl/lessons/webgl-2d-drawimage.html
+  let minX = ((layer.bbox.min.x * (64. / dPt.z) + dPt.x) * resolution.x) * (resolution.y/resolution.x);
+  let minY = ((layer.bbox.min.y * (64. / dPt.z) + dPt.y) * resolution.y);
+  
+  let width = ((layer.bbox.width * (64. / dPt.z)) * resolution.x) * (resolution.y/resolution.x);
+  let height = (layer.bbox.height * (64. / dPt.z)) * resolution.y;
+  
+  //matrix transformation, transformation can be baked into layer
+  layer.matrix = twgl.m4.ortho(0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
+
+  layer.matrix = twgl.m4.translate(layer.matrix, twgl.v3.create(minX, minY, 0));
+  // scale our 1 unit quad - from 1 unit to texWidth, texHeight units
+  layer.matrix = twgl.m4.scale(layer.matrix, twgl.v3.create(width, height, 1));
+
+  layer.uniforms.u_matrix = layer.matrix;
+
+  let texMatrix = twgl.m4.translation(twgl.v3.create(minX / resolution.x, minY / resolution.y, 0));
+  texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(width / resolution.x, height / resolution.y, 1));
+  // layer.uniforms.u_resolution = twgl.v3.create(width, height, 0);
+  layer.uniforms.u_textureMatrix = texMatrix;
 }
 
 //when baking object properties should remain parameterized

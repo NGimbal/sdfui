@@ -70,20 +70,21 @@ export function angleVec(_vec){
 
 export class bbox{
   //input array of points calculate min, max, width, height
-  constructor(points){
-  //   if (typeof points === 'undefined'){
-  //     //is this right?
-  //     this.min = new vec(0 - dPt, 0 - dPt);
-  //     this.max = new vec(gl.canvas.width/gl.canvas.height - dPt, 1 - dPt);
-  //   }else{
-      //goal is to sort points wher [0] is top left and [n] is bottom right
-      points.sort((a,b) => (lengthVec(a) < lengthVec(b)) ? -1 : 1);
-      this.min = points[0];
-      this.max = points[points.length-1];
-  // }
-    this.width = this.max.x - this.min.x;
-    this.height = this.max.y - this.min.y;
-    console.log(this);
+  constructor(points, _offset){
+    let offset = _offset || 0.005;
+
+    points.sort((a,b) => (a.x < b.x) ? -1 : 1);
+    let minX = points[0].x - offset;
+    let maxX = points[points.length-1].x + offset;
+    
+    points.sort((a,b) => (a.y < b.y) ? -1 : 1);
+    let minY = points[0].y - offset;
+    let maxY = points[points.length-1].y + offset;
+
+    this.min = new vec(minX, minY);
+    this.max = new vec(maxX, maxY);
+    this.width = maxX - minX;
+    this.height = maxY - minY;
   }
 }
 

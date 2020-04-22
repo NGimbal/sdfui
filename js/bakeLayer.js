@@ -108,15 +108,16 @@ function polyLineFunc(prim, shader, parameters){
 
       posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');';
       posString += '\n\tpos = texture(u_eTex, index).xy;';
-      posString += '\n\td = drawLine(tUv, oldPos, pos,'+ weight + ',0.0);';
+      posString += '\n\td = drawLine(tUv, oldPos, pos, u_weight, 0.0);';
       posString += '\n\taccumD = min(accumD, d);';
       posString += '\n\toldPos = pos;';
 
       cTexel++;
     }
   }
-  posString += '\n\taccumD = line(accumD, '+weight+');\n';
-  posString += '\n\tfinalColor = mix(finalColor, ' + colorStroke + ', accumD);';
+  
+  posString += '\n\taccumD = line(accumD, u_weight);\n';
+  posString += '\n\tfinalColor = mix(finalColor, u_stroke, accumD);';
   posString += '\n\treturn vec4(finalColor, accumD);';
   posString += '\n}\n';
   posString += '//$END-' + prim.id + '\n';

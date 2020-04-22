@@ -11,7 +11,7 @@ import * as ACT from './actions.js';
 import { reducer } from './reducers.js';
 
 import * as SF from './frag/frags.js';
-import {Layer} from './layer.js';
+import {Layer, updateMatrices} from './layer.js';
 
 
 import {createStore} from './libjs/redux.js';
@@ -119,12 +119,12 @@ function main() {
   ctx = textCanvas.getContext('2d');
 
   canvas = document.querySelector('#c');
-  gl = canvas.getContext( 'webgl2', { alpha: false, antialias: false } );
+  //alpha: false, antialias:false
+  gl = canvas.getContext( 'webgl2', { premultipliedAlpha: false } );
 
   twgl.setDefaults({attribPrefix: "a_"});
   twgl.resizeCanvasToDisplaySize(gl.canvas);
   twgl.resizeCanvasToDisplaySize(ctx.canvas);
-
 
   //set the document resolution
   store.dispatch(ACT.statusRes({x:canvas.width, y:canvas.height}));
@@ -163,8 +163,13 @@ function main() {
   //new edit layer is full screen layer that allows for user to input data
   layers = [];
 
+  //full screen texture matrix
+  let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
+  texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
+
   let gridUniforms = {
     // u_matrix: matrix,
+    u_textureMatrix: twgl.m4.copy(texMatrix),
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
     u_dPt: twgl.v3.create(dPt.x, dPt.y, dPt.z),
   }
@@ -176,6 +181,7 @@ function main() {
 
   let editUniforms = {
     // u_matrix: matrix,
+    u_textureMatrix: twgl.m4.copy(texMatrix),
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
     u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
     u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
@@ -189,6 +195,10 @@ function main() {
   let editLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit, editUniforms);
 
   layers.push(editLayer);
+
+  //this is excellent
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
   requestAnimationFrame(render);
 
@@ -209,6 +219,8 @@ function update() {
   }
   //update uniforms - might want a needsUpdate on these at some point
   layers.forEach(function(layer) {
+    //this is better but still not perfect
+    if(layer.bbox){ updateMatrices(layer); }
     if(layer.needsUpdate){
       switch(layer.name){
         case "polyline":
@@ -325,19 +337,19 @@ function updateCtx(){
 
   let pixelPt = {x:0, y:0};
 
-  for(let p of state.scene.pts){
-    pixelPt = {
-      x: p.x,
-      y: p.y
-    }
+  // for(let p of state.scene.pts){
+  //   pixelPt = {
+  //     x: p.x,
+  //     y: p.y
+  //   }
 
-    pixelPt.x = ((p.x * (64. / dPt.z) + dPt.x) * resolution.x) * (resolution.y/resolution.x) ;
-    pixelPt.y = ((p.y * (64. / dPt.z) + dPt.y) * resolution.y);
+  //   pixelPt.x = ((p.x * (64. / dPt.z) + dPt.x) * resolution.x) * (resolution.y/resolution.x) ;
+  //   pixelPt.y = ((p.y * (64. / dPt.z) + dPt.y) * resolution.y);
 
-    let mPtString = '(' + p.x.toFixed(3) + ', ' + p.y.toFixed(3) + ')';
+  //   let mPtString = '(' + p.x.toFixed(3) + ', ' + p.y.toFixed(3) + ')';
 
-    ctx.fillText(mPtString, pixelPt.x, pixelPt.y);
-  }
+  //   ctx.fillText(mPtString, pixelPt.x, pixelPt.y);
+  // }
 
   pixelPt = {
     x: mPt.x,
