@@ -4,7 +4,6 @@
 //current naive thinking
 //ui - state related to a user's view of the world
 //document - state related to a shared scene
-import * as THREE from './libjs/three.module.js';
 
 import * as PRIM from './primitives.js';
 import * as ACT from './actions.js';
@@ -13,6 +12,20 @@ import * as ACT from './actions.js';
 //want me to put it in the state
 //although why not? state can always be updated
 //let's keep it out for now
+
+//also need to add a list of layers
+
+//item needs update new idea:
+//prim has counter, 
+//  every time prim is updated, counter is incremented
+//state.status has list of key: vals
+//  key is prim.id
+//  val is per user increment count
+//if (prim.counter != state.status[prim.id]) {
+// state.status[prim.id] = prim.counter 
+// update(prim);
+//}
+
 import { ptTree } from './sdfui.js';
 
 // console.log(Automerge);

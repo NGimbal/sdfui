@@ -3,7 +3,7 @@
 import * as HINT from './uihints.js';
 import * as SDFUI from './sdfui.js';
 import * as ACT from './actions.js';
-import {Layer, bakeLayer} from './layer.js';
+import {bakeLayer, createLayerFromPrim} from './layer.js';
 import * as SF from './frag/frags.js';
 
 //GhostUI coordinates all UI function
@@ -285,43 +285,40 @@ function drawUpdate(){
   let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
 
   if(type != sel.value){
+    let nextPrim = {};
+    let newLayer = {};
+    let layer = SDFUI.layers[SDFUI.layers.length - 1];
     switch(sel.value){
       case "polyline":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
         SDFUI.store.dispatch(ACT.scenePushEditItem("polyline"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "1");
-        SDFUI.newEditTex();
+        nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+        newLayer = createLayerFromPrim(nextPrim, true, layer.uniforms);
+        SDFUI.layers.push(newLayer);
         break;
       case "polygon":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
         SDFUI.store.dispatch(ACT.scenePushEditItem("polygon"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "5");
-        SDFUI.newEditTex();
+        nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+        newLayer = createLayerFromPrim(nextPrim, true, layer.uniforms);
+        SDFUI.layers.push(newLayer);
         break;
       case "polycircle":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
         SDFUI.store.dispatch(ACT.scenePushEditItem("polycircle"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "2");
-        SDFUI.newEditTex();
         break;
       case "circle":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
         SDFUI.store.dispatch(ACT.scenePushEditItem("circle"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "3");
-        SDFUI.newEditTex();
         break;
       case "rectangle":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
         SDFUI.store.dispatch(ACT.scenePushEditItem("rectangle"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "4");
-        SDFUI.newEditTex();
         break;
       case "pointlight":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
         SDFUI.store.dispatch(ACT.scenePushEditItem("pointlight"));
-        SDFUI.modifyDefine(SDFUI.dataShader, "EDIT_SHAPE", "6");
-        SDFUI.store.dispatch(ACT.uiDarkMode(true));
-        SDFUI.newEditTex();
+        // SDFUI.store.dispatch(ACT.uiDarkMode(true));
         break;
     }
     SDFUI.store.dispatch(ACT.statusUpdate(true));
@@ -350,6 +347,7 @@ function drawUpdate(){
 
   sel = document.getElementById("strokeColor-select");
   let selVal = chroma(sel.value).gl();
+  //TODO: seems to always be true
   if(SDFUI.state.ui.properties.stroke != selVal){
     SDFUI.store.dispatch(ACT.drawStroke(selVal));
     SDFUI.store.dispatch(ACT.sceneEditProps());
@@ -445,12 +443,6 @@ function endDrawUpdate(){
   if(!this.toggle) return null;
   // console.log("///////////////////////////////////////////////");
 
-  //get out of Draw UIMode
-  // if(SDFUI.editTex.pts.length == 0) {
-  //   this.options.exit = true;
-  //   return null;
-  // }
-
   SDFUI.store.dispatch(ACT.statusUpdate(true));
   SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
 
@@ -459,16 +451,13 @@ function endDrawUpdate(){
 
   //list of layers should probably go in redux store at some point
   let layer = SDFUI.layers[SDFUI.layers.length - 1];
-  //unis get cloned in object, wonder what the best practice around this is
-  let uniforms = layer.uniforms;
-  
+
   let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-  let newLayer = new Layer(nextPrim, SF.simpleVert, SF.pLineEdit, uniforms);
+
+  let newLayer = createLayerFromPrim(nextPrim, true, layer.uniforms);
 
   bakeLayer(layer);
   SDFUI.layers.push(newLayer);
-
-  // SDFUI.newEditTex();
 
   this.toggle = !this.toggle;
 }

@@ -36,25 +36,29 @@ import * as PRIM from './primitives.js';
 //   uniforms: this.uniforms,}
 // can't have property named "type"
 export class Layer {
-  constructor(prim, vert, frag, uniforms){
+  constructor(prim, vert, frag, _uniforms){
+    let uniforms = _uniforms || getUniforms(prim.type);
+
     if(typeof prim != 'object' || typeof vert != 'string' || typeof frag != 'string' || typeof uniforms != 'object'){
       console.log('layer constructor is invalid, check inputs');
       return;
     }
     //not allowed to have prop named type
     this.primType = prim.type.slice();
-    if(prim.id){
-      this.prim = prim.id.slice();  
-    }
-    
+
     this.vert = vert.slice();
     this.frag = frag.slice();
     this.uniforms = {...uniforms};
 
-    // data texture
-    this.editTex = new PRIM.PolyPoint(16);
-    this.uniforms.u_eTex = this.editTex;
-
+    // if this is really associated with a primitive
+    if(prim.id){
+      this.prim = prim.id.slice();  
+      // data texture
+      this.editTex = new PRIM.PolyPoint(16);
+      this.uniforms.u_eTex = this.editTex;
+      this.uniforms.u_cTex = this.editTex.cTexel;
+    }
+    
     //layer properties
     this.properties = {...state.ui.properties};
     //bbox is set on bake
@@ -65,12 +69,8 @@ export class Layer {
     this.idCol = twgl.v3.create(idCol[0], idCol[1], idCol[2]);
 
     //creates a full screen layer
-    //matrix transformation, transformation can be baked into layer
     this.matrix = twgl.m4.ortho(0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
-    // translate our quad to dstX, dstY
     this.matrix = twgl.m4.translate(this.matrix, twgl.v3.create(0, 0, 0));
-    // scale our 1 unit quad - from 1 unit to texWidth, texHeight units
-    // will also want to translate/rotate plane at some point
     this.matrix = twgl.m4.scale(this.matrix, twgl.v3.create(gl.canvas.width, gl.canvas.height, 1));
 
     this.uniforms.u_matrix = this.matrix;
@@ -135,17 +135,14 @@ export function updateMatrices(layer){
 export function bakeLayer(layer){
   //set bounding box
   setBoundingBox(layer);
-  //compile shader
-  //let shader = BAKE.bake
+  
   let fs = BAKE.bake(layer);
   layer.frag = fs;
-  // console.log(fs);
+
   layer.programInfo = twgl.createProgramInfo(gl, [layer.vert, fs]);
+  
   gl.useProgram(layer.programInfo.program);
   twgl.setUniforms(layer.programInfo, layer.uniforms);
-  console.log(layer);
-  //transform bounding box
-  //profit
 }
 
 //this just creates a new 
@@ -158,54 +155,104 @@ export function bakePrim(prim){
 //need to figure out best way to confirm if something has been updated
 //maybe best way would be to have an update counter
 //every time a prim has been updated check to see if counters match
-export function createLayerFromPrim(prim){
+export function createLayerFromPrim(prim, edit, _uniforms){
+  let uniforms = {};
+  if(_uniforms){
+    uniforms = {..._uniforms};
+  } else {
+    uniforms = getUniforms(prim.type);
+  }
+
   //get program stub for prim type
-  let fs = getFragStub(prim.type);
+  let fs = getFragStub(prim.type, edit);
   
   let vs = FS.simpleVert.slice();
+  
   //get the points
   let pts = [];
-  for (let p of state.scene.pts){
-    if(prim.pts.includes(p.id)){
-      pts.push(p);
+  if(prim.pts.length > 0){
+    for (let p of state.scene.pts){
+      if(prim.pts.includes(p.id)){
+        pts.push(p);
+      }
     }
   }
   // which of these methods is better?
   // scenePts = [...state.scene.pts];
   // scenePts.filter(p => prim.pts.includes(p.id));
 
-  //
-  //create PolyPoint
-  let editTex = new PRIM.PolyPoint(16);
   //add pts to PolyPt
-  for(let p of pts){
-    editTex.addPt(p);
-  }
+
   //get the uniforms from prim
-  let uniforms = {
-    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
-    u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
-    u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
-    u_eTex: editTex,
-    u_weight: prim.properties.weight,
-    u_stroke: twgl.v3.create(0.0, 0.435, 0.3137), //need to convert to prim.properties.stroke
-  };
   //return new Layer
   let layer = new Layer(prim, vs, fs, uniforms);
-  setBoundingBox(layer);
+  
+  for(let p of pts){
+    layer.uniforms.u_eTex.addPt(p);
+  }
+  //also if edit = false;
+  //maybe we have prim points but we want to be editing?
+  if(prim.pts.length > 0){
+    setBoundingBox(layer);
+  }
   return layer;
 }
 
-export function getFragStub(type){
+//does this function need to be public?
+export function getFragStub(type, edit){
   switch(type){
     case'polyline':
-      return FS.pLineStub.slice();
+      return edit ? FS.pLineEdit.slice() : FS.pLineStub.slice();
+    case'polygon':
+      return edit ? FS.polygonEdit.slice() : FS.polygonStub.slice();
     default:
       return FS.pLineStub.slice();
   }
 }
 
-
-//future idea for increased performance, UI elements
-//export function renderToTexture(layer, size)
+function getUniforms(type){
+  //full screen texture matrix
+  let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
+  texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
+  
+  switch(type){
+    case'polyline':
+      return {
+        // u_matrix: matrix,
+        u_textureMatrix: twgl.m4.copy(texMatrix),
+        u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+        u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
+        u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
+        u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
+        u_eTex: {},
+        u_weight: state.ui.properties.weight,
+        u_stroke: twgl.v3.create(0.0, 0.435, 0.3137),
+      }
+    case'polygon':
+      return {
+        // u_matrix: matrix,
+        u_textureMatrix: twgl.m4.copy(texMatrix),
+        u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+        u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
+        u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
+        u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
+        u_eTex: {},
+        u_cTex: -1,
+        u_weight: state.ui.properties.weight,
+        u_stroke: twgl.v3.create(0.0, 0.435, 0.3137),
+        u_fill: twgl.v3.create(0.777, 0.02, 0.1137),
+      }
+    default:
+      return {
+        // u_matrix: matrix,
+        u_textureMatrix: twgl.m4.copy(texMatrix),
+        u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+        u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
+        u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
+        u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
+        u_eTex: {},
+        u_weight: state.ui.properties.weight,
+        u_stroke: twgl.v3.create(0.0, 0.435, 0.3137),
+      }
+  }
+}

@@ -16,16 +16,11 @@ import {Layer, updateMatrices} from './layer.js';
 
 import {createStore} from './libjs/redux.js';
 
-var canvas, ctx, renderer, camera, ui, scene, plane, screenMesh;
-var material, uniforms;
+var canvas, ctx, ui;
 
-//------
 //twgl world
 export var gl;
-var vao;
-var matrixLocation, textureLocation;
 export var layers;
-//------
 
 export var dataShader;
 
@@ -83,7 +78,7 @@ function searchTree(node, id){
     let left = searchTree(node.left, id);
     return left ? left : searchTree(node.right, id);
   }
-  return null;
+  // return null;
 }
 
 //substcribe to store changes - run listener to set relevant variables
@@ -131,7 +126,7 @@ function main() {
 
   store.dispatch(ACT.cursorGridScale(64));
   setGrid(state.cursor.scale);
-
+  
   if (!gl){
     console.log("your browser/OS/drivers do not support WebGL2");
     return;
@@ -143,19 +138,6 @@ function main() {
   canvasContainer.addEventListener('mousedown', startDrag);
 
   canvasContainer.onwheel = scrollPan;
-
-  // let pts = [
-  //   {x:0.5, y:0.5},
-  //   {x:1.0, y:0.0},
-  //   {x:0.0, y:1.0},
-  //   {x:1.0, y:1.0},
-  //   {x:0.3, y:0.3},
-  //   {x:0.4, y:0.5},
-  //   {x:0.2, y:0.8},
-  // ]
-  // for(let p of pts){
-  //   editTex.addPoint(p);
-  // }
 
 //------------------------------------------------------------------------------
 
@@ -179,26 +161,17 @@ function main() {
 
   layers.push(gridLayer);
 
-  let editUniforms = {
-    // u_matrix: matrix,
-    u_textureMatrix: twgl.m4.copy(texMatrix),
-    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
-    u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
-    u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
-    u_eTex: new PRIM.PolyPoint(16),
-    u_weight: state.ui.properties.weight,
-    u_stroke: twgl.v3.create(0.0, 0.435, 0.3137),
-  }
-
   // edit layer
-  let editLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit, editUniforms);
+  let plineLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit);
 
-  layers.push(editLayer);
+  layers.push(plineLayer);
 
   //this is excellent
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  // would like to try and render "distance" to accumulating buffer like color
+  // gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
 
   requestAnimationFrame(render);
 
@@ -230,16 +203,16 @@ function update() {
           dataShader = BAKE.polygon(prim, dataShader);
           break;
         case "polycircle":
-          dataShader = BAKE.polyCircle(prim, dataShader);
+          // dataShader = BAKE.polyCircle(prim, dataShader);
           break;
         case "circle":
-          dataShader = BAKE.circle(prim, dataShader);
+          // dataShader = BAKE.circle(prim, dataShader);
           break;
         case "rectangle":
-          dataShader = BAKE.rectangle(prim, dataShader);
+          // dataShader = BAKE.rectangle(prim, dataShader);
           break;
         case "pointlight":
-          dataShader = BAKE.pointLight(prim, dataShader);
+          // dataShader = BAKE.pointLight(prim, dataShader);
           break;
         default:
           break;
@@ -268,6 +241,10 @@ function update() {
     }
     if(layer.uniforms.u_weight){
       layer.uniforms.u_weight = state.ui.properties.weight;
+    }
+    //does this work? How many times is this going to trip me up
+    if(layer.uniforms.u_cTex || layer.uniforms.u_cTex == 0){
+      layer.uniforms.u_cTex = layer.uniforms.u_eTex.cTexel;
     }
     twgl.setUniforms(layer.programInfo, layer.uniforms);
   });
