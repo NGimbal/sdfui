@@ -15,7 +15,6 @@ export const ui = 'ui';
 
 //sub types
 //STATUS
-export const STATUS_UPDATE      = 'STATUS_UPDATE'; //update shader
 export const STATUS_RES         = 'STATUS_RES'; //resolution
 export const STATUS_EXPORT      = 'STATUS_EXPORT'; //resolution
 export const STATUS_RASTER      = 'STATUS_RASTER'; //resolution
@@ -41,6 +40,7 @@ export const DRAW_STROKE        = "DRAW_STROKE"; //stroke color
 export const DRAW_FILL          = "DRAW_FILL"; //fill color
 export const DRAW_WEIGHT        = "DRAW_WEIGHT"; //stroke weight
 export const DRAW_RADIUS        = "DRAW_RADIUS"; //shape radius
+export const DRAW_OPACITY        = "DRAW_OPACITY"; //shape radius
 //SCENE
 export const SCENE_ADDPT        = 'SCENE_ADDPT'; //add point to scene
 export const SCENE_RMVPT        = 'SCENE_RMVPT'; //stages pt for removal
@@ -49,17 +49,8 @@ export const SCENE_EDITUPDATE   = 'SCENE_EDITUPDATE'; //marks the edit item for 
 export const SCENE_PUSHEDITITEM = 'SCENE_PUSHEDITITEM';
 export const SCENE_EDITPROPS    = 'SCENE_EDITPROPS'; //needs to fire when properties are changed
 export const SCENE_ITEMUPDATE   = 'SCENE_ITEMUPDATE'; //marks prim for update
-
+export const SCENE_RMVITEM      = 'SCENE_RMVITEM'; //remove item w/ id - must also remove points
 //ACTION CREATORS
-
-//records when shader needs to be recompiled - bool
-export function statusUpdate(toggle){
-  return{
-    type: status,
-    subtype: STATUS_UPDATE,
-    toggle,
-  }
-}
 
 //establishes grid offset
 export function statusRes(vec2){
@@ -213,20 +204,20 @@ export function drawFilter(filter){
 }
 
 //what is the current stroke color - vec(r, g, b, a)
-export function drawStroke(array){
+export function drawStroke(hex){
   return{
     type: ui,
     subtype: DRAW_STROKE,
-    array,
+    hex,
   }
 }
 
 //what is the current fill color - vec(r, g, b, a)
-export function drawFill(hexString){
+export function drawFill(hex){
   return{
     type: ui,
     subtype: DRAW_FILL,
-    hexString,
+    hex,
   }
 }
 
@@ -248,6 +239,15 @@ export function drawRadius(radius){
   }
 }
 
+
+//what is the current shape radius float
+export function drawOpacity(opacity){
+  return{
+    type: ui,
+    subtype: DRAW_OPACITY,
+    opacity,
+  }
+}
 
 //adds point
 export function sceneAddPt(pt){
@@ -286,12 +286,21 @@ export function sceneEditUpdate(toggle){
   };
 }
 
-//pushes new item onto scene graph
+//pushes new item onto scene graph - prim is type
 export function scenePushEditItem(prim){
   return {
     type: scene,
     subtype: SCENE_PUSHEDITITEM,
     prim
+  };
+}
+
+//removes item, must also remove points
+export function sceneRmvItem(id){
+  return {
+    type: scene,
+    subtype: SCENE_RMVITEM,
+    id
   };
 }
 

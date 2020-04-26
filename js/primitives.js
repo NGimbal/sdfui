@@ -71,7 +71,7 @@ export function angleVec(_vec){
 export class bbox{
   //input array of points calculate min, max, width, height
   constructor(points, _offset){
-    let offset = _offset || 0.005;
+    let offset = _offset || 0.05;
 
     points.sort((a,b) => (a.x < b.x) ? -1 : 1);
     let minX = points[0].x - offset;
@@ -91,10 +91,11 @@ export class bbox{
 export var propsDefault = {
   type:"",
   filter:"",
-  stroke: [0.0, 0.435, 0.3137, 1.0],
-  fill: [0.0, 0.435, 0.3137, 1.0],
+  stroke: "#ffa724",
+  fill: "#0600b5",
   weight:0.001,
-  radius:0.001
+  radius:0.001,
+  opacity:0.85,
 }
 
 export class prim{

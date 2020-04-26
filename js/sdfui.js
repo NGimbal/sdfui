@@ -234,16 +234,26 @@ function update() {
       layer.uniforms.u_dPt['1'] = dPt.y;
       layer.uniforms.u_dPt['2'] = dPt.z;
     }
-    if(layer.uniforms.u_stroke){
-      layer.uniforms.u_stroke['0'] = state.ui.properties.stroke[0];
-      layer.uniforms.u_stroke['1'] = state.ui.properties.stroke[1];
-      layer.uniforms.u_stroke['2'] = state.ui.properties.stroke[2];
+    if (layer.prim == state.scene.editItems[state.scene.editItem].id){
+      if(typeof layer.uniforms.u_stroke === 'object'){
+        layer.uniforms.u_stroke = chroma(state.ui.properties.stroke).gl().slice(0,3);
+      }
+      if(typeof layer.uniforms.u_fill === 'object'){
+        layer.uniforms.u_fill = chroma(state.ui.properties.fill).gl().slice(0,3);
+      }
+      if(typeof layer.uniforms.u_weight === 'number'){
+        layer.uniforms.u_weight = state.ui.properties.weight;
+      }
+      if(typeof layer.uniforms.u_weight === 'number'){
+        layer.uniforms.u_weight = state.ui.properties.weight;
+      }
+      if(typeof layer.uniforms.u_opacity  === 'number'){
+        layer.uniforms.u_opacity = state.ui.properties.opacity;
+      }
     }
-    if(layer.uniforms.u_weight){
-      layer.uniforms.u_weight = state.ui.properties.weight;
-    }
+    
     //does this work? How many times is this going to trip me up
-    if(layer.uniforms.u_cTex || layer.uniforms.u_cTex == 0){
+    if(typeof layer.uniforms.u_cTex === 'number'){
       layer.uniforms.u_cTex = layer.uniforms.u_eTex.cTexel;
     }
     twgl.setUniforms(layer.programInfo, layer.uniforms);

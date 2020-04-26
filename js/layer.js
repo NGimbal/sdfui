@@ -100,12 +100,12 @@ export class Layer {
 
 export function setBoundingBox(layer){
   layer.bbox = new PRIM.bbox(layer.editTex.pts);
-  console.log(layer.bbox);
+  // console.log(layer.bbox);
   updateMatrices(layer);
 }
 
+//updates position and texture clipping matrices for layer
 export function updateMatrices(layer){
-  // ------
   // texture clipping per:
   // https://webgl2fundamentals.org/webgl/lessons/webgl-2d-drawimage.html
   let minX = ((layer.bbox.min.x * (64. / dPt.z) + dPt.x) * resolution.x) * (resolution.y/resolution.x);
@@ -129,9 +129,7 @@ export function updateMatrices(layer){
   layer.uniforms.u_textureMatrix = texMatrix;
 }
 
-//when baking object properties should remain parameterized
-//that way changing color, weight of line doesn't require recompilation of shader
-//actually changing pt positions won't need shader recompilation either
+//bakes layer
 export function bakeLayer(layer){
   //set bounding box
   setBoundingBox(layer);
@@ -145,16 +143,27 @@ export function bakeLayer(layer){
   twgl.setUniforms(layer.programInfo, layer.uniforms);
 }
 
-//this just creates a new 
+//create new edit layer of a certain primitive type
+export function createEditLayer(prim){
+  let uniforms = getUniforms(prim.type);
+
+  //get program stub for prim type
+  let fs = getFragStub(prim.type, true);
+  
+  let vs = FS.simpleVert.slice();
+
+  //return new Layer
+  let layer = new Layer(prim, vs, fs, uniforms);
+  
+  return layer;
+}
+
 export function bakePrim(prim){
   let layer = createLayerFromPrim(prim);
   bakeLayer(layer);
 }
 
-//this is great - can make a raw layer, or create from prim
-//need to figure out best way to confirm if something has been updated
-//maybe best way would be to have an update counter
-//every time a prim has been updated check to see if counters match
+//create a layer from a fully fledged primitive
 export function createLayerFromPrim(prim, edit, _uniforms){
   let uniforms = {};
   if(_uniforms){
@@ -181,14 +190,11 @@ export function createLayerFromPrim(prim, edit, _uniforms){
   // scenePts = [...state.scene.pts];
   // scenePts.filter(p => prim.pts.includes(p.id));
 
-  //add pts to PolyPt
-
-  //get the uniforms from prim
   //return new Layer
   let layer = new Layer(prim, vs, fs, uniforms);
   
   for(let p of pts){
-    layer.uniforms.u_eTex.addPt(p);
+    layer.uniforms.u_eTex.addPoint(p);
   }
   //also if edit = false;
   //maybe we have prim points but we want to be editing?
@@ -199,6 +205,7 @@ export function createLayerFromPrim(prim, edit, _uniforms){
 }
 
 //does this function need to be public?
+//returns edit frag or stub frag depending on edit param
 export function getFragStub(type, edit){
   switch(type){
     case'polyline':
@@ -210,6 +217,7 @@ export function getFragStub(type, edit){
   }
 }
 
+//get uniforms by prim type
 function getUniforms(type){
   //full screen texture matrix
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
@@ -226,7 +234,8 @@ function getUniforms(type){
         u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
         u_eTex: {},
         u_weight: state.ui.properties.weight,
-        u_stroke: twgl.v3.create(0.0, 0.435, 0.3137),
+        u_opacity: state.ui.properties.opacity,
+        u_stroke: chroma(state.ui.properties.stroke).gl().slice(0,3),
       }
     case'polygon':
       return {
@@ -239,8 +248,9 @@ function getUniforms(type){
         u_eTex: {},
         u_cTex: -1,
         u_weight: state.ui.properties.weight,
-        u_stroke: twgl.v3.create(0.0, 0.435, 0.3137),
-        u_fill: twgl.v3.create(0.777, 0.02, 0.1137),
+        u_opacity: state.ui.properties.opacity,
+        u_stroke: chroma(state.ui.properties.stroke).gl().slice(0,3),
+        u_fill: chroma(state.ui.properties.fill).gl().slice(0,3),
       }
     default:
       return {
@@ -252,7 +262,8 @@ function getUniforms(type){
         u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
         u_eTex: {},
         u_weight: state.ui.properties.weight,
-        u_stroke: twgl.v3.create(0.0, 0.435, 0.3137),
+        u_opacity: state.ui.properties.opacity,
+        u_stroke: chroma(state.ui.properties.stroke).gl().slice(0,3),
       }
   }
 }

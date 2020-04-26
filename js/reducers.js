@@ -91,10 +91,6 @@ function status(_state=initialState, action){
       return Object.assign({}, state,{
         resolution: new PRIM.vec(action.vec2.x, action.vec2.y)
       });
-    case ACT.STATUS_UPDATE:
-      return Object.assign({}, state,{
-        shaderUpdate: action.toggle,
-      });
     case ACT.STATUS_RASTER:
       return Object.assign({}, state,{
         raster: !state.raster,
@@ -139,16 +135,22 @@ function ui(_state=initialState, action){
           radius: action.radius,
         }),
       });
+    case ACT.DRAW_OPACITY:
+      return Object.assign({}, state,{
+        properties: Object.assign({}, state.properties,{
+          opacity: action.opacity,
+        }),
+      });
     case ACT.DRAW_FILL:
       return Object.assign({}, state,{
         properties: Object.assign({}, state.properties,{
-          fill: action.hexString,
+          fill: action.hex,
         }),
       });
     case ACT.DRAW_STROKE:
       return Object.assign({}, state,{
         properties: Object.assign({}, state.properties,{
-          stroke: [...action.array],
+          stroke: action.hex.slice(),
         }),
       });
     case ACT.DRAW_FILTER:
@@ -172,7 +174,7 @@ function cursor(_state=initialState, action) {
 
       if(state.snapPt){
         let ptNear = ptTree.nearest(pt, 1);
-        if (ptNear.length > 0 && ptNear[0][1] < 0.001){
+        if (ptNear.length > 0 && ptNear[0][1] < 0.0001){
           pt = ptNear[0][0];
           return Object.assign({}, state,{
             pos: pt
@@ -301,7 +303,7 @@ function scene(_state=initialState, action) {
         doc.editItems[doc.editItem].needsUpdate = true;
       });
     case ACT.SCENE_PUSHEDITITEM:
-      if(state.editItems[state.editItem].pts.length > 0){
+      if(typeof state.editItems[state.editItem] !== 'undefined' && state.editItems[state.editItem].pts.length > 0){
         return Automerge.change(state, 'push edit item', doc=>{
           doc.editItem = state.editItem + 1;
           doc.editItems.push(new PRIM.prim(action.prim, [], {..._state.ui.properties}));
@@ -311,6 +313,12 @@ function scene(_state=initialState, action) {
           doc.editItems[state.editItem] = new PRIM.prim(action.prim, [], {..._state.ui.properties});
         });
       }
+    case ACT.SCENE_RMVITEM:
+      return Automerge.change(state, 'remove edit item ' + action.id, doc=>{
+        let index = state.editItems.findIndex(i => i.id === action.id);
+        doc.editItems.deleteAt(index);
+        // doc.editItem = min(state.editItem - 1, 0);
+      });
     case ACT.SCENE_EDITPROPS:
       return Automerge.change(state, 'update edit properties', doc=>{
         doc.editItems[doc.editItem].properties = {..._state.ui.properties};

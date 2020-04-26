@@ -233,14 +233,8 @@ function polgonFunc(prim, shader, parameters){
       posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');\n';
       posString += '\tvec2 last = texture(u_eTex, index).xy;\n';
 
-      //get the last point in absolute terms
-      // let lastPtId = prim.pts[prim.pts.length - 1];
-      // let lastPtIndex = SDFUI.state.scene.pts.findIndex(i => i.id === lastPtId);
-      // let lastPt = SDFUI.state.scene.pts[lastPtIndex];
-      //reduces tex lookups, probably is gonna fuck me at some point
-      // posString += '\tvec2 last = vec2('+lastPt.x+', '+lastPt.y+');\n';
       posString += '\tfloat d = dot(tUv - first, tUv - first);\n';
-      // posString += '\n\taccumD = min(accumD, d);\n';
+
       posString += '\tfloat s = 1.0;\n';
       posString += '\tvec2 oldPos = first;\n';
       posString += '\tvec2 e = last - first;\n';
@@ -273,23 +267,16 @@ function polgonFunc(prim, shader, parameters){
   }
 
   posString += '\td = s*sqrt(d);\n';
-  // posString += '\n\taccumD = min(accumD, d);\n';
-  // posString += '\tfloat line = d;\n';
 
   //fill
   posString += '\tfloat fill = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));\n';
   posString += '\tvec3 finalColor = mix(vec3(1.0), u_fill, fill);\n';
   posString += '\tfinalColor = mix(finalColor, u_stroke, line(d, u_weight));\n';
 
-  // posString += '\tfloat line = clamp(abs(d) - u_weight, 0.0, 1.0);\n';
-  // posString += '\tline = 1.0 - smoothstep(0.0,0.003,abs(line));\n';
-  // posString += '\tfinalColor = mix(finalColor, u_stroke, line);\n';
-
-  posString += '\n\treturn vec4(finalColor, d);\n';
+  posString += '\n\treturn vec4(finalColor, fill);\n';
   posString += '\n}\n';
   posString += '//$END-' + prim.id + '\n';
 
-  // prim.fragShader = posString;
   startShader += posString;
   let fragShader = startShader + endShader;
 

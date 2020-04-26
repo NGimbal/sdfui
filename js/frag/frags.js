@@ -72,6 +72,7 @@ uniform vec3 u_mPt;
 uniform sampler2D u_eTex;
 uniform float u_weight;
 uniform vec3 u_stroke;
+uniform float u_opacity;
 
 out vec4 outColor;
 
@@ -188,7 +189,7 @@ void main(){
   // dist = 1.0 - smoothstep(0.0,0.005,clamp(dist, 0.0, 1.0));
 
   //TODO: try alpha = dist, enable gl.BLEND
-  outColor = vec4(col, dist);
+  outColor = vec4(col, dist * u_opacity);
 }`;
 
 //---------------------------------------------
@@ -208,6 +209,7 @@ uniform vec3 u_scale;
 uniform sampler2D u_eTex;
 uniform float u_weight;
 uniform vec3 u_stroke;
+uniform float u_opacity;
 
 uniform vec3 u_idCol;
 
@@ -301,15 +303,15 @@ void main(){
   // dist = line(dist, u_weight);
   // col = mix(vec3(1.0), col, dist);
 
-  // if ( dist < 0.0000000000000001){
-  //   discard;
-  // }
-
-  if ( dist > 0.0000000000000001){
-    outColor = vec4(col, dist);
+  if ( dist < 0.0000000000000001){
+    discard;
   }
 
-  // outColor = vec4(col, dist);
+  // if ( dist > 0.0000000000000001){
+  //   outColor = vec4(col, dist);
+  // }
+
+  outColor = vec4(col, dist * u_opacity);
 
   //TODO: try alpha = dist, enable gl.BLEND
   
@@ -333,6 +335,7 @@ uniform float u_cTex;
 uniform float u_weight;
 uniform vec3 u_stroke;
 uniform vec3 u_fill;
+uniform float u_opacity;
 
 out vec4 outColor;
 
@@ -460,9 +463,9 @@ void main(){
     col = mix(col, u_stroke, line(dist, u_weight));
   }
 
-  if ( dist > .007) discard;
+  if ( dist > .003) discard;
 
-  outColor = vec4(col, 1.0);
+  outColor = vec4(col, u_opacity);
 }`;
 
 //---------------------------------------------
@@ -484,6 +487,7 @@ uniform float u_cTex;
 uniform float u_weight;
 uniform vec3 u_stroke;
 uniform vec3 u_fill;
+uniform float u_opacity;
 
 uniform vec3 u_idCol;
 
@@ -583,10 +587,10 @@ void main(){
   vec3 col = scene.xyz;
   float dist = scene.w;
 
-  if ( dist > 0.004){
+  if ( dist < 0.003){
     discard;
   }
-  outColor = vec4(col, 1.0);
+  outColor = vec4(col, u_opacity);
   // if ( dist < .007) discard;
 
 	// outColor = vec4(col,1.0 - abs(dist));

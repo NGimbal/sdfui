@@ -3,8 +3,9 @@
 import * as HINT from './uihints.js';
 import * as SDFUI from './sdfui.js';
 import * as ACT from './actions.js';
-import {bakeLayer, createLayerFromPrim} from './layer.js';
+import {bakeLayer, createLayerFromPrim, createEditLayer} from './layer.js';
 import * as SF from './frag/frags.js';
+import { prim } from './primitives.js';
 
 //GhostUI coordinates all UI function
 //Implements UIMode and UIModifiers
@@ -293,14 +294,14 @@ function drawUpdate(){
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
         SDFUI.store.dispatch(ACT.scenePushEditItem("polyline"));
         nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-        newLayer = createLayerFromPrim(nextPrim, true, layer.uniforms);
+        newLayer = createLayerFromPrim(nextPrim, true);
         SDFUI.layers.push(newLayer);
         break;
       case "polygon":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
         SDFUI.store.dispatch(ACT.scenePushEditItem("polygon"));
         nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-        newLayer = createLayerFromPrim(nextPrim, true, layer.uniforms);
+        newLayer = createLayerFromPrim(nextPrim, true);
         SDFUI.layers.push(newLayer);
         break;
       case "polycircle":
@@ -321,7 +322,6 @@ function drawUpdate(){
         // SDFUI.store.dispatch(ACT.uiDarkMode(true));
         break;
     }
-    SDFUI.store.dispatch(ACT.statusUpdate(true));
   }
 
   // sel = document.getElementById("filter-select");
@@ -346,31 +346,39 @@ function drawUpdate(){
   // }
 
   sel = document.getElementById("strokeColor-select");
-  let selVal = chroma(sel.value).gl();
+  let selVal = chroma(sel.value).hex();
+  let stroke = chroma(SDFUI.state.ui.properties.stroke).hex();
   //TODO: seems to always be true
-  if(SDFUI.state.ui.properties.stroke != selVal){
-    SDFUI.store.dispatch(ACT.drawStroke(selVal));
-    SDFUI.store.dispatch(ACT.sceneEditProps());
+  if(stroke != selVal){
+    //this isn't right
+    SDFUI.store.dispatch(ACT.drawStroke(chroma(selVal).hex()));
   }
 
   sel = document.getElementById("fillColor-select");
+  selVal = chroma(sel.value).hex();
+  let fill = chroma(SDFUI.state.ui.properties.stroke).hex();
 
-  if(SDFUI.state.ui.properties.fill != sel.value){
-    SDFUI.store.dispatch(ACT.drawFill(sel.value));
-    SDFUI.store.dispatch(ACT.sceneEditProps());
+  if(fill != selVal){
+    SDFUI.store.dispatch(ACT.drawFill(chroma(selVal).hex()));
   }
 
   sel = document.getElementById("strokeWeight-range");
   if(SDFUI.state.ui.properties.weight != sel.value / 10000){
     SDFUI.store.dispatch(ACT.drawWeight(sel.value / 10000));
-    SDFUI.store.dispatch(ACT.sceneEditProps());
   }
 
-  sel = document.getElementById("radius-range");
-  if(SDFUI.state.ui.properties.radius != sel.value / 250){
-    SDFUI.store.dispatch(ACT.drawRadius(sel.value / 250));
-    SDFUI.store.dispatch(ACT.sceneEditProps());
+  sel = document.getElementById("opacity-range");
+  if(SDFUI.state.ui.properties.radius != sel.value / 100){
+    SDFUI.store.dispatch(ACT.drawOpacity(sel.value / 100));
   }
+
+
+  // sel = document.getElementById("radius-range");
+  // if(SDFUI.state.ui.properties.radius != sel.value / 250){
+  //   SDFUI.store.dispatch(ACT.drawRadius(sel.value / 250));
+  //   SDFUI.store.dispatch(ACT.sceneEditProps());
+  // }
+
 
   for(let m of this.modifiers){
     //each update will deal with m.toggle on an individual basis
@@ -414,14 +422,12 @@ function drawUp(e){
   if ( (item.type == "circle" || item.type == "rectangle") && item.pts.length == 2){
     SDFUI.store.dispatch(ACT.sceneItemUpdate(SDFUI.state.scene.editItem, true));
     SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
-    SDFUI.store.dispatch(ACT.statusUpdate(true));
     SDFUI.newEditTex();
   }
 
   if(item.type == "pointlight"){
     SDFUI.store.dispatch(ACT.sceneItemUpdate(SDFUI.state.scene.editItem, true));
     SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
-    SDFUI.store.dispatch(ACT.statusUpdate(true));
     SDFUI.newEditTex();
   }
 
@@ -443,20 +449,19 @@ function endDrawUpdate(){
   if(!this.toggle) return null;
   // console.log("///////////////////////////////////////////////");
 
-  SDFUI.store.dispatch(ACT.statusUpdate(true));
   SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
 
   let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
-  SDFUI.store.dispatch(ACT.scenePushEditItem(type));
+  // SDFUI.store.dispatch(ACT.scenePushEditItem(type));
 
   //list of layers should probably go in redux store at some point
   let layer = SDFUI.layers[SDFUI.layers.length - 1];
-
-  let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-
-  let newLayer = createLayerFromPrim(nextPrim, true, layer.uniforms);
-
   bakeLayer(layer);
+
+  SDFUI.store.dispatch(ACT.scenePushEditItem(type));
+
+  let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
+
   SDFUI.layers.push(newLayer);
 
   this.toggle = !this.toggle;
@@ -470,11 +475,17 @@ function escDrawUpdate(){
   //   return null;
   // }
 
-  for (let p of SDFUI.editTex.pts){
+  let currLayer = SDFUI.layers.pop();
+
+  for (let p of currLayer.editTex.pts){
     SDFUI.store.dispatch(ACT.sceneRmvPt(p));
   }
 
-  SDFUI.newEditTex();
+  SDFUI.store.dispatch(ACT.sceneRmvItem(currLayer.prim))
+
+  SDFUI.store.dispatch(ACT.scenePushEditItem(currLayer.primType))
+
+  SDFUI.layers.push(createLayerFromPrim(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem], true));
 
   this.toggle = !this.toggle;
   return;
@@ -702,5 +713,7 @@ function addSVGCircle(id, x, y, r, opacity, fill, stroke, strokeWeight){
   document.getElementById('draw-shapes').appendChild(svg);
   return svg;
 }
+
+
 
 export {GhostUI};
