@@ -99,7 +99,14 @@ export class Layer {
 }
 
 export function setBoundingBox(layer){
-  layer.bbox = new PRIM.bbox(layer.editTex.pts);
+  if(layer.primType == 'polygon' || layer.primType == 'polyline' || layer.primType == 'rectangle'){
+    layer.bbox = new PRIM.bbox(layer.editTex.pts);
+  } else if (layer.primType == 'circle'){
+    // here 1 should be radius
+    // this is kind of weird. 
+    layer.bbox = new PRIM.bbox([layer.editTex.pts[0]], 1.);
+  }
+
   // console.log(layer.bbox);
   updateMatrices(layer);
 }
@@ -212,6 +219,10 @@ export function getFragStub(type, edit){
       return edit ? FS.pLineEdit.slice() : FS.pLineStub.slice();
     case'polygon':
       return edit ? FS.polygonEdit.slice() : FS.polygonStub.slice();
+    case'circle':
+      return edit ? FS.circleEdit.slice() : FS.circleStub.slice();
+    case'rectangle':
+      return edit ? FS.rectangleEdit.slice() : FS.rectangleStub.slice();
     default:
       return FS.pLineStub.slice();
   }
@@ -227,6 +238,7 @@ function getUniforms(type){
     case'polyline':
       return {
         // u_matrix: matrix,
+        // u_idColor: [3],
         u_textureMatrix: twgl.m4.copy(texMatrix),
         u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
         u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
@@ -240,6 +252,7 @@ function getUniforms(type){
     case'polygon':
       return {
         // u_matrix: matrix,
+        // u_idColor: [3],
         u_textureMatrix: twgl.m4.copy(texMatrix),
         u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
         u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
@@ -252,9 +265,43 @@ function getUniforms(type){
         u_stroke: chroma(state.ui.properties.stroke).gl().slice(0,3),
         u_fill: chroma(state.ui.properties.fill).gl().slice(0,3),
       }
+    case'circle':
+      return {
+        // u_matrix: matrix,
+        // u_idColor: [3],
+        u_textureMatrix: twgl.m4.copy(texMatrix),
+        u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+        u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
+        u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
+        u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
+        u_eTex: {},
+        u_cTex: -1,
+        u_weight: state.ui.properties.weight,
+        u_opacity: state.ui.properties.opacity,
+        u_stroke: chroma(state.ui.properties.stroke).gl().slice(0,3),
+        u_fill: chroma(state.ui.properties.fill).gl().slice(0,3),
+      }
+    case'rectangle':
+      return {
+        // u_matrix: matrix,
+        // u_idColor: [3],
+        u_textureMatrix: twgl.m4.copy(texMatrix),
+        u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+        u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),
+        u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
+        u_dPt: twgl.v3.create(dPt.x, dPt.y, 0),
+        u_eTex: {},
+        u_cTex: -1,
+        u_weight: state.ui.properties.weight,
+        u_opacity: state.ui.properties.opacity,
+        u_stroke: chroma(state.ui.properties.stroke).gl().slice(0,3),
+        u_fill: chroma(state.ui.properties.fill).gl().slice(0,3),
+        u_radius: 0.01,
+      }
     default:
       return {
         // u_matrix: matrix,
+        // u_idColor: [3],
         u_textureMatrix: twgl.m4.copy(texMatrix),
         u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
         u_panOffset: twgl.v3.create(dPt.x, dPt.y, 0),

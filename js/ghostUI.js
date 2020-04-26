@@ -4,8 +4,6 @@ import * as HINT from './uihints.js';
 import * as SDFUI from './sdfui.js';
 import * as ACT from './actions.js';
 import {bakeLayer, createLayerFromPrim, createEditLayer} from './layer.js';
-import * as SF from './frag/frags.js';
-import { prim } from './primitives.js';
 
 //GhostUI coordinates all UI function
 //Implements UIMode and UIModifiers
@@ -65,11 +63,9 @@ class GhostUI{
     //MODIFIERS
     let pauseShader = new UIModifier("pauseShader", "view", "/", {act:ACT.uiPause()},false, {});
     let hideGrid = new UIModifier("hideGrid", "view", ".", {act:ACT.uiGrid()},false, {});
-    let showPts = new UIModifier("showPts", "view", "r", {act:ACT.uiPoints()},false, {});
-    let darkMode = new UIModifier("darkMode", "view", "d", {act:ACT.uiDarkMode()},false, {});
+    // let showPts = new UIModifier("showPts", "view", "r", {act:ACT.uiPoints()},false, {});
 
-    let screenshot = new UIModifier("screenshot", "export", "l", {act:ACT.statusRaster()},true, {});
-    let printShader = new UIModifier("printShader", "export", "c", {act:ACT.statusExport()},true, {});
+    let screenshot = new UIModifier("screenshot", "export", "l", {act:ACT.statusRaster(true)},true, {});
 
     let snapPt = new UIModifier("snapPt", "snap", "p", {act:ACT.cursorSnapPt()},false, {});
     let snapRef = new UIModifier("snapRef", "snap", "s", {act:ACT.cursorSnapRef()},false, {});
@@ -80,7 +76,7 @@ class GhostUI{
     let escDraw = new UIModifier("escDraw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true, {exit:false});
 
     //MODES
-    let globalMods = [pauseShader, hideGrid, showPts, darkMode, screenshot, printShader];
+    let globalMods = [pauseShader, hideGrid, screenshot];
     let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
     drawMods = globalMods.concat(drawMods);
 
@@ -304,22 +300,19 @@ function drawUpdate(){
         newLayer = createLayerFromPrim(nextPrim, true);
         SDFUI.layers.push(newLayer);
         break;
-      case "polycircle":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("polycircle"));
-        break;
       case "circle":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
         SDFUI.store.dispatch(ACT.scenePushEditItem("circle"));
+        nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+        newLayer = createLayerFromPrim(nextPrim, true);
+        SDFUI.layers.push(newLayer);
         break;
       case "rectangle":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
         SDFUI.store.dispatch(ACT.scenePushEditItem("rectangle"));
-        break;
-      case "pointlight":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("pointlight"));
-        // SDFUI.store.dispatch(ACT.uiDarkMode(true));
+        nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+        newLayer = createLayerFromPrim(nextPrim, true);
+        SDFUI.layers.push(newLayer);
         break;
     }
   }
@@ -372,13 +365,11 @@ function drawUpdate(){
     SDFUI.store.dispatch(ACT.drawOpacity(sel.value / 100));
   }
 
-
-  // sel = document.getElementById("radius-range");
-  // if(SDFUI.state.ui.properties.radius != sel.value / 250){
-  //   SDFUI.store.dispatch(ACT.drawRadius(sel.value / 250));
-  //   SDFUI.store.dispatch(ACT.sceneEditProps());
-  // }
-
+  sel = document.getElementById("radius-range");
+  if(SDFUI.state.ui.properties.radius != sel.value / 250){
+    SDFUI.store.dispatch(ACT.drawRadius(sel.value / 250));
+    SDFUI.store.dispatch(ACT.sceneEditProps());
+  }
 
   for(let m of this.modifiers){
     //each update will deal with m.toggle on an individual basis
@@ -412,24 +403,26 @@ function drawUp(e){
     if(!modState) continue;
   }
 
-  //returns a new point of type PRIM.vec()
-  // this is going to be retrieving from the redux store here pretty soon
-  let pt = SDFUI.layers[SDFUI.layers.length - 1].editTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
+  let currLayer = SDFUI.layers[SDFUI.layers.length - 1];
+  let pt = currLayer.editTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
 
   SDFUI.store.dispatch(ACT.sceneAddPt(pt));
 
   let item = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+  
   if ( (item.type == "circle" || item.type == "rectangle") && item.pts.length == 2){
-    SDFUI.store.dispatch(ACT.sceneItemUpdate(SDFUI.state.scene.editItem, true));
     SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
-    SDFUI.newEditTex();
+    bakeLayer(currLayer);
+    let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+    let newLayer = createEditLayer(nextPrim);
+    SDFUI.layers.push(newLayer);
   }
 
-  if(item.type == "pointlight"){
-    SDFUI.store.dispatch(ACT.sceneItemUpdate(SDFUI.state.scene.editItem, true));
-    SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
-    SDFUI.newEditTex();
-  }
+  // if(item.type == "pointlight"){
+  //   SDFUI.store.dispatch(ACT.sceneItemUpdate(SDFUI.state.scene.editItem, true));
+  //   SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
+  //   SDFUI.newEditTex();
+  // }
 
   return;
 }

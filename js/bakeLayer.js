@@ -15,6 +15,12 @@ export function bake(layer){
     case'polygon':
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
       return polygon(prim, layer);
+    case'circle':
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      return circle(prim, layer);
+    case'rectangle':
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      return rectangle(prim, layer);
     default:
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
       return polyLine(prim, layer);
@@ -307,3 +313,150 @@ function polygonCall(prim, shader){
 }
 
 //POLYGON--------------------------------------------------------
+
+//CIRCLE---------------------------------------------------------
+//takes prim and datashader and bakes as a circle
+export function circle(prim, layer){
+  // let shader = LAYER.getFragStub(prim.type, false);
+  // let parameters = layer.editTex;
+
+  // if(prim.pts.length == 0) return dataShader;
+
+  let shader = circleCall(prim, layer);
+
+  return shader;
+}
+
+//creates function call that draws prim - circle
+export function circleCall(prim, layer){
+  let shader = LAYER.getFragStub(prim.type, false);
+  let parameters = layer.editTex;
+  let dataSize = layer.editTex.dataSize;
+
+  //bakes pointPrim data the fluentDoc.parameters
+  // let _pt0 = prim.pts[0];
+  // let _pt1 = prim.pts[1];
+
+  // let i = SDFUI.state.scene.pts.findIndex(i => i.id === _pt0);
+  // let pt0 = SDFUI.state.scene.pts[i];
+
+  // let j = SDFUI.state.scene.pts.findIndex(j => j.id === _pt1);
+  // let pt1 = SDFUI.state.scene.pts[j];
+
+  // let _pt = {x:pt0.x, y:pt0.y, z:pt1.x, w:pt1.y};
+  // parameters.addPoint(_pt, prim.id);
+
+  // let cTexel = parameters.cTexel;
+  // let dataSize = parameters.dataSize;
+
+  let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+
+
+  //eventually address these functions using id in place of d
+  //then perform scene merge operation when modifying finalColor
+  let insString = "//$INSERT CALL$------";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex);
+
+  //create function call
+  let posString = '\n';
+
+  let indexX = (0 % dataSize) / dataSize + texelOffset;
+  let indexY = (Math.floor(0 / dataSize)) / dataSize  + texelOffset;
+
+  posString += '\tvec2 pos = vec2(' + indexX + ', ' + indexY + ');\n';
+  
+  indexX = (1. % dataSize) / dataSize + texelOffset;
+  indexY = (Math.floor(1. / dataSize)) / dataSize  + texelOffset;
+ 
+  posString += '\tvec2 rad = vec2(' + indexX + ', ' + indexY + ');\n';
+
+  posString += '\tfloat radius = distance(texture(u_eTex, pos).xy, texture(u_eTex, rad).xy);\n';
+  posString += '\tfloat d = sdCircle(uv, texture(u_eTex, pos).xy, radius);\n';
+  posString += '\tfloat stroke = line(d, u_weight);\n';
+  posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';
+  posString += '\tfloat fill = fillMask(d);';
+  posString += '\tvec4 fillCol = mix(vec4(vec3(1.),0.), vec4(u_fill, u_opacity), fill);\n';
+  posString += '\td = min(stroke, fill);\n';
+  posString += '\tif ( d > 1.) discard;\n';
+  posString += '\toutColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);\n';
+ 
+  startShader += posString;
+  let fragShader = startShader + endShader;
+
+  // console.log(posString);
+
+  return fragShader;
+}
+//CIRCLE-------------------------------------------------------------------
+
+
+//RECTANGLE---------------------------------------------------------
+//takes prim and datashader and bakes as a circle
+export function rectangle(prim, layer){
+  // let shader = LAYER.getFragStub(prim.type, false);
+  // let parameters = layer.editTex;
+
+  // if(prim.pts.length == 0) return dataShader;
+
+  let shader = rectangleCall(prim, layer);
+
+  return shader;
+}
+
+//creates function call that draws prim - circle
+export function rectangleCall(prim, layer){
+  let shader = LAYER.getFragStub(prim.type, false);
+  let parameters = layer.editTex;
+  let dataSize = layer.editTex.dataSize;
+
+  let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+
+  let insString = "//$INSERT CALL$------";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex);
+
+  //create function call
+  let posString = '\n';
+
+  let indexX = (0 % dataSize) / dataSize + texelOffset;
+  let indexY = (Math.floor(0 / dataSize)) / dataSize  + texelOffset;
+  let index = indexX + ", " + indexY;
+
+  // posString += '\tfloat texelOffset =' + texelOffset +';\n';
+  posString += '\tvec2 rect1 = texture(u_eTex, vec2('+index+')).xy;\n';
+
+  indexX = (1. % dataSize) / dataSize + texelOffset;
+  indexY = (Math.floor(1. / dataSize)) / dataSize  + texelOffset;
+  index = indexX + ", " + indexY;
+
+  posString += '\tvec2 rect2 = texture(u_eTex, vec2('+index+')).xy;\n';
+  posString += '\tvec2 center = 0.5 * (rect2 - rect1) + rect1;\n';
+  posString += '\tvec2 rPt = abs(rect2 - center);\n';
+  posString += '\tfloat d = sdBox(uv, center, rPt, u_radius);\n';
+
+  // posString += '\tfloat radius = distance(texture(u_eTex, pos).xy, texture(u_eTex, rad).xy);\n';
+  // posString += '\tfloat d = sdCircle(uv, texture(u_eTex, pos).xy, radius);\n';
+
+  posString += '\tfloat stroke = line(d, u_weight);\n';
+  posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';
+  posString += '\tfloat fill = fillMask(d);';
+  posString += '\tvec4 fillCol = mix(vec4(vec3(1.),0.), vec4(u_fill, u_opacity), fill);\n';
+  posString += '\td = min(stroke, fill);\n';
+  posString += '\tif ( d > 1.) discard;\n';
+  posString += '\toutColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);\n';
+ 
+  startShader += posString;
+  let fragShader = startShader + endShader;
+
+  console.log(posString);
+
+  return fragShader;
+}
+//CIRCLE-------------------------------------------------------------------

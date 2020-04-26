@@ -197,22 +197,16 @@ function update() {
     if(layer.needsUpdate){
       switch(layer.name){
         case "polyline":
-          dataShader = BAKE.polyLine(prim, dataShader);
+          BAKE.polyLine(prim, dataShader);
           break;
         case "polygon":
-          dataShader = BAKE.polygon(prim, dataShader);
-          break;
-        case "polycircle":
-          // dataShader = BAKE.polyCircle(prim, dataShader);
+          BAKE.polygon(prim, dataShader);
           break;
         case "circle":
-          // dataShader = BAKE.circle(prim, dataShader);
+          BAKE.circle(prim, dataShader);
           break;
         case "rectangle":
-          // dataShader = BAKE.rectangle(prim, dataShader);
-          break;
-        case "pointlight":
-          // dataShader = BAKE.pointLight(prim, dataShader);
+          BAKE.rectangle(prim, dataShader);
           break;
         default:
           break;
@@ -250,6 +244,9 @@ function update() {
       if(typeof layer.uniforms.u_opacity  === 'number'){
         layer.uniforms.u_opacity = state.ui.properties.opacity;
       }
+      if(typeof layer.uniforms.u_radius  === 'number'){
+        layer.uniforms.u_radius = state.ui.properties.radius;
+      }
     }
     
     //does this work? How many times is this going to trip me up
@@ -270,6 +267,13 @@ function draw() {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   twgl.drawObjectList(gl, layers);
+
+  if(state.status.raster){
+    canvas.toBlob((blob) => {
+      saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
+    });
+    store.dispatch(ACT.statusRaster(false));
+  }
 }
 
 var then = 0;
@@ -485,12 +489,7 @@ function updateCtx(){
 //
 //   //this hack is necessary because saving has to happen
 //   //while framebuffer still has data
-//   if(state.status.raster){
-//     canvas.toBlob((blob) => {
-//       saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
-//     });
-//     store.dispatch(ACT.statusRaster());
-//   }
+
 // }
 //
 // function animate(time){
@@ -498,6 +497,18 @@ function updateCtx(){
 //
 //   requestAnimationFrame(animate);
 // }
+
+const saveBlob = (function() {
+  const a = document.createElement('a');
+  document.body.appendChild(a);
+  a.style.display = 'none';
+  return function saveData(blob, fileName) {
+     const url = window.URL.createObjectURL(blob);
+     a.href = url;
+     a.download = fileName;
+     a.click();
+  };
+}());
 
 export function newEditTex(){
   editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
