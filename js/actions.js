@@ -46,6 +46,7 @@ export const SCENE_ADDPT        = 'SCENE_ADDPT'; //add point to scene
 export const SCENE_RMVPT        = 'SCENE_RMVPT'; //stages pt for removal
 export const SCENE_FINRMVPT     = 'SCENE_FINRMVPT'; //finishes removing pt from state
 export const SCENE_EDITUPDATE   = 'SCENE_EDITUPDATE'; //marks the edit item for update
+export const SCENE_NEWEDITITEM  = 'SCENE_NEWEDITITEM';
 export const SCENE_PUSHEDITITEM = 'SCENE_PUSHEDITITEM';
 export const SCENE_EDITPROPS    = 'SCENE_EDITPROPS'; //needs to fire when properties are changed
 export const SCENE_ITEMUPDATE   = 'SCENE_ITEMUPDATE'; //marks prim for update
@@ -286,12 +287,21 @@ export function sceneEditUpdate(toggle){
   };
 }
 
-//pushes new item onto scene graph - prim is type
+//pushes new item onto scene graph - prim is prim
 export function scenePushEditItem(prim){
   return {
     type: scene,
     subtype: SCENE_PUSHEDITITEM,
     prim
+  };
+}
+
+//pushes new item onto scene graph - prim type
+export function sceneNewEditItem(primType){
+  return {
+    type: scene,
+    subtype: SCENE_NEWEDITITEM,
+    primType
   };
 }
 

@@ -389,6 +389,11 @@ float line(float d, float w){
   return d;
 }
 
+// fill
+float fillMask(float dist){
+	return smoothstep(0.0,0.003, clamp(-dist, 0.0, 1.0));
+}
+
 vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
     vec3 color = mix(col, vec3(1.0, 0.25, 0.25), dist);
     return color;
@@ -451,21 +456,24 @@ void main(){
   }
 
   dist = s*sqrt(dist);
-  float fill = 1.0 - smoothstep(0.0,0.003,clamp(dist,0.0,1.0));
 
-  vec3 col = mix(vec3(1.), u_fill, fill);
-  col = mix(col, u_stroke, line(dist, u_weight));
+
+  float fill = fillMask(dist);
+  vec4 fillCol = mix(vec4(vec3(1.),0.), vec4(u_fill, u_opacity), fill);
 
   if (prevPt != vec2(0.)){
-    dist = min(dist, drawLine(uv, prevPt, u_mPt.xy, u_weight, 1.0));
-    dist = min(dist, drawLine(uv, u_mPt.xy, first, u_weight, 1.0));
-
-    col = mix(col, u_stroke, line(dist, u_weight));
+    dist = min(dist, drawLine(uv, prevPt, u_mPt.xy, u_weight / 2., 0.0));
+    dist = min(dist, drawLine(uv, u_mPt.xy, first, u_weight / 2., 0.0));
   }
 
-  if ( dist > .003) discard;
+  float stroke = line(dist, u_weight);
+  vec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);
+  
+  dist = min(stroke, fill);
+  
+  if ( dist > 1.) discard;
 
-  outColor = vec4(col, u_opacity);
+  outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
 }`;
 
 //---------------------------------------------
@@ -544,6 +552,11 @@ float line(float d, float w){
   return d;
 }
 
+// fill
+float fillMask(float dist){
+	return smoothstep(0.0,0.003, clamp(-dist, 0.0, 1.0));
+}
+
 vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
     vec3 color = mix(col, vec3(1.0, 0.25, 0.25), dist);
     return color;
@@ -583,14 +596,21 @@ void main(){
   uv *= (u_dPt.z / 64.);
 
   vec4 scene = sceneDist(uv);
-  vec3 col = scene.xyz;
-  float dist = scene.w;
+  float d = scene.w;
 
-  if ( dist < 0.003){
+  float fill = fillMask(d);
+  vec4 fillCol = mix(vec4(vec3(1.),0.), vec4(u_fill, u_opacity), fill);
+  float stroke = line(d, u_weight);
+  vec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);
+  
+  float dist = min(stroke, fill);
+
+  if ( dist > 1.){
     discard;
   }
 
-  outColor = vec4(col, u_opacity);
+  outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
+  // outColor = vec4(vec3(0.), scene.w);
 }`;
 
 //---------------------------------------------

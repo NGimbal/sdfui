@@ -4,7 +4,7 @@
 // import * as THREE from './libjs/three.module.js';
 
 import * as PRIM from './primitives.js';
-import * as BAKE from './bakePrim.js';
+import * as BAKE from './bakeLayer.js';
 import {GhostUI} from './ghostUI.js';
 
 import * as ACT from './actions.js';

@@ -302,17 +302,15 @@ function scene(_state=initialState, action) {
       return Automerge.change(state, 'updated edit item properties', doc=>{
         doc.editItems[doc.editItem].needsUpdate = true;
       });
-    case ACT.SCENE_PUSHEDITITEM:
-      if(state.editItems[state.editItem].pts.length > 0){
-        return Automerge.change(state, 'push edit item', doc=>{
-          doc.editItem = state.editItem + 1;
-          doc.editItems.push(new PRIM.prim(action.prim, [], {..._state.ui.properties}));
-        });
-      } else {
-        return Automerge.change(state, 'push edit item', doc=>{
-          doc.editItems[state.editItem] = new PRIM.prim(action.prim, [], {..._state.ui.properties});
-        });
-      }
+    case ACT.SCENE_PUSHEDITITEM: //takes full prim
+      return Automerge.change(state, 'push edit item', doc=>{
+        doc.editItem = state.editItem + 1;
+        doc.editItems.push(new PRIM.prim(action.prim, [], {..._state.ui.properties}));
+      });
+    case ACT.SCENE_NEWEDITITEM: //takes prim type
+      return Automerge.change(state, 'new edit item', doc=>{
+        doc.editItems[state.editItem] = new PRIM.prim(action.primType, [], {..._state.ui.properties});
+      });
     case ACT.SCENE_RMVITEM:
       return Automerge.change(state, 'remove edit item ' + action.id, doc=>{
         let index = state.editItems.findIndex(i => i.id === action.id);

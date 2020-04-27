@@ -273,13 +273,8 @@ function polgonFunc(prim, shader, parameters){
   }
 
   posString += '\td = s*sqrt(d);\n';
-
-  //fill
-  posString += '\tfloat fill = 1.0 - smoothstep(0.0,0.003,clamp(d,0.0,1.0));\n';
-  posString += '\tvec3 finalColor = mix(vec3(1.0), u_fill, fill);\n';
-  posString += '\tfinalColor = mix(finalColor, u_stroke, line(d, u_weight));\n';
-
-  posString += '\n\treturn vec4(finalColor, fill);\n';
+  posString += '\treturn vec4(d);\n';
+  
   posString += '\n}\n';
   posString += '//$END-' + prim.id + '\n';
 

@@ -288,28 +288,28 @@ function drawUpdate(){
     switch(sel.value){
       case "polyline":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("polyline"));
+        SDFUI.store.dispatch(ACT.sceneNewEditItem("polyline"));
         nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
         newLayer = createLayerFromPrim(nextPrim, true);
         SDFUI.layers.push(newLayer);
         break;
       case "polygon":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("polygon"));
+        SDFUI.store.dispatch(ACT.sceneNewEditItem("polygon"));
         nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
         newLayer = createLayerFromPrim(nextPrim, true);
         SDFUI.layers.push(newLayer);
         break;
       case "circle":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("circle"));
+        SDFUI.store.dispatch(ACT.sceneNewEditItem("circle"));
         nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
         newLayer = createLayerFromPrim(nextPrim, true);
         SDFUI.layers.push(newLayer);
         break;
       case "rectangle":
         SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.scenePushEditItem("rectangle"));
+        SDFUI.store.dispatch(ACT.sceneNewEditItem("rectangle"));
         nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
         newLayer = createLayerFromPrim(nextPrim, true);
         SDFUI.layers.push(newLayer);
@@ -411,7 +411,7 @@ function drawUp(e){
   let item = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
   
   if ( (item.type == "circle" || item.type == "rectangle") && item.pts.length == 2){
-    SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
+    SDFUI.store.dispatch(ACT.sceneNewEditItem(item.type));
     bakeLayer(currLayer);
     let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
     let newLayer = createEditLayer(nextPrim);
@@ -451,7 +451,7 @@ function endDrawUpdate(){
   let layer = SDFUI.layers[SDFUI.layers.length - 1];
   bakeLayer(layer);
 
-  SDFUI.store.dispatch(ACT.scenePushEditItem(type));
+  SDFUI.store.dispatch(ACT.sceneNewEditItem(type));
 
   let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
 
@@ -476,7 +476,7 @@ function escDrawUpdate(){
 
   SDFUI.store.dispatch(ACT.sceneRmvItem(currLayer.prim))
 
-  SDFUI.store.dispatch(ACT.scenePushEditItem(currLayer.primType))
+  SDFUI.store.dispatch(ACT.sceneNewEditItem(currLayer.primType))
 
   SDFUI.layers.push(createLayerFromPrim(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem], true));
 
