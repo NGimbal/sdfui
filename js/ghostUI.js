@@ -281,40 +281,22 @@ function drawUpdate(){
   let sel = document.getElementById("primitive-select");
   let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
 
+  //this is nice
   if(type != sel.value){
     let nextPrim = {};
     let newLayer = {};
-    let layer = SDFUI.layers[SDFUI.layers.length - 1];
-    switch(sel.value){
-      case "polyline":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.sceneNewEditItem("polyline"));
-        nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-        newLayer = createLayerFromPrim(nextPrim, true);
-        SDFUI.layers.push(newLayer);
-        break;
-      case "polygon":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.sceneNewEditItem("polygon"));
-        nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-        newLayer = createLayerFromPrim(nextPrim, true);
-        SDFUI.layers.push(newLayer);
-        break;
-      case "circle":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.sceneNewEditItem("circle"));
-        nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-        newLayer = createLayerFromPrim(nextPrim, true);
-        SDFUI.layers.push(newLayer);
-        break;
-      case "rectangle":
-        SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-        SDFUI.store.dispatch(ACT.sceneNewEditItem("rectangle"));
-        nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-        newLayer = createLayerFromPrim(nextPrim, true);
-        SDFUI.layers.push(newLayer);
-        break;
+
+    let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+    if(currItem && currItem.pts.length > 1){
+      bakeLayer(SDFUI.layers[SDFUI.layers.length - 1]);
+    } else {
+      SDFUI.layers.pop();
     }
+    // SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+    SDFUI.store.dispatch(ACT.sceneNewEditItem(sel.value));
+    nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+    newLayer = createLayerFromPrim(nextPrim, true);
+    SDFUI.layers.push(newLayer); 
   }
 
   // sel = document.getElementById("filter-select");
@@ -395,8 +377,6 @@ function drawMv(e){
 }
 
 function drawUp(e){
-  let resolution = SDFUI.resolution;
-
   for (let m of this.modifiers){
     if(!m.up) continue;
     let modState = m.up(e)
@@ -411,8 +391,8 @@ function drawUp(e){
   let item = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
   
   if ( (item.type == "circle" || item.type == "rectangle") && item.pts.length == 2){
-    SDFUI.store.dispatch(ACT.sceneNewEditItem(item.type));
     bakeLayer(currLayer);
+    SDFUI.store.dispatch(ACT.sceneNewEditItem(item.type));
     let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
     let newLayer = createEditLayer(nextPrim);
     SDFUI.layers.push(newLayer);
