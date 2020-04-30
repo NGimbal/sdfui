@@ -171,6 +171,7 @@ function cursor(_state=initialState, action) {
     case ACT.CURSOR_SET:
       let pt = {x:action.vec2.x, y:action.vec2.y};
       let pts = _state.scene.pts;
+      let editPts = _state.scene.editItems[_state.scene.editItem].pts;
 
       if(state.snapPt){
         let ptNear = ptTree.nearest(pt, 1);
@@ -181,13 +182,13 @@ function cursor(_state=initialState, action) {
           });
         }
       } if(state.snapGrid) {
-        pt.x = Math.round(((pt.x) * (1 + state.grid.x)) / state.grid.y) * state.grid.x - state.grid.z;
-        pt.y = Math.round(((pt.y) * (1 + state.grid.y)) / state.grid.y) * state.grid.y + state.grid.w;
-
+        pt.x = Math.round(pt.x / state.grid.x) * state.grid.x + 0.000000000000000001;
+        pt.y = Math.round(pt.y / state.grid.y) * state.grid.y + 0.000000000000000001;
+        console.log(pt);
         return Object.assign({}, state,{
           pos: pt
         });
-      } if(state.snapGlobal && pts.length > 0) {
+      } if(state.snapGlobal && editPts.length > 0) {
           let prev = {...pts[pts.length - 1]};
           let line = {...prev};
 
@@ -206,7 +207,7 @@ function cursor(_state=initialState, action) {
           return Object.assign({}, state,{
             pos: pt
           });
-      } if(state.snapRef && pts.length > 1) {
+      } if(state.snapRef && editPts.length > 1) {
         let prev = {...pts[pts.length - 1]};
         let prevPrev = {...pts[pts.length - 2]};
         let line = {...prev};

@@ -29,7 +29,33 @@ void main() {
   gl_Position = u_matrix * a_position;
   v_texcoord = (u_textureMatrix * vec4(a_texcoord, 0, 1)).xy;
 }`;
+//---------------------------------------------
+// export const gridFrag =
+// `#version 300 es
+// #define saturate(a) clamp(a, 0.0, 1.0)
 
+// precision mediump float;
+
+// in vec2 v_texcoord;
+
+// uniform vec3 u_resolution;
+// uniform vec3 u_dPt;
+
+// out vec4 outColor;
+
+// float repeat(float x) { return abs(fract(x*0.5+0.5)-0.5)*2.0; }
+
+// void main() {
+//   outColor = vec4(1.0);
+//   vec2 uv = vec2(v_texcoord);
+//   uv.x *= u_resolution.x / u_resolution.y;
+//   uv -= u_dPt.xy;
+//   uv *= u_dPt.z;
+//   // uv.y -= u_dPt.y;
+//   outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(uv.x) - 0.92)*4.0;
+//   outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(uv.y) - 0.92)*4.0;
+// }`;
+//---------------------------------------------
 export const gridFrag =
 `#version 300 es
 #define saturate(a) clamp(a, 0.0, 1.0)
@@ -43,17 +69,37 @@ uniform vec3 u_dPt;
 
 out vec4 outColor;
 
-float repeat(float x) { return abs(fract(x*0.5+0.5)-0.5)*2.0; }
+// float repeat(float x) { return abs(fract(x*0.5+0.5)-0.5)*2.0; }
+float gridMnr(float x) { return abs(fract(x*0.5+0.5)-0.5) * 2.; }
+float gridMjr(float x) { return abs(fract(x*0.5+0.5)-0.5) * 2.; }
 
 void main() {
   outColor = vec4(1.0);
   vec2 uv = vec2(v_texcoord);
   uv.x *= u_resolution.x / u_resolution.y;
+  vec2 q = vec2(v_texcoord);
   uv -= u_dPt.xy;
   uv *= u_dPt.z;
-  // uv.y -= u_dPt.y;
-  outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(uv.x) - 0.92)*4.0;
-  outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(uv.y) - 0.92)*4.0;
+
+  // vec2 q = uv-0.5;
+
+  //https://www.shadertoy.com/view/XtVcWc - beautiful grid
+  // vec3 col = vec3(1.0) - smoothstep(0.018,0.0, abs(uv.x-0.05))*vec3(.25,0.17,0.02);
+  // col -= smoothstep(0.018,0.0, abs(uv.y-0.05))*vec3(.25,0.17,0.02);
+  // vec2 rp = mod(uv,0.75)-0.05;
+  // vec2 rp = fract(x*0.5+0.5)-0.5;
+  
+  vec3 col = vec3(1.) - smoothstep( (u_dPt.z * 0.001),0.0, abs(gridMnr(uv.x)))*vec3(.25,0.15,0.02);
+  col -= smoothstep((u_dPt.z * 0.001), 0.0, abs(gridMnr(uv.y)))*vec3(.25,0.15,0.02);
+  
+  col -= (smoothstep( (u_dPt.z * 0.0002),0.0, abs(gridMnr(uv.x / 12.)))*vec3(0.,0.77,0.7)) * 0.25;
+  col -= (smoothstep((u_dPt.z * 0.0002), 0.0, abs(gridMnr(uv.y / 12.)))*vec3(0.,0.77,0.7)) * 0.25;
+  
+  col *= (smoothstep(0.26,.25,(fract(sin(dot(uv.x, uv.y))*150130.1)))*0.03+0.97)*vec3(1.005,1.,0.99);
+  //vignette
+  // col *= clamp(pow( 256.0*q.x*q.y*(1.0-q.x)*(1.0-q.y), .09 ),0.,1.)*.325+0.7;
+
+  outColor = vec4(col,1.0);
 }`;
 //---------------------------------------------
 export const pLineEdit =

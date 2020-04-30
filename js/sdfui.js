@@ -98,11 +98,11 @@ function setGrid(scale){
 
   // let offX = (((rX / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
   let offX = scaleX * 0.5;
-  let offY = scaleY * 0.5;
+  let offY = scaleY * 0.1;
 
   //scaleX, scaleY, offsetX, offsetY
   let gridScale = {x:scaleX, y:scaleY, z:offX, w:offY};
-
+  // console.log(gridScale);
   store.dispatch(ACT.cursorGrid(gridScale));
 }
 
@@ -296,7 +296,8 @@ function scrollPan(e){
 
   if (e.ctrlKey) {
     // Your zoom/scale factor
-    dPt.z += e.deltaY * 0.1;
+    dPt.z = Math.max(1., dPt.z + e.deltaY * 0.1);
+    console.log(dPt.z);
   } else {
     dPt.x += e.deltaX * 0.001;
     dPt.y += e.deltaY * 0.001;
@@ -354,149 +355,6 @@ function updateCtx(){
 
   ctx.fillText(mPtString, pixelPt.x, pixelPt.y);
 }
-
-//gotta resize the screen sometimes
-// function resizeRendererToDisplaySize(renderer) {
-//   const canvas = renderer.domElement;
-//   const width = canvas.clientWidth;
-//   const height = canvas.clientHeight;
-//
-//   const needResize = canvas.width !== width || canvas.height !== height;
-//
-//   if (needResize) {
-//     renderer.setSize(resolution.x, resolution.y, false);
-//     store.dispatch(ACT.statusRes({x:width, y:height}));
-//     store.dispatch(ACT.cursorGridScale(48));
-//     store.dispatch(ACT.statusUpdate(true));
-//   }
-//
-//   return needResize;
-// }
-//
-// //render the scene
-// function render() {
-//
-//x   resizeRendererToDisplaySize(renderer);
-//
-//x   ui.update();
-//
-//   screenMesh.material.uniforms.posTex.value = editTex.ptsTex;
-//   screenMesh.material.uniforms.editCTexel.value = editTex.cTexel;
-//
-//   // let uiOptions = ui.modeStack.curr().options;
-//   let uiOptions = state.ui.properties;
-//
-//   //mPt is converted into a vector3 in the listener at the top
-//x   screenMesh.material.uniforms.mousePt.value = mPt;
-//x  screenMesh.material.uniforms.editWeight.value = state.ui.properties.weight;
-//
-//   //should be able to get more expressive colors at some point...
-//   let stroke = hexToRgb(state.ui.properties.stroke);
-//   screenMesh.material.uniforms.strokeColor.value.set(stroke.r/255, stroke.g/255, stroke.b/255);
-//   let fill = hexToRgb(state.ui.properties.fill);
-//   screenMesh.material.uniforms.fillColor.value.set(fill.r/255, fill.g/255, fill.b/255);
-//
-//   screenMesh.material.uniforms.editRadius.value = state.ui.properties.radius;
-//
-//   screenMesh.material.uniforms.needsUpdate = true;
-//
-//   //if we're changing the status of showing/hiding the background grid
-//   if (state.ui.grid != dataShader.parameters.properties.grid){
-//     dataShader.parameters.properties.grid = state.ui.grid;
-//     let valString = "0";
-//
-//     if (!state.ui.grid) valString = "1";
-//     modifyDefine(dataShader, "BG_GRID", valString);
-//
-//     store.dispatch(ACT.statusUpdate(true));
-//   }
-//
-//   //if we're changing the status of showing/hiding points
-//   if (state.ui.points != dataShader.parameters.properties.points){
-//     dataShader.parameters.properties.points = state.ui.points;
-//     let valString = "0";
-//
-//     if (!state.ui.points) valString = "1";
-//     modifyDefine(dataShader, "SHOW_PTS", valString);
-//
-//     store.dispatch(ACT.statusUpdate(true));
-//   }
-//
-//   if (state.ui.darkmode != dataShader.parameters.properties.darkmode){
-//     dataShader.parameters.properties.darkmode = state.ui.darkmode;
-//     let valString = "0";
-//
-//     if (state.ui.darkmode) valString = "1";
-//     modifyDefine(dataShader, "DARK_MODE", valString);
-//
-//     store.dispatch(ACT.statusUpdate(true));
-//   }
-//
-//   //keep shader update for now
-//   if (state.status.shaderUpdate){
-//     console.log("shader update!");
-//     let vertexShader = sdfPrimVert;
-//
-//     uniforms.iResolution.value = new THREE.Vector3(resolution.x, resolution.y, resolution.z);
-//
-//     //this is where primitives get rebaked to shader if they need it
-//     let index = 0;
-//     for (let prim of state.scene.editItems){
-//       if(prim.needsUpdate){
-//         switch(prim.type){
-//           case "polyline":
-//             dataShader = BAKE.polyLine(prim, dataShader);
-//             break;
-//           case "polygon":
-//             dataShader = BAKE.polygon(prim, dataShader);
-//             break;
-//           case "polycircle":
-//             dataShader = BAKE.polyCircle(prim, dataShader);
-//             break;
-//           case "circle":
-//             dataShader = BAKE.circle(prim, dataShader);
-//             break;
-//           case "rectangle":
-//             dataShader = BAKE.rectangle(prim, dataShader);
-//             break;
-//           case "pointlight":
-//             dataShader = BAKE.pointLight(prim, dataShader);
-//             break;
-//           default:
-//             break;
-//         }
-//         store.dispatch(ACT.sceneItemUpdate(index, false));
-//       }
-//       index++;
-//     }
-//
-//     uniforms.parameters.value = dataShader.parameters.ptsTex;
-//
-//     let fragmentShader = dataShader.shader;
-//
-//     material = new THREE.ShaderMaterial({
-//       uniforms,
-//       vertexShader,
-//       fragmentShader,
-//     });
-//
-//     screenMesh.material = material;
-//
-//     store.dispatch(ACT.statusUpdate(false));
-//   }
-//
-//   renderer.render(scene, camera);
-//
-//   //this hack is necessary because saving has to happen
-//   //while framebuffer still has data
-
-// }
-//
-// function animate(time){
-//   if(!state.ui.pause){ render(); }
-//
-//   requestAnimationFrame(animate);
-// }
 
 const saveBlob = (function() {
   const a = document.createElement('a');
