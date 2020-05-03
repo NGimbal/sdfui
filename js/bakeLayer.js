@@ -2,7 +2,7 @@
 "use strict";
 
 import * as PRIM from './primitives.js';
-import * as SDFUI from './sdfui.js';
+import * as SDFUI from './index.js';
 import * as LAYER from './layer.js';
 
 //could also get frag stub here
@@ -121,7 +121,8 @@ function polyLineFunc(prim, shader, parameters){
   }
   
   posString += '\n\taccumD = line(accumD, u_weight);\n';
-  posString += '\n\tfinalColor = mix(finalColor, u_stroke, accumD);';
+  //change back to u_idStroke
+  posString += '\n\tfinalColor = mix(finalColor, u_idCol, accumD);';
   posString += '\n\treturn vec4(finalColor, accumD);';
   posString += '\n}\n';
   posString += '//$END-' + prim.id + '\n';

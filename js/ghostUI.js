@@ -1,7 +1,7 @@
 "use strict";
 
 import * as HINT from './uihints.js';
-import * as SDFUI from './sdfui.js';
+import * as SDFUI from './index.js';
 import * as ACT from './actions.js';
 import {bakeLayer, createLayerFromPrim, createEditLayer} from './layer.js';
 
@@ -61,26 +61,24 @@ class GhostUI{
     };
 
     //MODIFIERS
-    let pauseShader = new UIModifier("pauseShader", "view", "/", {act:ACT.uiPause()},false, {});
-    let hideGrid = new UIModifier("hideGrid", "view", ".", {act:ACT.uiGrid()},false, {});
-    // let showPts = new UIModifier("showPts", "view", "r", {act:ACT.uiPoints()},false, {});
+    let targetHome = new UIModifier("Return Home", "view", "h", {act:ACT.uiTargetHome(true)},true, {});
 
-    let screenshot = new UIModifier("screenshot", "export", "l", {act:ACT.statusRaster(true)},true, {});
+    let screenshot = new UIModifier("Screenshot", "export", "l", {act:ACT.statusRaster(true)},true, {});
 
-    let snapPt = new UIModifier("snapPt", "snap", "p", {act:ACT.cursorSnapPt()},false, {});
-    let snapRef = new UIModifier("snapRef", "snap", "s", {act:ACT.cursorSnapRef()},false, {});
-    let snapGlobal = new UIModifier("snapGlobal", "snap", "Shift", {act:ACT.cursorSnapGlobal()},false, {});
-    let snapGrid = new UIModifier("snapGrid", "snap", "g", {act:ACT.cursorSnapGrid()},false, {});
+    let snapPt = new UIModifier("Snap Point", "snap", "p", {act:ACT.cursorSnapPt()},false, {});
+    let snapRef = new UIModifier("Snap Ref", "snap", "s", {act:ACT.cursorSnapRef()},false, {});
+    let snapGlobal = new UIModifier("Snap Global", "snap", "Shift", {act:ACT.cursorSnapGlobal()},false, {});
+    let snapGrid = new UIModifier("Snap Grid", "snap", "g", {act:ACT.cursorSnapGrid()},false, {});
 
-    let endDraw = new UIModifier("endDraw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true, {exit:false});
-    let escDraw = new UIModifier("escDraw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true, {exit:false});
+    let endDraw = new UIModifier("End Draw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true, {exit:false});
+    let escDraw = new UIModifier("Esc Draw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true, {exit:false});
 
     //MODES
-    let globalMods = [pauseShader, hideGrid, screenshot];
+    let globalMods = [targetHome, screenshot];
     let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
     drawMods = globalMods.concat(drawMods);
 
-    let selMods = [pauseShader, hideGrid, screenshot];
+    let selMods = [targetHome, screenshot];
 
     //if no drawing tools are selected, drawExit();
     let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, editOptions);
@@ -138,6 +136,14 @@ class GhostUI{
       mode.enter();
     }
 
+    if(SDFUI.state.ui.targeting){
+      if(twgl.v3.distanceSq(SDFUI.state.ui.target, SDFUI.dPt) > 0.00001){
+        twgl.v3.lerp(SDFUI.dPt, SDFUI.state.ui.target, 0.1, SDFUI.dPt);
+      } else {
+        SDFUI.store.dispatch(ACT.uiTargetHome(false));
+      }
+    }
+
     let newDoc = mode.update();
     // if (newDoc && newDoc != "exit") this.fluentDoc = newDoc;
     if (newDoc == "exit"){
@@ -177,10 +183,10 @@ class GhostUI{
     };
 
     // transforms window / js space to sdf / frag space
-    evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - SDFUI.dPt.x;
-    evPt.y = (evPt.y/resolution.y)  - SDFUI.dPt.y;
-    evPt.x = evPt.x * (SDFUI.dPt.z / 64.);
-    evPt.y = evPt.y * (SDFUI.dPt.z / 64.);
+    evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - SDFUI.dPt[0];
+    evPt.y = (evPt.y/resolution.y)  - SDFUI.dPt[1];
+    evPt.x = evPt.x * (SDFUI.dPt[2] / 64.);
+    evPt.y = evPt.y * (SDFUI.dPt[2] / 64.);
     // console.log(SDFUI.dPt.z / 64.);
     // console.log(evPt);
 
@@ -258,7 +264,7 @@ function drawEnter(){
   this.initUIModeButtons();
 
   //turns on pt snapping by default
-  let snapPt = this.modifiers.find(mod => mod.name == "snapPt");
+  let snapPt = this.modifiers.find(mod => mod.name == "Snap Point");
   snapPt.clck();
 }
 
@@ -269,7 +275,6 @@ function drawExit(){
 
 //happens on every frame of draw mode
 function drawUpdate(){
-  let resolution = SDFUI.resolution;
 
   //exit draw condition - no primitive tool active
   if(this.options.currEditItem == null){
@@ -289,36 +294,17 @@ function drawUpdate(){
     let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
     if(currItem && currItem.pts.length > 1){
       bakeLayer(SDFUI.layers[SDFUI.layers.length - 1]);
+      let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+      SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
     } else {
       SDFUI.layers.pop();
+      // SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+      SDFUI.store.dispatch(ACT.sceneNewEditItem(sel.value));
     }
-    // SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-    SDFUI.store.dispatch(ACT.sceneNewEditItem(sel.value));
     nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
     newLayer = createLayerFromPrim(nextPrim, true);
     SDFUI.layers.push(newLayer); 
   }
-
-  // sel = document.getElementById("filter-select");
-  // if(SDFUI.state.ui.properties.filter != sel.value){
-  //   SDFUI.store.dispatch(ACT.drawFilter(sel.value));
-  //   SDFUI.store.dispatch(ACT.sceneEditProps());
-  //   switch(SDFUI.state.ui.properties.filter){
-  //     case "None":
-  //       SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "0");
-  //       break;
-  //     case "Pencil":
-  //       SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "1");
-  //       break;
-  //     case "Crayon":
-  //       SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "2");
-  //       break;
-  //     case "SDF":
-  //       SDFUI.modifyDefine(SDFUI.dataShader, "FILTER", "3");
-  //       break;
-  //   }
-  //   SDFUI.store.dispatch(ACT.statusUpdate(true));
-  // }
 
   sel = document.getElementById("strokeColor-select");
   let selVal = chroma(sel.value).hex();
@@ -422,17 +408,20 @@ function endDrawUpdate(){
   if(!this.toggle) return null;
   // console.log("///////////////////////////////////////////////");
 
-  SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
+  // SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
 
-  let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
+  // let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
   // SDFUI.store.dispatch(ACT.scenePushEditItem(type));
 
   //list of layers should probably go in redux store at some point
   let layer = SDFUI.layers[SDFUI.layers.length - 1];
   bakeLayer(layer);
+  
+  let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+  
+  SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
 
-  SDFUI.store.dispatch(ACT.sceneNewEditItem(type));
-
+  //next item
   let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
 
   SDFUI.layers.push(newLayer);

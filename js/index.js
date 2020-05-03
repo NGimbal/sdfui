@@ -38,8 +38,7 @@ function pointDist (a, b){
 export var resolution;
 export var mPt = new PRIM.vec(0, 0);
 //dPt z is scale
-export var dPt = new PRIM.vec(0, 0, 64);
-
+export var dPt = new twgl.v3.create(0, 0, 64);
 export var ptTree = new kdTree([], pointDist, ["x", "y"]);
 
 //This is how I'm letting other parts of the app
@@ -153,13 +152,37 @@ function main() {
     // u_matrix: matrix,
     u_textureMatrix: twgl.m4.copy(texMatrix),
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_dPt: twgl.v3.create(dPt.x, dPt.y, dPt.z),
+    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
   }
 
   // grid layer
   let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, gridUniforms);
 
   layers.push(gridLayer);
+
+  let image = twgl.createTexture(gl, {
+    src: "../assets/textures/leaves.jpg",
+    color: [0.125, 0.125, 0.125, 0.125],
+  }, () => {
+    // console.log(image);
+  });
+
+  //twgl.loadTextureFromUrl(gl, image);
+
+  let imgUniforms = {
+    // u_matrix: matrix,
+    u_textureMatrix: twgl.m4.copy(texMatrix),
+    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
+    u_img: image,
+  }
+  
+  let imgLayer = new Layer({type:"img"}, SF.simpleVert, SF.imgFrag, imgUniforms);
+  imgLayer.bbox = new PRIM.bbox([{x:0.25, y:0.25}], 0.5);
+  
+  updateMatrices(imgLayer);
+
+  layers.push(imgLayer);
 
   // edit layer
   let plineLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit);
@@ -224,9 +247,10 @@ function update() {
       layer.uniforms.u_mPt['1'] = mPt.y;
     }
     if(layer.uniforms.u_dPt){
-      layer.uniforms.u_dPt['0'] = dPt.x;
-      layer.uniforms.u_dPt['1'] = dPt.y;
-      layer.uniforms.u_dPt['2'] = dPt.z;
+      layer.uniforms.u_dPt = dPt;
+      // layer.uniforms.u_dPt['0'] = dPt.x;
+      // layer.uniforms.u_dPt['1'] = dPt.y;
+      // layer.uniforms.u_dPt['2'] = dPt.z;
     }
     if (layer.prim == state.scene.editItems[state.scene.editItem].id){
       if(typeof layer.uniforms.u_stroke === 'object'){
@@ -296,13 +320,12 @@ function scrollPan(e){
 
   if (e.ctrlKey) {
     // Your zoom/scale factor
-    dPt.z = Math.max(1., dPt.z + e.deltaY * 0.1);
-    console.log(dPt.z);
+    dPt[2] = Math.max(1., dPt[2] + e.deltaY * 0.1);
+    // console.log(dPt.z);
   } else {
-    dPt.x += e.deltaX * 0.001;
-    dPt.y += e.deltaY * 0.001;
+    dPt[0] += e.deltaX * 0.001;
+    dPt[1] += e.deltaY * 0.001;
   }
-
 }
 
 function startDrag(e){
@@ -329,31 +352,47 @@ function updateCtx(){
 
   let pixelPt = {x:0, y:0};
 
-  // for(let p of state.scene.pts){
-  //   pixelPt = {
-  //     x: p.x,
-  //     y: p.y
-  //   }
-
-  //   pixelPt.x = ((p.x * (64. / dPt.z) + dPt.x) * resolution.x) * (resolution.y/resolution.x) ;
-  //   pixelPt.y = ((p.y * (64. / dPt.z) + dPt.y) * resolution.y);
-
-  //   let mPtString = '(' + p.x.toFixed(3) + ', ' + p.y.toFixed(3) + ')';
-
-  //   ctx.fillText(mPtString, pixelPt.x, pixelPt.y);
-  // }
+  
+  let selDist = sceneDist();
+  let dist = selDist.dist;
+  let selPrim = selDist.selPrim;
 
   pixelPt = {
     x: mPt.x,
     y: mPt.y
   }
 
-  pixelPt.x = ((mPt.x * (64. / dPt.z) + dPt.x) * resolution.x) * (resolution.y/resolution.x);
-  pixelPt.y = ((mPt.y * (64. / dPt.z) + dPt.y) * resolution.y);
+  pixelPt.x = ((mPt.x * (64. / dPt[2]) + dPt[0]) * resolution.x) * (resolution.y/resolution.x);
+  pixelPt.y = ((mPt.y * (64. / dPt[2]) + dPt[1]) * resolution.y);
 
   let mPtString = '(' + mPt.x.toFixed(3) + ', ' + mPt.y.toFixed(3) + ')';
 
-  ctx.fillText(mPtString, pixelPt.x, pixelPt.y);
+  ctx.fillStyle = 'black';
+  ctx.fillText("Cursor: " + mPtString, pixelPt.x + 10, pixelPt.y);
+  
+  if(typeof selPrim !== "undefined"  && Math.abs(1.0 - dist) * 0.001 <= selPrim.properties.weight){
+    console.log(selPrim.properties.weight);
+    ctx.fillStyle = selPrim.idColHex;
+    ctx.fillText("Sel Item: " + dist, pixelPt.x + 10, pixelPt.y + 12);
+  }
+}
+
+
+//need mPt, SDFUI.state.scene if in another file...
+function sceneDist(){
+  let dist = 1000;
+  let selPrim;
+  for (let prim of state.scene.editItems){
+    if (prim.id == state.scene.editItems[state.scene.editItem].id) continue;
+    // also should have a "broad phase" check here on bounding box
+    // this is where some spatial hashing could go
+    let currDist = PRIM.distPrim(mPt, prim);
+    if (currDist < dist){
+      selPrim = prim;
+      dist = currDist;
+    }
+  }
+  return {d:dist, sel:selPrim};
 }
 
 const saveBlob = (function() {

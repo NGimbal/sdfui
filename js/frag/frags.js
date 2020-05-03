@@ -30,6 +30,27 @@ void main() {
   v_texcoord = (u_textureMatrix * vec4(a_texcoord, 0, 1)).xy;
 }`;
 //---------------------------------------------
+export const imgFrag =
+`#version 300 es
+precision highp float;
+ 
+in vec2 v_texcoord;
+ 
+uniform sampler2D u_img;
+uniform vec3 u_resolution;
+uniform vec3 u_dPt;
+
+out vec4 outColor;
+ 
+void main() {
+  vec2 uv = vec2(v_texcoord);
+  uv.x *= u_resolution.x / u_resolution.y;
+  uv -= u_dPt.xy;
+  uv *= u_dPt.z / 64.;
+
+  outColor = texture(u_img, uv);
+}`
+//---------------------------------------------
 // export const gridFrag =
 // `#version 300 es
 // #define saturate(a) clamp(a, 0.0, 1.0)
@@ -95,7 +116,8 @@ void main() {
   col -= (smoothstep( (u_dPt.z * 0.0002),0.0, abs(gridMnr(uv.x / 12.)))*vec3(0.,0.77,0.7)) * 0.25;
   col -= (smoothstep((u_dPt.z * 0.0002), 0.0, abs(gridMnr(uv.y / 12.)))*vec3(0.,0.77,0.7)) * 0.25;
   
-  col *= (smoothstep(0.26,.25,(fract(sin(dot(uv.x, uv.y))*150130.1)))*0.03+0.97)*vec3(1.005,1.,0.99);
+  // subtle paper texture
+  // col *= (smoothstep(0.26,.25,(fract(sin(dot(uv.x, uv.y))*150130.1)))*0.03+0.97)*vec3(1.005,1.,0.99);
   //vignette
   // col *= clamp(pow( 256.0*q.x*q.y*(1.0-q.x)*(1.0-q.y), .09 ),0.,1.)*.325+0.7;
 
@@ -177,12 +199,15 @@ vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
     return color;
 }
 
-float AO(vec2 p, float dist, float radius, float intensity)
+float ao2D_simple(float d, float pixSize, float width, float coef)
 {
-	float a = clamp(dist / radius, 0.0, 1.0) - 1.0;
-	return 1.0 - (pow(abs(a), 5.0) + 1.0) * intensity + (1.0 - intensity);
-	//return smoothstep(0.0, 1.0, dist / radius);
+	float max_dist = pixSize * width * 3.0;
+	float dRef = max_dist * coef;
+	if (d <= max_dist)
+		return clamp(d, 0.0, dRef) / dRef;
+	return 1.0;
 }
+
 
 void main(){
   outColor = vec4(1.0);
@@ -221,20 +246,23 @@ void main(){
     }
   }
 
+
   dist = min(dist, drawLine(uv, prevPt, u_mPt.xy, u_weight, 1.0));
+
+  // float ao = dist;
+
   dist = line(dist, u_weight);
   vec3 col = mix(vec3(1.0), u_stroke, dist);
+  
+  //ao interface hint for edit object...would be nice
+  // can't figure out how to properly set opacity with this
+  // ao = 0.75 + 0.25*smoothstep( 0.0, 0.13, sqrt(ao) );
+  // col *= ao;
+  if ( dist < 0.001) discard;
 
-  // this is the prev. implementation
-  // finalColor = mix(finalColor, strokeColor, 1.0 - clamp(AO(uv, accumD, 0.06, 0.5), 0.0, 1.0));
-  // this is not working :(
-  // float ao = 1.0 - clamp(AO(uv, dist, 0.06, 0.5), 0.0, 1.0);
-  // col = mix(col, u_stroke, ao);
-  if ( dist < .0001) discard;
 
-  // dist = 1.0 - smoothstep(0.0,0.005,clamp(dist, 0.0, 1.0));
 
-  //TODO: try alpha = dist, enable gl.BLEND
+  // outColor = vec4(col, (dist + ao) * 0.5);
   outColor = vec4(col, dist * u_opacity);
 }`;
 

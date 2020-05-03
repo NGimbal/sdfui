@@ -20,10 +20,8 @@ export const STATUS_EXPORT      = 'STATUS_EXPORT'; //resolution
 export const STATUS_RASTER      = 'STATUS_RASTER'; //resolution
 
 //UI
-export const UI_PAUSE           = 'UI_PAUSE'; //pause rendering
-export const UI_GRID            = 'UI_GRID'; //toggle grid
+export const UI_TARGETHOME      = 'UI_TARGETHOME'; //return to origin rendering
 export const UI_POINTS          = 'UI_POINTS'; //toggle show points
-export const UI_DARKMODE        = 'UI_DARKMODE'; //toggle darkmode
 //CURSOR
 export const CURSOR_SET         = 'CURSOR_SET';  //curr cursor position
 export const CURSOR_SNAPGRID    = 'CURSOR_SNAPGRID'; //snap to grid
@@ -108,14 +106,16 @@ export function uiPoints(toggle){
   }
 }
 
-//toggle dark mode
-export function uiDarkMode(toggle){
+//toggles show points
+export function uiTargetHome(toggle){
   return{
     type: ui,
-    subtype: UI_DARKMODE,
+    subtype: UI_TARGETHOME,
     toggle,
   }
 }
+
+
 
 //records cursor position
 export function cursorSet(vec2){
@@ -287,12 +287,12 @@ export function sceneEditUpdate(toggle){
   };
 }
 
-//pushes new item onto scene graph - prim is prim
-export function scenePushEditItem(prim){
+//pushes new item onto scene graph - prim is type
+export function scenePushEditItem(primType){
   return {
     type: scene,
     subtype: SCENE_PUSHEDITITEM,
-    prim
+    primType
   };
 }
 

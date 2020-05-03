@@ -26,7 +26,7 @@ import * as ACT from './actions.js';
 // update(prim);
 //}
 
-import { ptTree } from './sdfui.js';
+import { ptTree } from './index.js';
 
 // console.log(Automerge);
 
@@ -44,8 +44,11 @@ const uiInit = {
   pause: false, //pause shader
   grid: false, //show background grid
   points: false, //show points
-  darkmode: false, //toggle darkmode
   drag: false,
+  //where is the view moving
+  target: twgl.v3.create(0,0,64),
+  //are we moving towards a target
+  targeting: false,
 }
 
 const cursorInit = {
@@ -119,9 +122,9 @@ function ui(_state=initialState, action){
       return Object.assign({}, state,{
         points: !state.points
       });
-    case ACT.UI_DARKMODE:
+    case ACT.UI_TARGETHOME:
       return Object.assign({}, state,{
-        darkmode: action.toggle || !state.darkmode
+        targeting : action.toggle,
       });
     case ACT.DRAW_WEIGHT:
       return Object.assign({}, state,{
@@ -184,7 +187,6 @@ function cursor(_state=initialState, action) {
       } if(state.snapGrid) {
         pt.x = Math.round(pt.x / state.grid.x) * state.grid.x + 0.000000000000000001;
         pt.y = Math.round(pt.y / state.grid.y) * state.grid.y + 0.000000000000000001;
-        console.log(pt);
         return Object.assign({}, state,{
           pos: pt
         });
@@ -303,10 +305,10 @@ function scene(_state=initialState, action) {
       return Automerge.change(state, 'updated edit item properties', doc=>{
         doc.editItems[doc.editItem].needsUpdate = true;
       });
-    case ACT.SCENE_PUSHEDITITEM: //takes full prim
+    case ACT.SCENE_PUSHEDITITEM: //takes prim type
       return Automerge.change(state, 'push edit item', doc=>{
         doc.editItem = state.editItem + 1;
-        doc.editItems.push(new PRIM.prim(action.prim, [], {..._state.ui.properties}));
+        doc.editItems.push(new PRIM.prim(action.primType, [], {..._state.ui.properties}));
       });
     case ACT.SCENE_NEWEDITITEM: //takes prim type
       return Automerge.change(state, 'new edit item', doc=>{

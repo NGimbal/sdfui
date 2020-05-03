@@ -13,7 +13,7 @@ SVG() //returns svg of polyline
 
 // import * as THREE from './libjs/three.module.js';
 import * as HINT from './uihints.js';
-import {gl, dPt} from './sdfui.js';
+import {gl, dPt, state} from './index.js';
 
 //simple class for packaging shader and polypoint
 export class DataShader{
@@ -106,7 +106,13 @@ export class prim{
     this.properties = _props || {...propsDefault};
     this.needsUpdate = false;
     this.id = id ||  (+new Date).toString(36).slice(-8);
+    //parent id
     this.pId = pId || "";
+
+    let idCol = chroma.random();
+    this.idCol = twgl.v3.create(idCol.gl()[0], idCol.gl()[1], idCol.gl()[2]);
+    this.idColHex = idCol.hex();
+
     //scene merge
     this.merge = merge || "union";
   }
@@ -252,4 +258,72 @@ export class PolyPoint{
     return pt;
   }
 
+}
+
+export function distPrim(_p, prim){
+  let p = {};
+  //until we switch out mPt for a twgl.v3
+  if (_p.x){
+    p = twgl.v3.create(_p.x, _p.y, _p.z);
+  } else {
+    p = _p;
+  }
+
+  let dist = 1000;
+  switch (prim.type){
+    case  "polyline":
+      dist = Math.min(dist, pLineDist(p, prim));
+      break;
+    default:
+      break;
+  }
+  return dist;
+}
+
+//returns distance to a poly line
+function pLineDist(mPt, prim){
+  if (prim.type != "polyline"){
+    console.log("pLineDist() called on primitive of " + prim.type + " type.");
+    console.log(prim);
+    return 1000;
+  }
+  let dist = 1000;
+  let prev;
+  for (let _p of prim.pts){
+    let p = state.scene.pts.find(pt => pt.id == _p);
+
+    if(typeof prev === 'undefined'){
+      prev = p;
+      continue;
+    }
+
+    dist = Math.min(dist, lineDist(mPt, prev, p));
+  }
+  return dist;
+}
+
+//returns distance to a line
+function lineDist(p, _a, _b){
+  let a, b;
+  if (_a.x){
+    a = twgl.v3.create(_a.x, _a.y, _a.z);
+  } else {
+    a = _a;
+  }
+
+  if (_b.x){
+    b = twgl.v3.create(_b.x, _b.y, _b.z);
+  } else {
+    b = _b;
+  }
+
+  let pa = twgl.v3.subtract(p, a);
+  let ba = twgl.v3.subtract(b, a);
+  let dot = twgl.v3.dot(pa,ba) / twgl.v3.dot(ba,ba);
+  let h =  clamp(dot, 0.0, 1.0);
+  return twgl.v3.length(twgl.v3.subtract(pa, twgl.v3.mulScalar(ba, h)));
+}
+
+function clamp (a, low, high){
+  return Math.min(Math.max(a, low), high);
 }
