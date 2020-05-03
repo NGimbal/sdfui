@@ -260,19 +260,30 @@ export class PolyPoint{
 
 }
 
-export function distPrim(_p, prim){
-  let p = {};
+//https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
+export function distPrim(_mPt, prim){
+  let mPt = {};
   //until we switch out mPt for a twgl.v3
-  if (_p.x){
-    p = twgl.v3.create(_p.x, _p.y, _p.z);
+  if (_mPt.x){
+    mPt = twgl.v3.create(_mPt.x, _mPt.y, _mPt.z);
   } else {
-    p = _p;
+    mPt = _mPt;
   }
 
   let dist = 1000;
   switch (prim.type){
     case  "polyline":
-      dist = Math.min(dist, pLineDist(p, prim));
+      dist = Math.min(dist, pLineDist(mPt, prim));
+      break;
+    case "polygon":
+      dist = Math.min(dist, polygonDist(mPt, prim));
+      break;
+    case "circle":
+      dist = Math.min(dist, circleDist(p, prim));
+      break;
+    case "rectangle":
+
+      // dist = Math.min(dist, polygonDist(p, prim));
       break;
     default:
       break;
@@ -297,22 +308,67 @@ function pLineDist(mPt, prim){
       continue;
     }
 
-    dist = Math.min(dist, lineDist(mPt, prev, p));
+    dist = Math.min(dist, lineDist(mPt, prev, p, prim.properties.weight));
+
+    prev = p;
   }
   return dist;
 }
 
+//returns distance to a poly line
+function polygonDist(mPt, prim){
+  if (prim.type != "polygon"){
+    console.log("polygonDist() called on primitive of " + prim.type + " type.");
+    console.log(prim);
+    return 1000;
+  }
+  // let dist = 1000;
+  let _prev = state.scene.pts.find(pt => pt.id == prim.pts[prim.pts.length - 1]);
+  let prev = twgl.v3.create(_prev.x, _prev.y, 0);
+  
+  let _first = state.scene.pts.find(pt => pt.id == prim.pts[0]);
+  let first = twgl.v3.create(_first.x, _first.y, 0);
+  first = twgl.v3.subtract(mPt, first);
+
+  let dist = twgl.v3.dot(first,first);
+  let s = 1;
+
+  for (let _p of prim.pts){
+    let _pt = state.scene.pts.find(pt => pt.id == _p);
+    let p = twgl.v3.create(_pt.x, _pt.y, 0);
+
+    let e = twgl.v3.subtract(prev, p);
+    let w = twgl.v3.subtract(mPt, p);
+
+    let b = twgl.v3.subtract(w, twgl.v3.mulScalar(e, clamp(twgl.v3.dot(w,e) / twgl.v3.dot(e,e), 0.0, 1.0)));
+
+    dist = Math.min(dist, twgl.v3.dot(b,b));
+
+    let c = {
+      x: mPt[1] >= p[1],
+      y: mPt[1] < prev[1],
+      z: e[0] * w[1] > e[1] * w[0]
+    }
+
+    if( (c.x && c.y && c.z) || (!c.x && !c.y && !c.z) ) s *= -1;
+
+    prev = p;
+  }
+  dist = s * Math.sqrt(dist);
+  return dist;
+}
+
 //returns distance to a line
-function lineDist(p, _a, _b){
+function lineDist(p, _a, _b, w){
   let a, b;
   if (_a.x){
-    a = twgl.v3.create(_a.x, _a.y, _a.z);
+    a = twgl.v3.create(_a.x, _a.y, 0);
   } else {
     a = _a;
   }
 
   if (_b.x){
-    b = twgl.v3.create(_b.x, _b.y, _b.z);
+    b = twgl.v3.create(_b.x, _b.y, 0);
   } else {
     b = _b;
   }
@@ -321,7 +377,8 @@ function lineDist(p, _a, _b){
   let ba = twgl.v3.subtract(b, a);
   let dot = twgl.v3.dot(pa,ba) / twgl.v3.dot(ba,ba);
   let h =  clamp(dot, 0.0, 1.0);
-  return twgl.v3.length(twgl.v3.subtract(pa, twgl.v3.mulScalar(ba, h)));
+  //don't know why w needs to be squared here
+  return twgl.v3.length(twgl.v3.subtract(pa, twgl.v3.mulScalar(ba, h))) - w * 5;
 }
 
 function clamp (a, low, high){

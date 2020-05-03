@@ -406,8 +406,9 @@ function escDrawClck(){
 
 function endDrawUpdate(){
   if(!this.toggle) return null;
-  // console.log("///////////////////////////////////////////////");
-
+  // console.log("///////////////////////////////////////////////");  
+  let scene = SDFUI.state.scene;
+  if(scene.editItems[scene.editItem].pts.length < 1) return;
   // SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
 
   // let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
@@ -417,12 +418,12 @@ function endDrawUpdate(){
   let layer = SDFUI.layers[SDFUI.layers.length - 1];
   bakeLayer(layer);
   
-  let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+  let currItem = scene.editItems[scene.editItem];
   
   SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
 
   //next item
-  let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
+  let newLayer = createEditLayer(scene.editItems[scene.editItem]);
 
   SDFUI.layers.push(newLayer);
 

@@ -182,7 +182,7 @@ function main() {
   
   updateMatrices(imgLayer);
 
-  layers.push(imgLayer);
+  // layers.push(imgLayer);
 
   // edit layer
   let plineLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit);
@@ -354,8 +354,8 @@ function updateCtx(){
 
   
   let selDist = sceneDist();
-  let dist = selDist.dist;
-  let selPrim = selDist.selPrim;
+  let dist = selDist.d;
+  let selPrim = selDist.sel;
 
   pixelPt = {
     x: mPt.x,
@@ -370,7 +370,9 @@ function updateCtx(){
   ctx.fillStyle = 'black';
   ctx.fillText("Cursor: " + mPtString, pixelPt.x + 10, pixelPt.y);
   
-  if(typeof selPrim !== "undefined"  && Math.abs(1.0 - dist) * 0.001 <= selPrim.properties.weight){
+  if(typeof selPrim !== "undefined" && dist < 0){
+  // if(typeof selPrim !== "undefined"){
+
     console.log(selPrim.properties.weight);
     ctx.fillStyle = selPrim.idColHex;
     ctx.fillText("Sel Item: " + dist, pixelPt.x + 10, pixelPt.y + 12);

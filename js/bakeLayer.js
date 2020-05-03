@@ -121,8 +121,7 @@ function polyLineFunc(prim, shader, parameters){
   }
   
   posString += '\n\taccumD = line(accumD, u_weight);\n';
-  //change back to u_idStroke
-  posString += '\n\tfinalColor = mix(finalColor, u_idCol, accumD);';
+  posString += '\n\tfinalColor = mix(finalColor, u_stroke, accumD);';
   posString += '\n\treturn vec4(finalColor, accumD);';
   posString += '\n}\n';
   posString += '//$END-' + prim.id + '\n';
