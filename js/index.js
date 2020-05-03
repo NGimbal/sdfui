@@ -373,7 +373,7 @@ function updateCtx(){
   if(typeof selPrim !== "undefined" && dist < 0){
   // if(typeof selPrim !== "undefined"){
 
-    console.log(selPrim.properties.weight);
+    // console.log(selPrim.properties.weight);
     ctx.fillStyle = selPrim.idColHex;
     ctx.fillText("Sel Item: " + dist, pixelPt.x + 10, pixelPt.y + 12);
   }

@@ -378,7 +378,7 @@ function drawUp(e){
   
   if ( (item.type == "circle" || item.type == "rectangle") && item.pts.length == 2){
     bakeLayer(currLayer);
-    SDFUI.store.dispatch(ACT.sceneNewEditItem(item.type));
+    SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
     let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
     let newLayer = createEditLayer(nextPrim);
     SDFUI.layers.push(newLayer);
@@ -389,7 +389,7 @@ function drawUp(e){
   //   SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
   //   SDFUI.newEditTex();
   // }
-
+ 
   return;
 }
 
@@ -426,6 +426,7 @@ function endDrawUpdate(){
   let newLayer = createEditLayer(scene.editItems[scene.editItem]);
 
   SDFUI.layers.push(newLayer);
+  // console.log(SDFUI.state.scene);
 
   this.toggle = !this.toggle;
 }
