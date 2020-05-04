@@ -382,6 +382,9 @@ function drawUp(e){
     let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
     let newLayer = createEditLayer(nextPrim);
     SDFUI.layers.push(newLayer);
+
+    console.log(SDFUI.state.scene);
+    console.log(SDFUI.layers);
   }
 
   // if(item.type == "pointlight"){
@@ -407,8 +410,8 @@ function escDrawClck(){
 function endDrawUpdate(){
   if(!this.toggle) return null;
   // console.log("///////////////////////////////////////////////");  
-  let scene = SDFUI.state.scene;
-  if(scene.editItems[scene.editItem].pts.length < 1) return;
+  // let scene = SDFUI.state.scene;
+  if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) return;
   // SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
 
   // let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
@@ -418,15 +421,18 @@ function endDrawUpdate(){
   let layer = SDFUI.layers[SDFUI.layers.length - 1];
   bakeLayer(layer);
   
-  let currItem = scene.editItems[scene.editItem];
+  let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
   
   SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
 
   //next item
-  let newLayer = createEditLayer(scene.editItems[scene.editItem]);
+  let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
 
   SDFUI.layers.push(newLayer);
-  // console.log(SDFUI.state.scene);
+  
+  
+  console.log(SDFUI.state.scene);
+  console.log(SDFUI.layers);
 
   this.toggle = !this.toggle;
 }
