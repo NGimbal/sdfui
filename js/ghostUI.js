@@ -3,7 +3,7 @@
 import * as HINT from './uihints.js';
 import * as SDFUI from './index.js';
 import * as ACT from './actions.js';
-import {bakeLayer, createLayerFromPrim, createEditLayer} from './layer.js';
+import {bakeLayer, createEditLayer} from './layer.js';
 
 //GhostUI coordinates all UI function
 //Implements UIMode and UIModifiers
@@ -302,7 +302,7 @@ function drawUpdate(){
       SDFUI.store.dispatch(ACT.sceneNewEditItem(sel.value));
     }
     nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-    newLayer = createLayerFromPrim(nextPrim, true);
+    newLayer = createEditLayer(nextPrim);
     SDFUI.layers.push(newLayer); 
   }
 
@@ -370,7 +370,7 @@ function drawUp(e){
   }
 
   let currLayer = SDFUI.layers[SDFUI.layers.length - 1];
-  let pt = currLayer.editTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
+  let pt = currLayer.uniforms.u_eTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
 
   SDFUI.store.dispatch(ACT.sceneAddPt(pt));
 
@@ -383,8 +383,8 @@ function drawUp(e){
     let newLayer = createEditLayer(nextPrim);
     SDFUI.layers.push(newLayer);
 
-    console.log(SDFUI.state.scene);
-    console.log(SDFUI.layers);
+    // console.log(SDFUI.state.scene);
+    // console.log(SDFUI.layers);
   }
 
   // if(item.type == "pointlight"){
@@ -431,8 +431,8 @@ function endDrawUpdate(){
   SDFUI.layers.push(newLayer);
   
   
-  console.log(SDFUI.state.scene);
-  console.log(SDFUI.layers);
+  // console.log(SDFUI.state.scene);
+  // console.log(SDFUI.layers);
 
   this.toggle = !this.toggle;
 }
@@ -447,7 +447,7 @@ function escDrawUpdate(){
 
   let currLayer = SDFUI.layers.pop();
 
-  for (let p of currLayer.editTex.pts){
+  for (let p of currLayer.uniforms.u_eTex.pts){
     SDFUI.store.dispatch(ACT.sceneRmvPt(p));
   }
 
@@ -455,7 +455,8 @@ function escDrawUpdate(){
 
   SDFUI.store.dispatch(ACT.sceneNewEditItem(currLayer.primType))
 
-  SDFUI.layers.push(createLayerFromPrim(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem], true));
+  SDFUI.layers.push(createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]));
+
 
   this.toggle = !this.toggle;
   return;

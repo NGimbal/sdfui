@@ -190,7 +190,7 @@ float sdCircle(vec2 uv, vec2 p, float r){
 //smooth Line Filter
 float line(float d, float w){
   d = clamp(abs(d) - w, 0.0, 1.0);
-  d = 1.0 - smoothstep(0.0,0.0002 * u_dPt.z,abs(d));
+  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
   return d;
 }
 
@@ -336,7 +336,7 @@ float sdCircle(vec2 uv, vec2 p, float r){
 float line(float d, float w){
   d = clamp(abs(d) - w, 0.0, 1.0);
   //very simple lod
-  d = 1.0 - smoothstep(0.0,0.0002 * u_dPt.z,abs(d));
+  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
   return d;
 }
 
@@ -459,7 +459,7 @@ float sdCircle(vec2 uv, vec2 p, float r){
 //smooth Line Filter
 float line(float d, float w){
   d = clamp(abs(d) - w, 0.0, 1.0);
-  d = 1.0 - smoothstep(0.0,0.0002 * u_dPt.z,abs(d));
+  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
   return d;
 }
 
@@ -622,7 +622,7 @@ float sdCircle(vec2 uv, vec2 p, float r){
 float line(float d, float w){
   d = clamp(abs(d) - w, 0.0, 1.0);
   //very simple lod
-  d = 1.0 - smoothstep(0.0,0.0002 * u_dPt.z,abs(d));
+  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
   return d;
 }
 
@@ -717,7 +717,7 @@ float sdCircle(vec2 uv, vec2 p, float r){
 //smooth Line Filter
 float line(float d, float w){
   d = clamp(abs(d) - w, 0.0, 1.0);
-  d = 1.0 - smoothstep(0.0,0.0002 * u_dPt.z,abs(d));
+  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
   return d;
 }
 
@@ -801,7 +801,7 @@ float sdCircle(vec2 uv, vec2 p, float r){
 float line(float d, float w){
   d = clamp(abs(d) - w, 0.0, 1.0);
   //very simple lod
-  d = 1.0 - smoothstep(0.0,0.0002 * u_dPt.z,abs(d));
+  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
   return d;
 }
 
@@ -869,7 +869,7 @@ float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r)
 //smooth Line Filter
 float line(float d, float w){
   d = clamp(abs(d) - w, 0.0, 1.0);
-  d = 1.0 - smoothstep(0.0,0.0002 * u_dPt.z,abs(d));
+  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
   return d;
 }
 
@@ -968,7 +968,7 @@ float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r)
 float line(float d, float w){
   d = clamp(abs(d) - w, 0.0, 1.0);
   //very simple lod
-  d = 1.0 - smoothstep(0.0,0.0002 * u_dPt.z,abs(d));
+  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
   return d;
 }
 

@@ -41,6 +41,7 @@ export class Layer {
       console.log('layer constructor is invalid, check inputs');
       return;
     }
+
     //not allowed to have prop named type
     this.primType = prim.type.slice();
 
@@ -48,22 +49,19 @@ export class Layer {
     this.frag = frag.slice();
     this.uniforms = {...uniforms};
 
-    // if this is really associated with a primitive
+    // if this is associated with a primitive
     if(prim.id){
       this.prim = prim.id.slice();  
       // data texture
-      this.editTex = new PRIM.PolyPoint(16);
-      this.uniforms.u_eTex = this.editTex;
-      this.uniforms.u_cTex = this.editTex.cTexel;
+      this.uniforms.u_eTex = new PRIM.PolyPoint(16);
+      this.uniforms.u_cTex = this.uniforms.u_eTex.cTexel;
       this.uniforms.u_idCol = twgl.v3.copy(prim.idCol);
     }
     
     //layer properties
-    this.properties = {...state.ui.properties};
-    //bbox is set on bake
+    // this.properties = {...state.ui.properties};
+    //bbox is set on bake - should this be part of prim?
     this.bbox = null;
-    this.needsUpdate = false;
-    this.id = (+new Date).toString(36).slice(-8);
 
     //creates a full screen layer
     this.matrix = twgl.m4.ortho(0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
@@ -96,14 +94,13 @@ export class Layer {
 
 export function setBoundingBox(layer){
   if(layer.primType == 'polygon' || layer.primType == 'polyline' || layer.primType == 'rectangle'){
-    layer.bbox = new PRIM.bbox(layer.editTex.pts);
+    layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts);
   } else if (layer.primType == 'circle'){
     // here 1 should be radius
     // this is kind of weird. 
-    layer.bbox = new PRIM.bbox([layer.editTex.pts[0]], 1.);
+    layer.bbox = new PRIM.bbox([layer.uniforms.u_eTex.pts[0]], 1.);
   }
 
-  // console.log(layer.bbox);
   updateMatrices(layer);
 }
 
@@ -161,51 +158,52 @@ export function createEditLayer(prim){
   return layer;
 }
 
-export function bakePrim(prim){
-  let layer = createLayerFromPrim(prim);
-  bakeLayer(layer);
-}
+// //where is this called?
+// export function bakePrim(prim){
+//   let layer = createLayerFromPrim(prim);
+//   bakeLayer(layer);
+// }
 
-//create a layer from a fully fledged primitive
-export function createLayerFromPrim(prim, edit, _uniforms){
-  let uniforms = {};
-  if(_uniforms){
-    uniforms = {..._uniforms};
-  } else {
-    uniforms = getUniforms(prim.type);
-  }
+// //create a layer from a fully fledged primitive
+// export function createLayerFromPrim(prim, edit, _uniforms){
+//   let uniforms = {};
+//   if(_uniforms){
+//     uniforms = {..._uniforms};
+//   } else {
+//     uniforms = getUniforms(prim.type);
+//   }
 
-  //get program stub for prim type
-  let fs = getFragStub(prim.type, edit);
+//   //get program stub for prim type
+//   let fs = getFragStub(prim.type, edit);
   
-  let vs = FS.simpleVert.slice();
+//   let vs = FS.simpleVert.slice();
   
-  //get the points
-  let pts = [];
-  if(prim.pts.length > 0){
-    for (let p of state.scene.pts){
-      if(prim.pts.includes(p.id)){
-        pts.push(p);
-      }
-    }
-  }
-  // which of these methods is better?
-  // scenePts = [...state.scene.pts];
-  // scenePts.filter(p => prim.pts.includes(p.id));
+//   //get the points
+//   let pts = [];
+//   if(prim.pts.length > 0){
+//     for (let p of state.scene.pts){
+//       if(prim.pts.includes(p.id)){
+//         pts.push(p);
+//       }
+//     }
+//   }
+//   // which of these methods is better?
+//   // scenePts = [...state.scene.pts];
+//   // scenePts.filter(p => prim.pts.includes(p.id));
 
-  //return new Layer
-  let layer = new Layer(prim, vs, fs, uniforms);
+//   //return new Layer
+//   let layer = new Layer(prim, vs, fs, uniforms);
   
-  for(let p of pts){
-    layer.uniforms.u_eTex.addPoint(p);
-  }
-  //also if edit = false;
-  //maybe we have prim points but we want to be editing?
-  if(prim.pts.length > 0){
-    setBoundingBox(layer);
-  }
-  return layer;
-}
+//   for(let p of pts){
+//     layer.uniforms.u_eTex.addPoint(p);
+//   }
+//   //also if edit = false;
+//   //maybe we have prim points but we want to be editing?
+//   if(prim.pts.length > 0){
+//     setBoundingBox(layer);
+//   }
+//   return layer;
+// }
 
 //does this function need to be public?
 //returns edit frag or stub frag depending on edit param

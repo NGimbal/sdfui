@@ -31,7 +31,7 @@ export function bake(layer){
 //takes prim and datashader and bakes as a polyline
 function polyLine(prim, layer){
   let shader = LAYER.getFragStub(prim.type, false);
-  let parameters = layer.editTex;
+  let parameters = layer.uniforms.u_eTex;
 
   //every layer gets its own parameters texture
   shader = polyLineFunc(prim, shader, parameters);
@@ -161,7 +161,7 @@ function polyLineCall(prim, shader){
 //takes prim and datashader and bakes as a polyline
 function polygon(prim, layer){
   let shader = LAYER.getFragStub(prim.type, false);
-  let parameters = layer.editTex;
+  let parameters = layer.uniforms.u_eTex;
 
   shader = polgonFunc(prim, shader, parameters);
   shader = polygonCall(prim, shader);
@@ -313,7 +313,7 @@ function polygonCall(prim, shader){
 //takes prim and datashader and bakes as a circle
 export function circle(prim, layer){
   // let shader = LAYER.getFragStub(prim.type, false);
-  // let parameters = layer.editTex;
+  // let parameters = layer.uniforms.u_eTex;
 
   // if(prim.pts.length == 0) return dataShader;
 
@@ -325,8 +325,8 @@ export function circle(prim, layer){
 //creates function call that draws prim - circle
 export function circleCall(prim, layer){
   let shader = LAYER.getFragStub(prim.type, false);
-  let parameters = layer.editTex;
-  let dataSize = layer.editTex.dataSize;
+  let parameters = layer.uniforms.u_eTex;
+  let dataSize = layer.uniforms.u_eTex.dataSize;
 
   //bakes pointPrim data the fluentDoc.parameters
   // let _pt0 = prim.pts[0];
@@ -393,7 +393,7 @@ export function circleCall(prim, layer){
 //takes prim and datashader and bakes as a circle
 export function rectangle(prim, layer){
   // let shader = LAYER.getFragStub(prim.type, false);
-  // let parameters = layer.editTex;
+  // let parameters = layer.uniforms.u_eTex;
 
   // if(prim.pts.length == 0) return dataShader;
 
@@ -405,8 +405,8 @@ export function rectangle(prim, layer){
 //creates function call that draws prim - circle
 export function rectangleCall(prim, layer){
   let shader = LAYER.getFragStub(prim.type, false);
-  let parameters = layer.editTex;
-  let dataSize = layer.editTex.dataSize;
+  let parameters = layer.uniforms.u_eTex;
+  let dataSize = layer.uniforms.u_eTex.dataSize;
 
   let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
 
