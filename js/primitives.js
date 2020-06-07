@@ -136,8 +136,6 @@ export class PolyPoint{
 
     this.data = new Uint16Array(4 * this.dataSize * this.dataSize);
 
-    //---------------------------This is the new paradigm
-
     this.texture = twgl.createTexture(gl, {
         unpackAlignnment: 1,
         minMag: gl.NEAREST,
@@ -150,13 +148,6 @@ export class PolyPoint{
         type: gl.HALF_FLOAT,
         wrap: gl.CLAMP_TO_EDGE,
       });
-
-
-    // this.ptsTex = new THREE.DataTexture(this.data, this.dataSize, this.dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
-
-    // this.ptsTex.magFilter = THREE.NearestFilter;
-    // this.ptsTex.minFilter = THREE.NearestFilter;
-    //---------------------------This is the new paradigm
 
     this.needsUpdate = false;
     this.id = (+new Date).toString(36).slice(-8);
@@ -177,7 +168,7 @@ export class PolyPoint{
     newPolyPoint.cTexel = cTexel;
 
     let data = new Uint16Array(this.data);
-    // let ptsTex = new THREE.DataTexture(data, dataSize, dataSize, THREE.RGBAFormat, THREE.HalfFloatType);
+
     this.texture = twgl.createTexture(gl, {
         unpackAlignnment: 1,
         minMag: gl.NEAREST,
@@ -229,13 +220,6 @@ export class PolyPoint{
     view.setFloat16(16, y, endD);
     view.setFloat16(32, z, endD);
     view.setFloat16(48, w, endD);
-    //
-    // this.ptsTex.image.data[index] = view.getUint16(0, endD);
-    // this.ptsTex.image.data[index + 1] = view.getUint16(16, endD);
-    // this.ptsTex.image.data[index + 2] = view.getUint16(32, endD);
-    // this.ptsTex.image.data[index + 3] = view.getUint16(48, endD);
-
-    // this.ptsTex.needsUpdate = true;
 
     //this seems to be working...
     this.data[index] = view.getUint16(0, endD);
@@ -248,8 +232,6 @@ export class PolyPoint{
       format: gl.RGBA,
       type: gl.HALF_FLOAT,
     });
-
-    // console.log(this.textures.data);
 
     let texData = [view.getUint16(0, endD), view.getUint16(16, endD), view.getUint16(32, endD), view.getUint16(48, endD)];
 

@@ -81,8 +81,8 @@ function searchTree(node, id){
 }
 
 //substcribe to store changes - run listener to set relevant variables
-// store.subscribe(() => console.log(listener()));
-store.subscribe(() => listener());
+store.subscribe(() => console.log(listener()));
+// store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
@@ -159,6 +159,8 @@ function main() {
   let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, gridUniforms);
 
   layers.push(gridLayer);
+  store.dispatch(ACT.layerPush(gridLayer));
+  // console.log(state);
 
   let image = twgl.createTexture(gl, {
     src: "../assets/textures/leaves.jpg",

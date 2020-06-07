@@ -57,9 +57,9 @@ export class Layer {
       this.uniforms.u_cTex = this.uniforms.u_eTex.cTexel;
       this.uniforms.u_idCol = twgl.v3.copy(prim.idCol);
     }
+
+    this.id = (+new Date).toString(36).slice(-8);
     
-    //layer properties
-    // this.properties = {...state.ui.properties};
     //bbox is set on bake - should this be part of prim?
     this.bbox = null;
 

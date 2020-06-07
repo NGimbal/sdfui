@@ -412,11 +412,7 @@ function endDrawUpdate(){
   // console.log("///////////////////////////////////////////////");  
   // let scene = SDFUI.state.scene;
   if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) return;
-  // SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-
-  // let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
-  // SDFUI.store.dispatch(ACT.scenePushEditItem(type));
-
+ 
   //list of layers should probably go in redux store at some point
   let layer = SDFUI.layers[SDFUI.layers.length - 1];
   bakeLayer(layer);
@@ -429,21 +425,12 @@ function endDrawUpdate(){
   let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
 
   SDFUI.layers.push(newLayer);
-  
-  
-  // console.log(SDFUI.state.scene);
-  // console.log(SDFUI.layers);
 
   this.toggle = !this.toggle;
 }
 
 function escDrawUpdate(){
   if(!this.toggle) return null;
-
-  // if(SDFUI.editTex.pts.length == 0) {
-  //   this.options.exit = true;
-  //   return null;
-  // }
 
   let currLayer = SDFUI.layers.pop();
 
@@ -456,7 +443,6 @@ function escDrawUpdate(){
   SDFUI.store.dispatch(ACT.sceneNewEditItem(currLayer.primType))
 
   SDFUI.layers.push(createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]));
-
 
   this.toggle = !this.toggle;
   return;

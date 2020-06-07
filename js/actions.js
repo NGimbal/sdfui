@@ -12,6 +12,7 @@ export const status = 'status';
 export const scene = 'scene';
 export const cursor = 'cursor';
 export const ui = 'ui';
+export const layers = 'layers';
 
 //sub types
 //STATUS
@@ -38,7 +39,12 @@ export const DRAW_STROKE        = "DRAW_STROKE"; //stroke color
 export const DRAW_FILL          = "DRAW_FILL"; //fill color
 export const DRAW_WEIGHT        = "DRAW_WEIGHT"; //stroke weight
 export const DRAW_RADIUS        = "DRAW_RADIUS"; //shape radius
-export const DRAW_OPACITY        = "DRAW_OPACITY"; //shape radius
+export const DRAW_OPACITY       = "DRAW_OPACITY"; //shape radius
+//LAYERS
+export const LAYER_PUSH         = "LAYER_PUSH"; //push a new layer
+export const LAYER_POP          = "LAYER_POP"; //pop a layer, should be addressed by id
+export const LAYER_UPDATE       = "LAYER_UPDATE"; //update a layer, should be addressed by id
+
 //SCENE
 export const SCENE_ADDPT        = 'SCENE_ADDPT'; //add point to scene
 export const SCENE_RMVPT        = 'SCENE_RMVPT'; //stages pt for removal
@@ -247,6 +253,33 @@ export function drawOpacity(opacity){
     type: ui,
     subtype: DRAW_OPACITY,
     opacity,
+  }
+}
+
+//pushes a new layer onto the draw stack
+export function layerPush(layer){
+  return{
+    type: layers,
+    subtype: LAYER_PUSH,
+    layer
+  }
+}
+
+//pops a new layer from the draw stack
+export function layerPop(layerID){
+  return{
+    type: layers,
+    subtype: LAYER_POP,
+    layerID
+  }
+}
+
+//updates a layer from the draw stack
+export function layerUpdate(layerID){
+  return{
+    type: layers,
+    subtype: LAYER_UPDATE,
+    layerID
   }
 }
 

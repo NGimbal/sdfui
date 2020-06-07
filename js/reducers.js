@@ -7,28 +7,9 @@
 
 import * as PRIM from './primitives.js';
 import * as ACT from './actions.js';
-
-//would rather not have this but I have a feeling werner wouldn't
-//want me to put it in the state
-//although why not? state can always be updated
-//let's keep it out for now
-
-//also need to add a list of layers
-
-//item needs update new idea:
-//prim has counter, 
-//  every time prim is updated, counter is incremented
-//state.status has list of key: vals
-//  key is prim.id
-//  val is per user increment count
-//if (prim.counter != state.status[prim.id]) {
-// state.status[prim.id] = prim.counter 
-// update(prim);
-//}
+import * as LAYER from './layer.js';
 
 import { ptTree } from './index.js';
-
-// console.log(Automerge);
 
 const statusInit = {
   resolution: new PRIM.vec(0,0),
@@ -49,6 +30,7 @@ const uiInit = {
   target: twgl.v3.create(0,0,64),
   //are we moving towards a target
   targeting: false,
+  //targets:[] someday could have multiple tagets for prezi like effect
 }
 
 const cursorInit = {
@@ -59,11 +41,25 @@ const cursorInit = {
   snapGrid: false,
   snapRef: false,
   snapRefAngle: 15,
-  //grid properties that are important to snapping
-  //scaleX, scaleY, offsetX, offsetY
   grid: new PRIM.vec(0,0,0,0),
   scale: 48,
 }
+
+const layersInit = {
+  layers: [],
+}
+
+// will need some kind of update counter
+// to know when a collaborator should update a prim
+// const updateCounterInit = {
+//   updateList = [{
+//     id: ,
+//     counter: 0,
+//   },]
+// }
+// if (primUpdate[prim.id].counter != prim.updateCount){
+//  layer.update();
+// }
 
 const sceneInit = {
   //curr edit Item - an index in editItems
@@ -82,6 +78,7 @@ const initialState={
   status: statusInit,
   ui: uiInit,
   cursor: cursorInit,
+  layers: layersInit,
   //automerge object
   scene: sceneDoc,
 }
@@ -267,6 +264,24 @@ function cursor(_state=initialState, action) {
     }
 }
 
+function layers(_state=initialState, action) {
+  let state = _state.layers;
+  switch(action.subtype){
+    case ACT.LAYER_PUSH:
+      return Object.assign({}, state, {
+        layers: state.layers.slice().push(action.layer)
+      });
+    case ACT.LAYER_POP:
+      return Object.assign({}, state, {
+        layers: state.layers.filter((l) => l.id !== action.layerID)
+      });
+    case ACT.LAYER_UPDATE:
+      return;
+    default:
+      return state;
+  }
+}
+
 //state related to the scene
 function scene(_state=initialState, action) {
   let state = _state.scene;
@@ -343,10 +358,6 @@ export const reducer = function(state = initialState, action){
       return Object.assign({}, state,{
         status: status(state, action),
       });
-    case ACT.scene:
-      return Object.assign({}, state,{
-        scene: scene(state, action),
-      });
     case ACT.cursor:
       return Object.assign({}, state,{
         cursor: cursor(state, action),
@@ -354,6 +365,14 @@ export const reducer = function(state = initialState, action){
     case ACT.ui:
       return Object.assign({}, state,{
         ui: ui(state, action),
+      });
+    case ACT.layers:
+      return Object.assign({}, state,{
+        layers: layers(state, action),
+      });
+    case ACT.scene:
+      return Object.assign({}, state,{
+        scene: scene(state, action),
       });
     default:
       // Redux sends a weird/opaque init method with action which does not conform to ReducerAction and falls through here.
