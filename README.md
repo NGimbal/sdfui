@@ -1,7 +1,7 @@
 # Drafting with Signed Distance Functions
 This work is being presented as a poster at SIGGRAPH 2020 under the title "A CAD Interface for Drafting with Signed Distance Functions." This application implements a simple interface for drawing shapes that are rendered by signed distance functions. The goal is to develop a collaborative, offline-first parametric drafting application for architects and designers.
 
-![A short demo gif](https://media.giphy.com/media/Sttv7XsNuOiqYPjG4n/source.gif)
+![A short demo gif](draw.gif)
 
 ## Sources and Links:
 Explaining Signed Distance Functions:
