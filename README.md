@@ -3,7 +3,7 @@ This work is being presented as a poster at SIGGRAPH 2020 under the title "A CAD
 
 ![A short demo gif](https://media.giphy.com/media/Sttv7XsNuOiqYPjG4n/giphy.gif)
 
-# Sources and Links:
+## Sources and Links:
 Explaining Signed Distance Functions:
 https://www.youtube.com/watch?v=s5NGeUV2EyU&app=desktop
 
