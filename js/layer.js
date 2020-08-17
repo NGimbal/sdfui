@@ -39,6 +39,10 @@ export class Layer {
 
     if(typeof prim != 'object' || typeof vert != 'string' || typeof frag != 'string' || typeof uniforms != 'object'){
       console.log('layer constructor is invalid, check inputs');
+      console.log(prim);
+      console.log(vert);
+      console.log(frag);
+      console.log(uniforms);
       return;
     }
 
@@ -157,53 +161,6 @@ export function createEditLayer(prim){
   
   return layer;
 }
-
-// //where is this called?
-// export function bakePrim(prim){
-//   let layer = createLayerFromPrim(prim);
-//   bakeLayer(layer);
-// }
-
-// //create a layer from a fully fledged primitive
-// export function createLayerFromPrim(prim, edit, _uniforms){
-//   let uniforms = {};
-//   if(_uniforms){
-//     uniforms = {..._uniforms};
-//   } else {
-//     uniforms = getUniforms(prim.type);
-//   }
-
-//   //get program stub for prim type
-//   let fs = getFragStub(prim.type, edit);
-  
-//   let vs = FS.simpleVert.slice();
-  
-//   //get the points
-//   let pts = [];
-//   if(prim.pts.length > 0){
-//     for (let p of state.scene.pts){
-//       if(prim.pts.includes(p.id)){
-//         pts.push(p);
-//       }
-//     }
-//   }
-//   // which of these methods is better?
-//   // scenePts = [...state.scene.pts];
-//   // scenePts.filter(p => prim.pts.includes(p.id));
-
-//   //return new Layer
-//   let layer = new Layer(prim, vs, fs, uniforms);
-  
-//   for(let p of pts){
-//     layer.uniforms.u_eTex.addPoint(p);
-//   }
-//   //also if edit = false;
-//   //maybe we have prim points but we want to be editing?
-//   if(prim.pts.length > 0){
-//     setBoundingBox(layer);
-//   }
-//   return layer;
-// }
 
 //does this function need to be public?
 //returns edit frag or stub frag depending on edit param

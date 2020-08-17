@@ -50,32 +50,24 @@ void main() {
 
   outColor = texture(u_img, uv);
 }`
-//---------------------------------------------
-// export const gridFrag =
-// `#version 300 es
-// #define saturate(a) clamp(a, 0.0, 1.0)
+export const demoFrag =
+`#version 300 es
+precision mediump float;
 
-// precision mediump float;
+in vec2 v_texcoord;
 
-// in vec2 v_texcoord;
+uniform sampler2D u_eTex;
 
-// uniform vec3 u_resolution;
-// uniform vec3 u_dPt;
+out vec4 outColor;
 
-// out vec4 outColor;
+void main() {
+  outColor = vec4(0.5, 0.5, 0.5, 0.25);
+  vec2 uv = vec2(v_texcoord);
 
-// float repeat(float x) { return abs(fract(x*0.5+0.5)-0.5)*2.0; }
 
-// void main() {
-//   outColor = vec4(1.0);
-//   vec2 uv = vec2(v_texcoord);
-//   uv.x *= u_resolution.x / u_resolution.y;
-//   uv -= u_dPt.xy;
-//   uv *= u_dPt.z;
-//   // uv.y -= u_dPt.y;
-//   outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(uv.x) - 0.92)*4.0;
-//   outColor -= vec4(1.0, 1.0, 0.2, 1.0) * saturate(repeat(uv.y) - 0.92)*4.0;
-// }`;
+
+
+}`;
 //---------------------------------------------
 export const gridFrag =
 `#version 300 es
@@ -208,7 +200,6 @@ float ao2D_simple(float d, float pixSize, float width, float coef)
 	return 1.0;
 }
 
-
 void main(){
   outColor = vec4(1.0);
   vec2 uv = vec2(v_texcoord);
@@ -222,7 +213,7 @@ void main(){
 
   vec2 prevPt = texture(u_eTex, vec2(texelOffset, texelOffset)).xy;
   float one = 1.0;
-  //may need another texture to display current mouse pos
+
   if(prevPt == vec2(0.)) {discard;}
 
   for (float i = 0.; i < 16.; i++ ){

@@ -12,7 +12,6 @@ SVG() //returns svg of polyline
 'use strict';
 
 // import * as THREE from './libjs/three.module.js';
-import * as HINT from './uihints.js';
 import {gl, dPt, state} from './index.js';
 
 //simple class for packaging shader and polypoint
@@ -71,7 +70,9 @@ export function angleVec(_vec){
 export class bbox{
   //input array of points calculate min, max, width, height
   constructor(points, _offset){
-    let offset = _offset || 0.05;
+    let offset;
+    if(typeof _offset == 'undefined') offset = 0.05;
+    else offset = _offset;
 
     points.sort((a,b) => (a.x < b.x) ? -1 : 1);
     let minX = points[0].x - offset;

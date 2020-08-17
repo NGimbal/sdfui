@@ -1,0 +1,23 @@
+{
+  "name": "sdfui",
+  "version": "1.0.0",
+  "description": "Laminar is a collaborative drafting app built to streamline design communication.",
+  "main": "index.js",
+  "scripts": {
+    "devStart": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NGimbal/sdfui.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NGimbal/sdfui/issues"
+  },
+  "homepage": "https://github.com/NGimbal/sdfui#readme",
+  "dependencies": {
+    "ejs": "^3.1.3"
+  }
+}

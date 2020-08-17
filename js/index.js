@@ -16,6 +16,8 @@ import {Layer, updateMatrices} from './layer.js';
 
 import {createStore} from './libjs/redux.js';
 
+// import Rbush from '../node_modules/rbush/index.js';
+
 var canvas, ctx, ui;
 
 //twgl world
@@ -81,8 +83,8 @@ function searchTree(node, id){
 }
 
 //substcribe to store changes - run listener to set relevant variables
-store.subscribe(() => console.log(listener()));
-// store.subscribe(() => listener());
+// store.subscribe(() => console.log(listener()));
+store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
@@ -159,7 +161,8 @@ function main() {
   let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, gridUniforms);
 
   layers.push(gridLayer);
-  store.dispatch(ACT.layerPush(gridLayer));
+  // layerPush does not work at the moment
+  // store.dispatch(ACT.layerPush(gridLayer));
   // console.log(state);
 
   let image = twgl.createTexture(gl, {
@@ -185,11 +188,30 @@ function main() {
   updateMatrices(imgLayer);
 
   // layers.push(imgLayer);
+  let demoUniforms = {
+    // u_matrix: matrix,
+    u_textureMatrix: twgl.m4.copy(texMatrix),
+    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
+    u_eTex: {},
+  }
+
+  // grid layer
+  let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.demoFrag, demoUniforms);
+  // demoLayer.set
+  demoLayer.bbox = new PRIM.bbox([{x:0.1250, y:0.1250}, {x:0.3125, y:0.3125}], 0.0);
+  
+  updateMatrices(demoLayer);
+  // layers.push(demoLayer);
 
   // edit layer
   let plineLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit);
 
   layers.push(plineLayer);
+
+  // console.log(layers);
+
+  // layers[1].uniforms.u_eTex = layers[2].uniforms.u_eTex;
 
   //this is excellent
   gl.enable(gl.BLEND);
