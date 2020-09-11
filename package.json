@@ -1,23 +1,25 @@
 {
   "name": "sdfui",
   "version": "1.0.0",
-  "description": "Laminar is a collaborative drafting app built to streamline design communication.",
+  "description": "laminar drawing",
   "main": "index.js",
   "scripts": {
-    "devStart": "nodemon server.js"
+    "test": "test"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/NGimbal/sdfui.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "draw"
+  ],
+  "author": "Nick Gimbal",
+  "license": "GPL-3.0-or-later",
   "bugs": {
     "url": "https://github.com/NGimbal/sdfui/issues"
   },
   "homepage": "https://github.com/NGimbal/sdfui#readme",
   "dependencies": {
-    "ejs": "^3.1.3"
+    "firebase": "^7.20.0"
   }
 }

@@ -16,6 +16,9 @@ import {Layer, updateMatrices} from './layer.js';
 
 import {createStore} from './libjs/redux.js';
 
+import * as firebase from './node_modules/firebase/app';
+// import 'firebase/firestore';
+
 // import Rbush from '../node_modules/rbush/index.js';
 
 var canvas, ctx, ui;
@@ -139,6 +142,24 @@ function main() {
   canvasContainer.addEventListener('mousedown', startDrag);
 
   canvasContainer.onwheel = scrollPan;
+
+
+  let firebaseConfig = {
+    apiKey: "AIzaSyAgaIOmLx0Mbo9-hiR7WzgkPJLm6lWRTOc",
+    authDomain: "laminar-draw.firebaseapp.com",
+    databaseURL: "https://laminar-draw.firebaseio.com",
+    projectId: "laminar-draw",
+    storageBucket: "laminar-draw.appspot.com",
+    messagingSenderId: "139969522570",
+    appId: "1:139969522570:web:514511926e0a698564b673",
+    measurementId: "G-SH56EW8WF5"
+  }
+  // Initialize Cloud Firestore through Firebase
+  firebase.initializeApp(firebaseConfig);
+
+  var db = firebase.firestore();
+
+  console.log(db);
 
 //------------------------------------------------------------------------------
 
