@@ -7,6 +7,7 @@ module.exports = {
     './src/bakeLayer.js',
     './src/ghostUI.js',
     './src/index.js',
+    './src/app.js',
     './src/layer.js',
     './src/primitives.js',
     './src/reducers.js',
@@ -24,6 +25,7 @@ module.exports = {
     publicPath: '/',
     filename: 'bundle.js'
   },
+  devtool: 'source-map',
   module: {
     rules: [
       {

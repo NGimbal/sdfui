@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "webpack-dev-server --mode development --open",
-    "start": "webpack -p && python3 -m http.server"
+    "start-py": "webpack -p && python3 -m http.server",
+    "start": "webpack src/index.js --output bin/app.js -d --watch"
   },
   "repository": {
     "type": "git",
@@ -27,6 +28,7 @@
     "chroma-js": "^2.1.0",
     "firebase": "^7.20.0",
     "kd-tree-javascript": "^1.0.3",
+    "mithril": "^2.0.4",
     "rbush": "^3.0.1",
     "twgl.js": "^4.16.0"
   },
