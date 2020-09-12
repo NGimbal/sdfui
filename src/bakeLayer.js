@@ -1,7 +1,7 @@
 //bakePrim.js
 "use strict";
 
-import * as PRIM from './primitives.js';
+// import * as PRIM from './primitives.js';
 import * as SDFUI from './index.js';
 import * as LAYER from './layer.js';
 

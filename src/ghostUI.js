@@ -4,6 +4,8 @@ import * as HINT from './uihints.js';
 import * as SDFUI from './index.js';
 import * as ACT from './actions.js';
 import {bakeLayer, createEditLayer} from './layer.js';
+import * as chroma from 'chroma-js';
+import * as twgl from 'twgl.js';
 
 //GhostUI coordinates all UI function
 //Implements UIMode and UIModifiers

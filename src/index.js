@@ -4,22 +4,28 @@
 // import * as THREE from './libjs/three.module.js';
 
 import * as PRIM from './primitives.js';
-import * as BAKE from './bakeLayer.js';
+// import * as BAKE from './bakeLayer.js';
 import {GhostUI} from './ghostUI.js';
 
 import * as ACT from './actions.js';
 import { reducer } from './reducers.js';
 
-import * as SF from './frag/frags.js';
+import * as SF from './frags.js';
 import {Layer, updateMatrices} from './layer.js';
+import * as chroma from 'chroma-js';
+import * as twgl from 'twgl.js';
 
 
-import {createStore} from './libjs/redux.js';
+import * as ubilabs from 'kd-tree-javascript';
 
-import * as firebase from './node_modules/firebase/app';
-// import 'firebase/firestore';
 
-// import Rbush from '../node_modules/rbush/index.js';
+import {createStore} from './redux.js';
+
+// import * as rbush from 'rbush';
+
+import firebaseConfig from './firebaseConfig.js';
+import * as firebase from 'firebase/app';
+import 'firebase/firestore';
 
 var canvas, ctx, ui;
 
@@ -44,7 +50,7 @@ export var resolution;
 export var mPt = new PRIM.vec(0, 0);
 //dPt z is scale
 export var dPt = new twgl.v3.create(0, 0, 64);
-export var ptTree = new kdTree([], pointDist, ["x", "y"]);
+export var ptTree = new ubilabs.kdTree([], pointDist, ["x", "y"]);
 
 //This is how I'm letting other parts of the app
 //have quick access to parts of the state
@@ -143,17 +149,6 @@ function main() {
 
   canvasContainer.onwheel = scrollPan;
 
-
-  let firebaseConfig = {
-    apiKey: "AIzaSyAgaIOmLx0Mbo9-hiR7WzgkPJLm6lWRTOc",
-    authDomain: "laminar-draw.firebaseapp.com",
-    databaseURL: "https://laminar-draw.firebaseio.com",
-    projectId: "laminar-draw",
-    storageBucket: "laminar-draw.appspot.com",
-    messagingSenderId: "139969522570",
-    appId: "1:139969522570:web:514511926e0a698564b673",
-    measurementId: "G-SH56EW8WF5"
-  }
   // Initialize Cloud Firestore through Firebase
   firebase.initializeApp(firebaseConfig);
 
@@ -263,22 +258,22 @@ function update() {
     //this is better but still not perfect
     if(layer.bbox){ updateMatrices(layer); }
     if(layer.needsUpdate){
-      switch(layer.name){
-        case "polyline":
-          BAKE.polyLine(prim, dataShader);
-          break;
-        case "polygon":
-          BAKE.polygon(prim, dataShader);
-          break;
-        case "circle":
-          BAKE.circle(prim, dataShader);
-          break;
-        case "rectangle":
-          BAKE.rectangle(prim, dataShader);
-          break;
-        default:
-          break;
-      }
+      // switch(layer.name){
+      //   case "polyline":
+      //     BAKE.polyLine(prim, dataShader);
+      //     break;
+      //   case "polygon":
+      //     BAKE.polygon(prim, dataShader);
+      //     break;
+      //   case "circle":
+      //     BAKE.circle(prim, dataShader);
+      //     break;
+      //   case "rectangle":
+      //     BAKE.rectangle(prim, dataShader);
+      //     break;
+      //   default:
+      //     break;
+      // }
       store.dispatch(ACT.sceneItemUpdate(index, false));
     }
 

@@ -24,9 +24,11 @@
 //point = (scene.points.['id'], dist) => { (scene.points.['id'] - point) * dist }
 
 import {gl, state, resolution, mPt, dPt} from './index.js';
-import * as FS from './frag/frags.js';
+import * as FS from './frags.js';
 import * as BAKE from './bakeLayer.js';
 import * as PRIM from './primitives.js';
+import * as chroma from 'chroma-js';
+import * as twgl from 'twgl.js';
 
 // to be treated as a drawObject by twgl we need these properties
 // { programInfo: programInfo,

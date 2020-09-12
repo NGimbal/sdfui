@@ -4,7 +4,9 @@
   "description": "laminar drawing",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "webpack-dev-server --mode development --open",
+    "start": "webpack -p && python3 -m http.server"
   },
   "repository": {
     "type": "git",
@@ -20,6 +22,23 @@
   },
   "homepage": "https://github.com/NGimbal/sdfui#readme",
   "dependencies": {
-    "firebase": "^7.20.0"
+    "@petamoriken/float16": "^2.0.0",
+    "automerge": "^0.14.1",
+    "chroma-js": "^2.1.0",
+    "firebase": "^7.20.0",
+    "kd-tree-javascript": "^1.0.3",
+    "rbush": "^3.0.1",
+    "twgl.js": "^4.16.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.11.6",
+    "@babel/preset-env": "^7.11.5",
+    "babel-loader": "^8.1.0",
+    "css-loader": "^4.3.0",
+    "script-loader": "^0.7.2",
+    "style-loader": "^1.2.1",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12",
+    "webpack-dev-server": "^3.11.0"
   }
 }

@@ -13,6 +13,9 @@ SVG() //returns svg of polyline
 
 // import * as THREE from './libjs/three.module.js';
 import {gl, dPt, state} from './index.js';
+import { Float16Array, getFloat16, setFloat16, hfround } from "@petamoriken/float16";
+import * as chroma from 'chroma-js';
+import * as twgl from 'twgl.js';
 
 //simple class for packaging shader and polypoint
 export class DataShader{

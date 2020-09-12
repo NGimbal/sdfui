@@ -7,9 +7,11 @@
 
 import * as PRIM from './primitives.js';
 import * as ACT from './actions.js';
-import * as LAYER from './layer.js';
+// import * as LAYER from './layer.js';
+import * as twgl from 'twgl.js';
 
 import { ptTree } from './index.js';
+import * as Automerge from 'automerge';
 
 const statusInit = {
   resolution: new PRIM.vec(0,0),
@@ -107,14 +109,14 @@ function status(_state=initialState, action){
 function ui(_state=initialState, action){
   let state = _state.ui;
   switch(action.subtype){
-    case ACT.UI_PAUSE:
-      return Object.assign({}, state,{
-        pause: !state.pause
-      });
-    case ACT.UI_GRID:
-      return Object.assign({}, state,{
-        grid: !state.grid
-      });
+    // case ACT.UI_PAUSE:
+    //   return Object.assign({}, state,{
+    //     pause: !state.pause
+    //   });
+    // case ACT.UI_GRID:
+    //   return Object.assign({}, state,{
+    //     grid: !state.grid
+    //   });
     case ACT.UI_POINTS:
       return Object.assign({}, state,{
         points: !state.points

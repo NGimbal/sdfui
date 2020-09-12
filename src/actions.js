@@ -4,7 +4,7 @@
 //actions named with reducer_property
 //action functions named with reducerProperty()
 //goal is clarity for future debugging easy
-import * as PRIM from './primitives.js';
+// import * as PRIM from './primitives.js';
 
 //ACTION TYPE CONSTANTS
 //main types
