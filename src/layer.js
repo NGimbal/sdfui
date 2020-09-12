@@ -23,7 +23,7 @@
 //point a = 5units from point b
 //point = (scene.points.['id'], dist) => { (scene.points.['id'] - point) * dist }
 
-import {gl, state, resolution, mPt, dPt} from './index.js';
+import {gl, state, resolution, mPt, dPt} from './app.js';
 import * as FS from './frags.js';
 import * as BAKE from './bakeLayer.js';
 import * as PRIM from './primitives.js';

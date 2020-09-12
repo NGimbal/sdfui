@@ -1,7 +1,7 @@
 "use strict";
 
 import * as HINT from './uihints.js';
-import * as SDFUI from './index.js';
+import * as SDFUI from './app.js';
 import * as ACT from './actions.js';
 import {bakeLayer, createEditLayer} from './layer.js';
 import * as chroma from 'chroma-js';

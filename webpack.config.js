@@ -17,8 +17,6 @@ module.exports = {
     './src/uihints.js',
     './src/vert.js',
     './src/frags.js',
-    './src/redux.js',
-    // './src/firebaseConfig.js',
   ],
   output: {
     path: __dirname,

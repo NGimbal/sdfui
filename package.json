@@ -30,6 +30,7 @@
     "kd-tree-javascript": "^1.0.3",
     "mithril": "^2.0.4",
     "rbush": "^3.0.1",
+    "redux": "^4.0.5",
     "twgl.js": "^4.16.0"
   },
   "devDependencies": {

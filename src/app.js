@@ -19,7 +19,7 @@ import * as twgl from 'twgl.js';
 import * as ubilabs from 'kd-tree-javascript';
 
 
-import {createStore} from './redux.js';
+import {createStore} from 'redux';
 
 // import * as rbush from 'rbush';
 
