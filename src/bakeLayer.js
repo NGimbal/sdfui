@@ -2,7 +2,7 @@
 "use strict";
 
 // import * as PRIM from './primitives.js';
-import * as SDFUI from './app.js';
+import * as SDFUI from './draw.js';
 import * as LAYER from './layer.js';
 
 //could also get frag stub here

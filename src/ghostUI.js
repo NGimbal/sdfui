@@ -1,7 +1,7 @@
 "use strict";
 
-import * as HINT from './uihints.js';
-import * as SDFUI from './app.js';
+// import * as HINT from './uihints.js';
+import * as SDFUI from './draw.js';
 import * as ACT from './actions.js';
 import {bakeLayer, createEditLayer} from './layer.js';
 import * as chroma from 'chroma-js';
@@ -129,7 +129,6 @@ class GhostUI{
   //global update to run functions that have been cued by a button press
   //most basic update pattern that will also be used in event handlers
   update(){
-    // let fluentDoc = this.fluentStack.curr().clone();
     let mode = this.modeStack.curr();
     if(!mode.update)return;
 
@@ -243,8 +242,8 @@ class GhostUI{
 
 //---SELECT---------------------------
 function selEnter(){
-  HINT.pushModeHint(this.name, "Select Mode!");
-  HINT.modButtonStack();
+  // HINT.pushModeHint(this.name, "Select Mode!");
+  // HINT.modButtonStack();
 }
 
 function selExit(){
@@ -262,8 +261,8 @@ function selMv(){
 
 //---DRAW-----------------------------
 function drawEnter(){
-  HINT.pushModeHint(this.name, "Begin Drawing!");
-  this.initUIModeButtons();
+  // HINT.pushModeHint(this.name, "Begin Drawing!");
+  // this.initUIModeButtons();
 
   //turns on pt snapping by default
   let snapPt = this.modifiers.find(mod => mod.name == "Snap Point");
@@ -271,7 +270,7 @@ function drawEnter(){
 }
 
 function drawExit(){
-  HINT.snackHint("End Drawing!");
+  // HINT.snackHint("End Drawing!");
   // not implemented
 }
 
@@ -401,12 +400,12 @@ function drawUp(e){
 //---DRAW-----------------------------
 function endDrawClck(){
   this.toggle = !this.toggle;
-  HINT.pulseActive(this);
+  // HINT.pulseActive(this);
 }
 //
 function escDrawClck(){
   this.toggle = !this.toggle;
-  HINT.pulseActive(this);
+  // HINT.pulseActive(this);
 }
 
 function endDrawUpdate(){
@@ -548,18 +547,18 @@ class UIMode{
     this.options = _options || {factor:1.0};
   }
 
-  initUIModeButtons(){
-    let tags = [];
+  // initUIModeButtons(){
+  //   let tags = [];
 
-    for (let m of this.modifiers){
-      if (!tags.includes(m.tag)){
-        tags.push(m.tag);
-        HINT.addButtonHeading(m);
-      }
-      let newButton = m.addButton();
-      m.button = newButton;
-    }
-  }
+  //   for (let m of this.modifiers){
+  //     if (!tags.includes(m.tag)){
+  //       tags.push(m.tag);
+  //       // HINT.addButtonHeading(m);
+  //     }
+  //     let newButton = m.addButton();
+  //     m.button = newButton;
+  //   }
+  // }
 }
 
 //simple class to hold modifiers
@@ -618,7 +617,7 @@ class UIModifier{
   }
 
   addButton(){
-    let elem = HINT.addButtonHint(this);
+    // let elem = HINT.addButtonHint(this);
 
     //button element
     this.elem = elem;
@@ -634,9 +633,9 @@ class UIModifier{
   dispatch(){
     SDFUI.store.dispatch(this.act);
     if(this.pulse){
-      HINT.pulseActive(this);
+      // HINT.pulseActive(this);
     }else{
-      HINT.toggleActive(this);
+      // HINT.toggleActive(this);
     }
   }
 }

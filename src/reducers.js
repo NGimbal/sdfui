@@ -10,7 +10,7 @@ import * as ACT from './actions.js';
 // import * as LAYER from './layer.js';
 import * as twgl from 'twgl.js';
 
-import { ptTree } from './app.js';
+import { ptTree } from './draw.js';
 import * as Automerge from 'automerge';
 
 const statusInit = {

@@ -3,25 +3,32 @@ const path = require('path');
 
 module.exports = {
   entry: [
-    './src/actions.js',
-    './src/bakeLayer.js',
+    './src/draw.js',
     './src/ghostUI.js',
-    './src/index.js',
-    './src/app.js',
+
     './src/layer.js',
+    './src/bakeLayer.js',
     './src/primitives.js',
+    
+    './src/actions.js',
     './src/reducers.js',
-    './src/sdfui.css',
-    './src/tooltip.css',
-    './src/ui-mode-stack.css',
     './src/uihints.js',
+
     './src/vert.js',
     './src/frags.js',
+
+    './src/index.js',
+    './src/components/root.js',
+
+    // './src/sdfui.css',
+    // './src/tooltip.css',
+    // './src/ui-mode-stack.css',
+
   ],
   output: {
-    path: __dirname,
-    publicPath: '/',
-    filename: 'bundle.js'
+    path: path.resolve(__dirname, 'bin'),
+    publicPath: 'bin/',
+    filename: 'app.js'
   },
   devtool: 'source-map',
   module: {
@@ -31,9 +38,9 @@ module.exports = {
         exclude: /(node_modules|bower_components)/,
         use: {
           loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-env']
-          }
+          // options: {
+          //   presets: ['@babel/preset-env']
+          // }
         }
       },
       // {
