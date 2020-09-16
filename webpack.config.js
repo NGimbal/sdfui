@@ -4,7 +4,7 @@ const path = require('path');
 module.exports = {
   entry: [
     './src/draw.js',
-    './src/ghostUI.js',
+    './src/drawUI.js',
 
     './src/layer.js',
     './src/bakeLayer.js',
@@ -18,7 +18,8 @@ module.exports = {
     './src/frags.js',
 
     './src/index.js',
-    './src/components/root.js',
+    './src/components/Root.js',
+    './src/components/FloatingMenu.js',
 
     // './src/sdfui.css',
     // './src/tooltip.css',

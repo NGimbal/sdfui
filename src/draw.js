@@ -1,6 +1,6 @@
 "use strict";
 
-import {GhostUI} from './ghostUI.js';
+import {GhostUI} from './drawUI.js';
 
 import * as PRIM from './primitives.js';
 

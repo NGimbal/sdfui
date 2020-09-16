@@ -1,7 +1,22 @@
 import m from "mithril";
-import { Button, Icons } from 'construct-ui';
+import { Button, Icons, Icon } from 'construct-ui';
 // import '../../node_modules/construct-ui/lib/index.css';
 import {initDraw} from '../draw'
+import FloatingMenu from "./floatingMenu";
+
+//Main UI scheme:
+//Narrow vertical toolbar w/ high level tool options
+//"Floating Action Menu" at top (or bottom?) for each context
+//Big canvas
+//  -Draw
+//    -Save
+//    -Share link
+//    -Choose tool
+//      -Awk to have a menu in a FAB
+//      -Awk to have a menu in a vertical toolbar as well
+//  -Edit
+//  -Profile / Settings
+
 
 function Root() {
   return {
@@ -15,7 +30,7 @@ function Root() {
           <canvas id="text"></canvas>
         </div>
         <div style="position:absolute; 
-                    width:60; 
+                    width:60px; 
                     height:100%; 
                     top:0px; 
                     left:0px; 
@@ -44,6 +59,7 @@ function Root() {
                 style="margin: 0px 0px 10px 0px;"  />
                 
         </div>
+        <FloatingMenu/>
       </main>
     )
   }

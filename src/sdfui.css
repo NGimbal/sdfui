@@ -6,11 +6,12 @@ html, body {
 }
 
 #canvasContainer{
-  width:  75%;
-  height: 90%;
+  top: 8%;
 
-  left: 20%;
-  top: 5%;
+  height: 88%;
+
+  left: 90px;
+  right:30px;
 
   position: absolute;
 
