@@ -2,7 +2,8 @@ import m from "mithril";
 import { Button, Icons, Icon } from 'construct-ui';
 // import '../../node_modules/construct-ui/lib/index.css';
 import {initDraw} from '../draw'
-import FloatingMenu from "./floatingMenu";
+import FloatingMenu from "./FloatingMenu";
+import ContextMenu from "./ContextMenu";
 
 //Main UI scheme:
 //Narrow vertical toolbar w/ high level tool options
@@ -29,6 +30,7 @@ function Root() {
           <canvas id="c"></canvas>
           <canvas id="text"></canvas>
         </div>
+        <ContextMenu/>
         <div style="position:absolute; 
                     width:60px; 
                     height:100%; 

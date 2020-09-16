@@ -15,7 +15,7 @@ function FloatingMenu() {
           <Input contentLeft={<Icon name={Icons.SEARCH}/>}
                   placeholder={"Input placeholder..."}
                   style="width:200px"/>
-          <Button iconLeft={Icons.FILTER}
+          <Button iconLeft={Icons.DROPLET}
                 size={"x0"}/>
           <Button iconLeft={Icons.FILTER}
                 size={"x0"}/>

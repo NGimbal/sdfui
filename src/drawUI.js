@@ -406,7 +406,6 @@ function escDrawClck(){
 }
 
 function endDrawUpdate(){
-  console.log("end draw!")
   if(!this.toggle) return null;
   // console.log("///////////////////////////////////////////////");  
   // let scene = SDFUI.state.scene;
