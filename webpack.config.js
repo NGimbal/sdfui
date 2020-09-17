@@ -20,6 +20,9 @@ module.exports = {
     './src/index.js',
     './src/components/Root.js',
     './src/components/FloatingMenu.js',
+    './src/components/ContextMenu.js',
+    './src/components/LeftToolBar.js',
+
 
     // './src/sdfui.css',
     // './src/tooltip.css',

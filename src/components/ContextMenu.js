@@ -1,7 +1,29 @@
 import m from "mithril";
 import { Button, Icon, Icons } from 'construct-ui';
-import ConstructSlider from "./ConstructSlider";
+// import ConstructSlider from "./ConstructSlider";
+import { Classes } from 'construct-ui';
 // import { ControlGroup, Button, Icons, Icon, Input, Select, Spinner, CustomSelect } from 'construct-ui';
+
+import * as SDFUI from "../draw";
+import * as ACT from '../actions';
+
+import chroma from 'chroma-js';
+
+let inputLabelStyle = {
+                        marginBottom:"4px",
+                        marginTop:"6px",
+                        color:"#546e7a",
+                      }
+
+let dividerStyle =   {
+                        width:"100%",
+                        boxShadow:"0 1px 0 #eef1f2;",
+                        color:"#546e7a",
+                        borderRadius:"2px",
+                        marginTop:"6px",
+                        marginBottom:"2px",
+                        opacity:"0.5",
+                      }
 
 function ContextMenu() {
   let visibility = false;
@@ -24,13 +46,11 @@ function ContextMenu() {
   function startDrag(e) {
     if(e.target.id != "contextMenu") return;
     dragging = true;
-    // console.log(e);
   }
 
   function doDrag(e) {
-    // if(e.target.id != "contextMenu") return;
-    // console.log("mousemove");
     if(!dragging) return;
+    e.stopPropagation();
     e.preventDefault();
     posX = e.clientX;
     posY = e.clientY;
@@ -38,13 +58,10 @@ function ContextMenu() {
   }
 
   function endDrag(e) {
-    // if(e.target.id != "contextMenu") return;
     if(dragging) e.preventDefault();
-    // console.log("mouseup");
     dragging = false;
     hovering = false;
     m.redraw();
-    // console.log(e);
   }
 
   function closeMenu(e){
@@ -55,17 +72,31 @@ function ContextMenu() {
   }
 
   function hover(e){
-    console.log("mouseover");
     hovering = true;
     m.redraw();
   }
 
   function endHover(e){
-    console.log("mouseout");
     hovering = false;
     m.redraw();
   }
 
+
+  function strokeWeightChange(e){
+    SDFUI.store.dispatch(ACT.drawWeight(e.target.value / 10000));
+  }
+
+  function strokeColorChange(e){
+    SDFUI.store.dispatch(ACT.drawStroke(chroma(e.target.value).hex()));
+  }
+
+  function fillOpacityChange(e){
+    SDFUI.store.dispatch(ACT.drawOpacity(e.currentTarget.value / 100));
+  }
+
+  function fillColorChange(e){
+    SDFUI.store.dispatch(ACT.drawFill(chroma(e.currentTarget.value).hex()));
+  }
 
   return {
     oncreate: ()=>{
@@ -99,10 +130,18 @@ function ContextMenu() {
         <Icon name={Icons.X_CIRCLE} onclick={closeMenu} style={{width:"fit-content",
                                                                 alignSelf:"flex-end",
                                                                 marginBottom:"5px"}}/>
-        
-        <ConstructSlider/>
-        
-        <input type="color" style={{margin:"auto", width:"100%"}}/>
+        <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Weight</h6>
+        <input type="range" oninput={strokeWeightChange} min="0" max="100"/>
+        <hr style={dividerStyle}/>
+        <h6 class={Classes.Muted} style={inputLabelStyle}>Opacity</h6>
+        <input type="range" oninput={fillOpacityChange} min="0" max="100"/>
+        <hr style={dividerStyle}/>
+        <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Color</h6>
+        <input type="color" style={{margin:"auto", width:"100%"}} oninput={strokeColorChange}/>
+        <hr style={dividerStyle}/>
+        <h6 class={Classes.Muted} style={inputLabelStyle}>Fill Color</h6>
+        <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange}/>
+      
       </div>
     )
   }

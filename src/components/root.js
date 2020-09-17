@@ -4,6 +4,7 @@ import { Button, Icons, Icon } from 'construct-ui';
 import {initDraw} from '../draw'
 import FloatingMenu from "./FloatingMenu";
 import ContextMenu from "./ContextMenu";
+import LeftToolBar from "./LeftToolBar";
 
 //Main UI scheme:
 //Narrow vertical toolbar w/ high level tool options
@@ -26,41 +27,12 @@ function Root() {
     },
     view: () => (
       <main>
-        <div id="canvasContainer">
-          <canvas id="c"></canvas>
-          <canvas id="text"></canvas>
+        <div id="canvasContainer" className="canvas">
+          <canvas id="c" className="canvas"></canvas>
+          <canvas id="text" className="canvas"></canvas>
         </div>
         <ContextMenu/>
-        <div style="position:absolute; 
-                    width:60px; 
-                    height:100%; 
-                    top:0px; 
-                    left:0px; 
-                    padding:10px; 
-                    background-color:white;
-                    display: flex;
-                    flex-direction: column;
-                    -webkit-box-shadow: 8px 0px 9px -8px rgba(0,0,0,0.35);
-                    -moz-box-shadow: 8px 0px 9px -8px rgba(0,0,0,0.35);
-                    box-shadow: 8px 0px 9px -8px rgba(0,0,0,0.35);
-                    ">
-
-        <Button iconLeft={Icons.FILTER}
-                size={"x0"}
-                basic={"true"}
-                style="margin: 20px 0px 10px 0px;" />
-        
-        <Button iconLeft={Icons.SETTINGS}
-                size={"x0"}
-                basic={"true"}
-                style="margin: 0px 0px 10px 0px;"  />
-
-        <Button iconLeft={Icons.PEN_TOOL}
-                size={"x0"}
-                basic={"true"}
-                style="margin: 0px 0px 10px 0px;"  />
-                
-        </div>
+        <LeftToolBar/>
         <FloatingMenu/>
       </main>
     )

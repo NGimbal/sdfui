@@ -1,3 +1,5 @@
+// TODO When I have time/ want to spiff this graphic up
+
 import m from "mithril";
 import { Button, Icon, Icons } from 'construct-ui';
 
