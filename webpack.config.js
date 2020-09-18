@@ -22,10 +22,6 @@ module.exports = {
     './src/components/ContextMenu.js',
     './src/components/LeftToolBar.js',
 
-    // './src/sdfui.css',
-    // './src/tooltip.css',
-    // './src/ui-mode-stack.css',
-
   ],
   output: {
     path: path.resolve(__dirname, 'bin'),
@@ -40,9 +36,6 @@ module.exports = {
         exclude: /(node_modules|bower_components)/,
         use: {
           loader: 'babel-loader',
-          // options: {
-          //   presets: ['@babel/preset-env']
-          // }
         }
       },
       // {
