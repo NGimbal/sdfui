@@ -1,5 +1,5 @@
 import m from "mithril";
-import { Button, Icons, Icon, Colors } from 'construct-ui';
+import {Icons, Icon, Colors } from 'construct-ui';
 
 function AppBar() {
 

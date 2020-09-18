@@ -280,8 +280,8 @@ export function distPrim(_mPt, prim){
 //returns distance to a poly line
 function pLineDist(mPt, prim){
   if (prim.type != "polyline"){
-    console.log("pLineDist() called on primitive of " + prim.type + " type.");
-    console.log(prim);
+    // console.log("pLineDist() called on primitive of " + prim.type + " type.");
+    // console.log(prim);
     return 1000;
   }
   let dist = 1000;
@@ -304,7 +304,7 @@ function pLineDist(mPt, prim){
 //returns distance to a poly line
 function polygonDist(mPt, prim){
   if (prim.type != "polygon"){
-    console.log("polygonDist() called on primitive of " + prim.type + " type.");
+    // console.log("polygonDist() called on primitive of " + prim.type + " type.");
     // console.log(prim);
     return 1000;
   }
@@ -347,12 +347,12 @@ function polygonDist(mPt, prim){
 //returns distance to a poly line
 function circleDist(mPt, prim){
   if (prim.type != "circle"){
-    console.log("circleDist() called on primitive of " + prim.type + " type.");
-    console.log(prim);
+    // console.log("circleDist() called on primitive of " + prim.type + " type.");
+    // console.log(prim);
     return 1000;
   }
   let dist = 1000;
-  console.log(prim);
+  // console.log(prim);
   return dist;
 }
 

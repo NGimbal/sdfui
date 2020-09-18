@@ -16,11 +16,11 @@ import * as ubilabs from 'kd-tree-javascript';
 import {createStore} from 'redux';
 // import * as rbush from 'rbush';
 
-import firebaseConfig from './firebaseConfig.js';
+// import firebaseConfig from './firebaseConfig.js';
 
-import * as firebase from 'firebase/app';
-import 'firebase/firestore';
-import "firebase/auth";
+// import * as firebase from 'firebase/app';
+// import 'firebase/firestore';
+// import "firebase/auth";
 
 var canvas, ctx, ui;
 
@@ -48,8 +48,8 @@ export var mPt = new PRIM.vec(0, 0);
 export var dPt = new twgl.v3.create(0, 0, 64);
 export var ptTree = new ubilabs.kdTree([], pointDist, ["x", "y"]);
 
-firebase.initializeApp(firebaseConfig);
-export var db = firebase.firestore();
+// firebase.initializeApp(firebaseConfig);
+// export var db = firebase.firestore();
 
 //This is how I'm letting other parts of the app
 //have quick access to parts of the state

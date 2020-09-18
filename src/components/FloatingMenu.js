@@ -1,5 +1,5 @@
 import m from "mithril";
-import { ControlGroup, Button, Icons, Icon, Input, Spinner, CustomSelect } from 'construct-ui';
+import { ControlGroup, Button, Icons, CustomSelect } from 'construct-ui';
 // import '../../node_modules/construct-ui/lib/index.css';
 import * as SDFUI from '../draw'
 import * as ACT from '../store/actions'
@@ -10,8 +10,8 @@ function FloatingMenu() {
   let primList = ["Polyline", "Polygon", "Circle", "Rectangle"];
 
   function primitiveChange(e){
-    primSel = e.currentTarget.value.toLowerCase();
-
+    primSel = e.toLowerCase();
+    console.log(primSel);
     let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
 
     // this is nice
@@ -87,7 +87,7 @@ function FloatingMenu() {
                   size={"x0"}
                   onclick={toggleSnapAngle}/>
           
-          <CustomSelect options={primList} defaultValue={"Polyline"} onchange={primitiveChange}/>
+          <CustomSelect options={primList} defaultValue={"Polyline"} onSelect={primitiveChange}/>
         
         </ControlGroup>
       </div>

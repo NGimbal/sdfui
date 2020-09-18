@@ -1,8 +1,7 @@
 import m from "mithril";
-import { Button, Icons, Icon } from 'construct-ui';
+import { Button, Icons } from 'construct-ui';
 // import '../../node_modules/construct-ui/lib/index.css';
-import {initDraw} from '../draw'
-
+// import {initDraw} from '../draw'
 
 let dividerStyle =   {
   width:"100%",

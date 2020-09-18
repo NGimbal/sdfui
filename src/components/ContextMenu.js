@@ -1,5 +1,5 @@
 import m from "mithril";
-import { Button, Icon, Icons } from 'construct-ui';
+import {Icon, Icons } from 'construct-ui';
 // import ConstructSlider from "./ConstructSlider";
 import { Classes } from 'construct-ui';
 // import { ControlGroup, Button, Icons, Icon, Input, Select, Spinner, CustomSelect } from 'construct-ui';
