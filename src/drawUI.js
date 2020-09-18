@@ -2,7 +2,7 @@
 
 // import * as HINT from './uihints.js';
 import * as SDFUI from './draw.js';
-import * as ACT from './actions.js';
+import * as ACT from './store/actions.js';
 import {bakeLayer, createEditLayer} from './layer.js';
 import * as chroma from 'chroma-js';
 import * as twgl from 'twgl.js';

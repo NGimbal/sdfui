@@ -1,8 +1,8 @@
 import m from "mithril";
-import { ControlGroup, Button, Icons, Icon, Input, Select, Spinner, CustomSelect } from 'construct-ui';
+import { ControlGroup, Button, Icons, Icon, Input, Spinner, CustomSelect } from 'construct-ui';
 // import '../../node_modules/construct-ui/lib/index.css';
 import * as SDFUI from '../draw'
-import * as ACT from '../actions'
+import * as ACT from '../store/actions'
 import {bakeLayer, createEditLayer} from '../layer';
 
 function FloatingMenu() {
@@ -54,9 +54,6 @@ function FloatingMenu() {
   }
 
   return {
-    oncreate: () => {
-      console.log(SDFUI.state);
-    },
     view: () => (
       <div style={{top:"8%",
                   padding:"14px",
@@ -90,7 +87,7 @@ function FloatingMenu() {
                   size={"x0"}
                   onclick={toggleSnapAngle}/>
           
-          <Select options={primList} onchange={primitiveChange}/>
+          <CustomSelect options={primList} defaultValue={"Polyline"} onchange={primitiveChange}/>
         
         </ControlGroup>
       </div>

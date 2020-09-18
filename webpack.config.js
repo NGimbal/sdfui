@@ -10,9 +10,8 @@ module.exports = {
     './src/bakeLayer.js',
     './src/primitives.js',
     
-    './src/actions.js',
-    './src/reducers.js',
-    './src/uihints.js',
+    './src/store/actions.js',
+    './src/store/reducers.js',
 
     './src/vert.js',
     './src/frags.js',
@@ -22,7 +21,6 @@ module.exports = {
     './src/components/FloatingMenu.js',
     './src/components/ContextMenu.js',
     './src/components/LeftToolBar.js',
-
 
     // './src/sdfui.css',
     // './src/tooltip.css',

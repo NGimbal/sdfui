@@ -5,7 +5,7 @@ import { Classes } from 'construct-ui';
 // import { ControlGroup, Button, Icons, Icon, Input, Select, Spinner, CustomSelect } from 'construct-ui';
 
 import * as SDFUI from "../draw";
-import * as ACT from '../actions';
+import * as ACT from '../store/actions';
 
 import chroma from 'chroma-js';
 

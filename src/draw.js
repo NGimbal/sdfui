@@ -4,8 +4,8 @@ import {GhostUI} from './drawUI.js';
 
 import * as PRIM from './primitives.js';
 
-import * as ACT from './actions.js';
-import { reducer } from './reducers.js';
+import * as ACT from './store/actions.js';
+import { reducer } from './store/reducers.js';
 
 import * as SF from './frags.js';
 import {Layer, updateMatrices} from './layer.js';

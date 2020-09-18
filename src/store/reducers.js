@@ -5,12 +5,12 @@
 //ui - state related to a user's view of the world
 //document - state related to a shared scene
 
-import * as PRIM from './primitives.js';
+import * as PRIM from '../primitives.js';
 import * as ACT from './actions.js';
 // import * as LAYER from './layer.js';
 import * as twgl from 'twgl.js';
 
-import { ptTree } from './draw.js';
+import { ptTree } from '../draw.js';
 import * as Automerge from 'automerge';
 
 const statusInit = {
