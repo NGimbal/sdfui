@@ -34,28 +34,64 @@ function FloatingMenu() {
       newLayer = createEditLayer(nextPrim);
       SDFUI.layers.push(newLayer); 
     }
-    // m.redraw();
+    m.redraw();
+  }
+
+  function toggleSnapAngle(e) {
+    SDFUI.store.dispatch(ACT.cursorSnapRef());
+  }
+
+  function toggleSnapPt(e) {
+    SDFUI.store.dispatch(ACT.cursorSnapPt());
+  }
+
+  function toggleSnapGlobal(e){
+    SDFUI.store.dispatch(ACT.cursorSnapGlobal());
+  }
+
+  function toggleSnapGrid(e){
+    SDFUI.store.dispatch(ACT.cursorSnapGrid());
   }
 
   return {
+    oncreate: () => {
+      console.log(SDFUI.state);
+    },
     view: () => (
-      <div style="padding:14px;
-                    margin:auto;
-                    display:flex;
-                    flex-direction:row;">
-        <ControlGroup style="margin-left:auto;
+      <div style={{top:"8%",
+                  padding:"14px",
+                  marginTop:"50px",
+                  display:"flex",
+                  flexDirection:"row"}}>
+        
+          <ControlGroup style="margin-left:auto;
                               margin-right:auto;"> 
-          {/* it is possible to mix mithril syntax m() */}
-          {/* <Input contentLeft={<Icon name={Icons.SEARCH}/>}
-                  placeholder={"Input placeholder..."}
-                  style="width:200px"/> */}
+          
           <Button iconLeft={Icons.DROPLET}
-                size={"x0"}/>
+                  size={"x0"}/>
+
           <Button iconLeft={Icons.GRID}
-                size={"x0"}/>
+                  active={SDFUI.state.cursor.snapGrid}
+                  size={"x0"}
+                  onclick={toggleSnapGrid}/>
+          
           <Button iconLeft={Icons.CROSSHAIR}
-                size={"x0"}/>
+                  active={SDFUI.state.cursor.snapPt}
+                  size={"x0"}
+                  onclick={toggleSnapPt}/>
+
+          <Button iconLeft={Icons.GLOBE}
+                  active={SDFUI.state.cursor.snapGlobal}
+                  size={"x0"}
+                  onclick={toggleSnapGlobal}/>
+
+          <Button iconLeft={Icons.TRIANGLE}
+                  active={SDFUI.state.cursor.snapRef}
+                  size={"x0"}
+                  onclick={toggleSnapAngle}/>
+          
           <Select options={primList} onchange={primitiveChange}/>
+        
         </ControlGroup>
       </div>
     )

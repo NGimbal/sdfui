@@ -3,6 +3,17 @@ import { Button, Icons, Icon } from 'construct-ui';
 // import '../../node_modules/construct-ui/lib/index.css';
 import {initDraw} from '../draw'
 
+
+let dividerStyle =   {
+  width:"100%",
+  boxShadow:"0 1px 0 #eef1f2;",
+  color:"#546e7a",
+  borderRadius:"2px",
+  marginTop:"10px",
+  marginBottom:"24px",
+  opacity:"0.5",
+}
+
 function LeftToolBar() {
   return {
     view: () => (
@@ -23,12 +34,14 @@ function LeftToolBar() {
         <Button iconLeft={Icons.USER}
                 size={"x0"}
                 basic={"true"}
-                style="margin: 20px 0px 10px 0px;" />
+                style="margin: 90px 0px 10px 0px;" />
 
         <Button iconLeft={Icons.SHARE_2}
                 size={"x0"}
                 basic={"true"}
                 style="margin: 0px 0px 10px 0px;" />
+
+        <hr style={dividerStyle}/>
 
         <Button iconLeft={Icons.PEN_TOOL}
                 active={true}

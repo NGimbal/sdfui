@@ -96,7 +96,7 @@ export var propsDefault = {
   type:"",
   filter:"",
   stroke: "#ffa724",
-  fill: "#0600b5",
+  fill: "#cfcfcf",
   weight:0.001,
   radius:0.001,
   opacity:0.85,

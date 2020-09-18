@@ -1,10 +1,11 @@
 import m from "mithril";
-import { Button, Icons, Icon } from 'construct-ui';
+import { FocusManager } from 'construct-ui';
 // import '../../node_modules/construct-ui/lib/index.css';
 import {initDraw} from '../draw'
 import FloatingMenu from "./FloatingMenu";
 import ContextMenu from "./ContextMenu";
 import LeftToolBar from "./LeftToolBar";
+import AppBar from "./AppBar";
 
 //Main UI scheme:
 //Narrow vertical toolbar w/ high level tool options
@@ -24,9 +25,11 @@ function Root() {
   return {
     oncreate: () => {
       initDraw();
+      FocusManager.showFocusOnlyOnTab();
     },
     view: () => (
       <main>
+        <AppBar/>
         <div id="canvasContainer" className="canvas">
           <canvas id="c" className="canvas"></canvas>
           <canvas id="text" className="canvas"></canvas>
