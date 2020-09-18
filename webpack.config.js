@@ -52,16 +52,18 @@ module.exports = {
       {
         test: /\.css$/,
         use: [
-          {
-            loader: "style-loader"
-          },
-          {
-            loader: "css-loader",
-            options: {
-              modules: true,
-              importLoaders: 1,
-            }
-          }
+          'style-loader',
+          'css-loader'
+          // {
+          //   loader: "style-loader"
+          // },
+          // {
+          //   loader: "css-loader",
+          //   options: {
+          //     modules: true,
+          //     importLoaders: 1,
+          //   }
+          // }
         ]
       }
     ]

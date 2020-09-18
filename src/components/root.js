@@ -3,6 +3,7 @@ import { FocusManager } from 'construct-ui';
 // require('../../node_modules/construct-ui/lib/index.css');
 import '../../node_modules/construct-ui/lib/index.css';
 import '../sdfui.css';
+
 import {initDraw} from '../draw';
 import FloatingMenu from "./FloatingMenu";
 import ContextMenu from "./ContextMenu";
