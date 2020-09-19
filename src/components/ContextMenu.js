@@ -1,5 +1,5 @@
 import m from "mithril";
-import {Icon, Icons } from 'construct-ui';
+import {ButtonGroup, Button, Icon, Icons } from 'construct-ui';
 // import ConstructSlider from "./ConstructSlider";
 import { Classes } from 'construct-ui';
 // import { ControlGroup, Button, Icons, Icon, Input, Select, Spinner, CustomSelect } from 'construct-ui';
@@ -98,6 +98,22 @@ function ContextMenu() {
     SDFUI.store.dispatch(ACT.drawFill(chroma(e.currentTarget.value).hex()));
   }
 
+  // function toggleSnapAngle(e) {
+  //   SDFUI.store.dispatch(ACT.cursorSnapRef());
+  // }
+
+  // function toggleSnapPt(e) {
+  //   SDFUI.store.dispatch(ACT.cursorSnapPt());
+  // }
+
+  // function toggleSnapGlobal(e){
+  //   SDFUI.store.dispatch(ACT.cursorSnapGlobal());
+  // }
+
+  // function toggleSnapGrid(e){
+  //   SDFUI.store.dispatch(ACT.cursorSnapGrid());
+  // }
+
   return {
     oncreate: ()=>{
       document.querySelector('#canvasContainer').addEventListener("contextmenu", showContextMenu);
@@ -144,7 +160,28 @@ function ContextMenu() {
         <hr style={dividerStyle}/>
         <h6 class={Classes.Muted} style={inputLabelStyle}>Fill Color</h6>
         <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={SDFUI.state.ui.properties.fill}/>
-      
+
+        {/* <ButtonGroup style={{paddingTop:"6px"}}>
+          <Button iconLeft={Icons.GRID}
+                    active={SDFUI.state.cursor.snapGrid}
+                    size={"x0"}
+                    onclick={toggleSnapGrid}/>
+            
+            <Button iconLeft={Icons.CROSSHAIR}
+                    active={SDFUI.state.cursor.snapPt}
+                    size={"x0"}
+                    onclick={toggleSnapPt}/>
+
+            <Button iconLeft={Icons.GLOBE}
+                    active={SDFUI.state.cursor.snapGlobal}
+                    size={"x0"}
+                    onclick={toggleSnapGlobal}/>
+
+            <Button iconLeft={Icons.TRIANGLE}
+                    active={SDFUI.state.cursor.snapRef}
+                    size={"x0"}
+                    onclick={toggleSnapAngle}/>
+        </ButtonGroup> */}
       </div>
     )
   }
