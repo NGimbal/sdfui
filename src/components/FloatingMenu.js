@@ -1,9 +1,26 @@
 import m from "mithril";
-import { ControlGroup, Button, Icons, CustomSelect } from 'construct-ui';
+import { ControlGroup, Classes, Button, Icons, CustomSelect, PopoverMenu, MenuItem } from 'construct-ui';
 // import '../../node_modules/construct-ui/lib/index.css';
 import * as SDFUI from '../draw'
 import * as ACT from '../store/actions'
 import {bakeLayer, createEditLayer} from '../layer';
+
+
+let inputLabelStyle = {
+  marginBottom:"4px",
+  marginTop:"6px",
+  color:"#546e7a",
+}
+
+let dividerStyle =   {
+  width:"100%",
+  boxShadow:"0 1px 0 #eef1f2;",
+  color:"#546e7a",
+  borderRadius:"2px",
+  marginTop:"6px",
+  marginBottom:"2px",
+  opacity:"0.5",
+}
 
 function FloatingMenu() {
   let primSel = "Circle";
@@ -53,6 +70,14 @@ function FloatingMenu() {
     SDFUI.store.dispatch(ACT.cursorSnapGrid());
   }
 
+  function strokeColorChange(e){
+    SDFUI.store.dispatch(ACT.drawStroke(chroma(e.target.value).hex()));
+  }
+
+  function fillColorChange(e){
+    SDFUI.store.dispatch(ACT.drawFill(chroma(e.currentTarget.value).hex()));
+  }
+
   return {
     view: () => (
       <div style={{top:"8%",
@@ -63,29 +88,41 @@ function FloatingMenu() {
         
           <ControlGroup style="margin-left:auto;
                               margin-right:auto;"> 
-          
-          <Button iconLeft={Icons.DROPLET}
-                  size={"x0"}/>
 
-          <Button iconLeft={Icons.GRID}
-                  active={SDFUI.state.cursor.snapGrid}
-                  size={"x0"}
-                  onclick={toggleSnapGrid}/>
-          
-          <Button iconLeft={Icons.CROSSHAIR}
-                  active={SDFUI.state.cursor.snapPt}
-                  size={"x0"}
-                  onclick={toggleSnapPt}/>
+          <PopoverMenu content={[
+                            // <hr style={dividerStyle}/>,
+                            <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Color</h6>,
+                            <input type="color" style={{margin:"auto", width:"100%"}} value={SDFUI.state.ui.properties.stroke} oninput={strokeColorChange}/>,
+                            
+                            <hr style={dividerStyle}/>,
+                            <h6 class={Classes.Muted} style={inputLabelStyle}>Fill Color</h6>,
+                            <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={SDFUI.state.ui.properties.fill}/>,
+                            // <hr style={dividerStyle}/>
+                          ]}
+                        trigger={m(Button, { iconLeft: Icons.DROPLET })}
+                        menuAttrs={{style:{padding:"8px"}}}
+                        // style={{padding:"4px"}}
+                        />
 
-          <Button iconLeft={Icons.GLOBE}
-                  active={SDFUI.state.cursor.snapGlobal}
-                  size={"x0"}
-                  onclick={toggleSnapGlobal}/>
-
-          <Button iconLeft={Icons.TRIANGLE}
-                  active={SDFUI.state.cursor.snapRef}
-                  size={"x0"}
-                  onclick={toggleSnapAngle}/>
+          <PopoverMenu content={[
+                            <MenuItem iconLeft={Icons.GRID}
+                              active={SDFUI.state.cursor.snapGrid}
+                              onclick={toggleSnapGrid}
+                              label={"Snap to Grid"}/>,
+                            <MenuItem iconLeft={Icons.CROSSHAIR}
+                              active={SDFUI.state.cursor.snapPt}
+                              onclick={toggleSnapPt}
+                              label={"Snap to Points"}/>,
+                            <MenuItem iconLeft={Icons.GLOBE}
+                              active={SDFUI.state.cursor.snapGlobal}
+                              onclick={toggleSnapGlobal}
+                              label={"Snap to Global"}/>,
+                            <MenuItem iconLeft={Icons.TRIANGLE}
+                              active={SDFUI.state.cursor.snapRef}
+                              onclick={toggleSnapAngle}
+                              label={"Snap to Relative"}/>]}
+                        trigger={m(Button, { iconLeft: Icons.SETTINGS })}
+                        />
           
           <CustomSelect options={primList} defaultValue={"Polyline"} onSelect={primitiveChange}/>
         

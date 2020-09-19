@@ -28,7 +28,7 @@ module.exports = {
     publicPath: 'bin/',
     filename: 'app.js'
   },
-  devtool: 'source-map',
+  // devtool: 'source-map',
   module: {
     rules: [
       {
