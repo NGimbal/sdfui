@@ -11,6 +11,9 @@ import * as ACT from './actions.js';
 import * as twgl from 'twgl.js';
 
 import { ptTree } from '../renderer/draw.js';
+// import {knn} from 'rbush-knn';
+var knn = require('rbush-knn');
+
 import * as Automerge from 'automerge';
 
 const statusInit = {
@@ -176,9 +179,11 @@ function cursor(_state=initialState, action) {
       let editPts = _state.scene.editItems[_state.scene.editItem].pts;
 
       if(state.snapPt){
-        let ptNear = ptTree.nearest(pt, 1);
-        if (ptNear.length > 0 && ptNear[0][1] < 0.0001){
-          pt = ptNear[0][0];
+        let ptNear = knn(ptTree, pt.x, pt.y, 1,null,0.01);
+
+        if (ptNear.length > 0){
+          pt = ptNear[0];
+          console.log(pt);
           return Object.assign({}, state,{
             pos: pt
           });

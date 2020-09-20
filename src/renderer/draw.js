@@ -1,95 +1,72 @@
 "use strict";
 
-import {GhostUI} from './drawUI.js';
-
-import * as PRIM from './primitives.js';
-
-import * as ACT from '../store/actions.js';
-import { reducer } from '../store/reducers.js';
-
-import * as SF from './frags.js';
-import {Layer, updateMatrices} from './layer.js';
-
 import * as chroma from 'chroma-js';
 import * as twgl from 'twgl.js';
-import * as ubilabs from 'kd-tree-javascript';
 import {createStore} from 'redux';
-// import * as rbush from 'rbush';
+import * as RBush from 'rbush';
 
 // import firebaseConfig from './firebaseConfig.js';
-
 // import * as firebase from 'firebase/app';
 // import 'firebase/firestore';
 // import "firebase/auth";
 
+import * as ACT from '../store/actions.js';
+import { reducer } from '../store/reducers.js';
+
+import {GhostUI} from './drawUI.js';
+import * as PRIM from './primitives.js';
+import * as SF from './frags.js';
+import {Layer, updateMatrices} from './layer.js';
+
 var canvas, ctx, ui;
 
-//twgl world
+//twgl
 export var gl;
 export var layers;
 
 export var dataShader;
-
 export var editTex;
 
 export const store = createStore(reducer);
 export var state = store.getState();
-
-function pointDist (a, b){
-    var dx = a.x - b.x;
-    var dy = a.y - b.y;
-    return dx*dx + dy*dy;
-}
 
 export var resolution;
 export var mPt = new PRIM.vec(0, 0);
 
 //dPt z is scale
 export var dPt = new twgl.v3.create(0, 0, 64);
-export var ptTree = new ubilabs.kdTree([], pointDist, ["x", "y"]);
+export var ptTree = new RBush();
 
 // firebase.initializeApp(firebaseConfig);
 // export var db = firebase.firestore();
 
-//This is how I'm letting other parts of the app
-//have quick access to parts of the state
+//Expose part of state
 function listener(){
+
   state = store.getState();
-  //update resolution variable
   resolution = state.status.resolution;
+  
   //update mouse position variable
   mPt = PRIM.vecSet(mPt, state.cursor.pos.x, state.cursor.pos.y);
+  
   //update kdTree of points
   for(let p of state.scene.pts){
     //will need to find and move, or find remove and add when update means moving points around
     if(p.update == true){
       ptTree.insert(p);
-      //am I allowed to do this? Prolly not...
-      //solution is to create a reducer that changes this parameter
+      //TODO: create a reducer that changes this parameter
       p.update = false;
     }
   }
   for(let pId of state.scene.rmPts){
     //normal tree search function doesnt work
-    let rmPt = searchTree(ptTree.root, pId);
-    ptTree.remove(rmPt);
+    ptTree.remove(pId, (a, pId) => {
+      return a.id === pId;
+    });
     store.dispatch(ACT.sceneFinRmvPt(pId));
-    //will also want to remove from parameters texture here as well
   }
   return state;
 };
-
-//searchKDTree for point by id
-function searchTree(node, id){
-  if(!node) return null;
-  if(node.obj.id == id) {
-    return node.obj;
-  } else {
-    let left = searchTree(node.left, id);
-    return left ? left : searchTree(node.right, id);
-  }
-  // return null;
-}
 
 //substcribe to store changes - run listener to set relevant variables
 // store.subscribe(() => console.log(listener()));
@@ -97,7 +74,7 @@ store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
-  let rY = 1.0; //resolution.y
+  // let rY = 1.0; resolution.y
   let scaleX = 2.0 / scale;
   let scaleY = 2.0 / scale;
 

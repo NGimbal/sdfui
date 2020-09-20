@@ -74,5 +74,8 @@ module.exports = {
     extensions: ['.wasm', '.mjs', '.js', '.json'],
     mainFields: ['browser', 'module', 'main'],
     modules: ['node_modules'],
+    alias: {
+      "tinyqueue": __dirname + "/node_modules/tinyqueue/tinyqueue.js"
+    },
   },
 };

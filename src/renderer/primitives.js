@@ -1,17 +1,6 @@
 //primitives.js
-/*
-
-//Not yet implemented
-Dist() //returns distance to primitive at a point for selection
-getShader() //returns shader function for object
-SVG() //returns svg of polyline
-3dm() //returns RhinoCompute representation
-
-*/
-
 'use strict';
 
-// import * as THREE from './libjs/three.module.js';
 import {gl, state} from './draw.js';
 import {getFloat16, setFloat16} from "@petamoriken/float16";
 
@@ -33,6 +22,13 @@ export class vec{
     this.y = y || 0;
     this.z = z || 0;
     this.w = w || 0;
+
+    //this is to conform to rbush data structure req
+    this.minX = x;
+    this.maxX = x;
+    this.minY = y;
+    this.maxY = y;
+
     //parentId
     this.parentId = pId || "";
 
@@ -73,23 +69,42 @@ export function angleVec(_vec){
 
 export class bbox{
   //input array of points calculate min, max, width, height
-  constructor(points, _offset){
-    let offset;
-    if(typeof _offset == 'undefined') offset = 0.05;
-    else offset = _offset;
+  constructor(points, _offset, _type){
+    let offset = _offset ? _offset : 0.05;
+    let type = _type ? _type : "polyline";
 
-    points.sort((a,b) => (a.x < b.x) ? -1 : 1);
-    let minX = points[0].x - offset;
-    let maxX = points[points.length-1].x + offset;
+    // probably will want to have Object id that this belongs to?
+    // this.minX;
+    // this.minY;
+    // this.maxX;
+    // this.maxY;
+    // this.min;
+    // this.max;
+    // this.width;
+    // this.height;
+
+    switch(type){
+      //polygon, polyline, rectangle all can default to this same code
+      case('polyline'):
+        points.sort((a,b) => (a.x < b.x) ? -1 : 1);
+        let minX = points[0].x - offset;
+        let maxX = points[points.length-1].x + offset;
+        
+        points.sort((a,b) => (a.y < b.y) ? -1 : 1);
+        let minY = points[0].y - offset;
+        let maxY = points[points.length-1].y + offset;
     
-    points.sort((a,b) => (a.y < b.y) ? -1 : 1);
-    let minY = points[0].y - offset;
-    let maxY = points[points.length-1].y + offset;
+        this.min = new vec(minX, minY);
+        this.max = new vec(maxX, maxY);
+        this.width = maxX - minX;
+        this.height = maxY - minY;
+        break;
+      case('circle'):
+        console.log(points);
+        break;
+    }
 
-    this.min = new vec(minX, minY);
-    this.max = new vec(maxX, maxY);
-    this.width = maxX - minX;
-    this.height = maxY - minY;
+    
   }
 }
 
