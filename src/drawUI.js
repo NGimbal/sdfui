@@ -14,7 +14,8 @@ import * as twgl from 'twgl.js';
 class GhostUI{
 
   constructor(){
-    //need to check endianess for half float usage
+    
+    // need to check endianess for half float usage
     // https://abdulapopoola.com/2019/01/20/check-endianness-with-javascript/
     function endianNess(){
         let uInt32 = new Uint32Array([0x11223344]);
@@ -46,21 +47,21 @@ class GhostUI{
         break;
     }
 
-    console.log(endianNess());
+    // console.log(endianNess());
 
-    let editOptions = {
-      // resolution: this.resolution,
-      currEditItem:"PolyLine",
-      strokeColor:"#0063ae",
-      filter:"None",
-      weight:0.003,
-      stroke: twgl.v3.create(0.0, 0.0, 0.0),
-      fill: twgl.v3.create(0.0, 0.384, 0.682),
-      fillToggle:false,
-      radius:0.125,
-      grid: true,
-      points: false,
-    };
+    // let editOptions = {
+    //   // resolution: this.resolution,
+    //   currEditItem:"PolyLine",
+    //   strokeColor:"#0063ae",
+    //   filter:"None",
+    //   weight:0.003,
+    //   stroke: twgl.v3.create(0.0, 0.0, 0.0),
+    //   fill: twgl.v3.create(0.0, 0.384, 0.682),
+    //   fillToggle:false,
+    //   radius:0.125,
+    //   grid: true,
+    //   points: false,
+    // };
 
     //MODIFIERS
     let targetHome = new UIModifier("Return Home", "view", "h", {act:ACT.uiTargetHome(true)},true, {});

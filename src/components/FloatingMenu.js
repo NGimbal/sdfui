@@ -5,6 +5,7 @@ import * as SDFUI from '../draw'
 import * as ACT from '../store/actions'
 import {bakeLayer, createEditLayer} from '../layer';
 
+import chroma from 'chroma-js';
 
 let inputLabelStyle = {
   marginBottom:"4px",
@@ -78,6 +79,14 @@ function FloatingMenu() {
     SDFUI.store.dispatch(ACT.drawFill(chroma(e.currentTarget.value).hex()));
   }
 
+  function strokeWeightChange(e){
+    SDFUI.store.dispatch(ACT.drawWeight(e.target.value / 10000));
+  }
+
+  function fillOpacityChange(e){
+    SDFUI.store.dispatch(ACT.drawOpacity(e.currentTarget.value / 100));
+  }
+
   return {
     view: () => (
       <div style={{top:"8%",
@@ -101,7 +110,19 @@ function FloatingMenu() {
                           ]}
                         trigger={m(Button, { iconLeft: Icons.DROPLET })}
                         menuAttrs={{style:{padding:"8px"}}}
-                        // style={{padding:"4px"}}
+                        />
+
+            <PopoverMenu content={[
+                        <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Weight</h6>,
+                        <input type="range" oninput={strokeWeightChange} min="0" max="100" value={SDFUI.state.ui.properties.weight * 10000}/>,
+                        
+                        <hr style={dividerStyle}/>,
+                        <h6 class={Classes.Muted} style={inputLabelStyle}>Opacity</h6>,
+                        <input type="range" oninput={fillOpacityChange} min="0" max="100" value={SDFUI.state.ui.properties.opacity * 100}/>,
+                      
+                        ]}
+                        trigger={m(Button, { iconLeft: Icons.PEN_TOOL })}
+                        menuAttrs={{style:{padding:"8px"}}}
                         />
 
           <PopoverMenu content={[
