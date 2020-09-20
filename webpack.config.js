@@ -3,18 +3,18 @@ const path = require('path');
 
 module.exports = {
   entry: [
-    './src/draw.js',
-    './src/drawUI.js',
+    './src/renderer/draw.js',
+    './src/renderer/drawUI.js',
+    './src/renderer/layer.js',
+    './src/renderer/bakeLayer.js',
+    './src/renderer/primitives.js',
+    './src/renderer/vert.js',
+    './src/renderer/frags.js',
 
-    './src/layer.js',
-    './src/bakeLayer.js',
-    './src/primitives.js',
-    
     './src/store/actions.js',
     './src/store/reducers.js',
 
-    './src/vert.js',
-    './src/frags.js',
+
 
     './src/index.js',
     './src/components/Root.js',

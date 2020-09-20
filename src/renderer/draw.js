@@ -4,8 +4,8 @@ import {GhostUI} from './drawUI.js';
 
 import * as PRIM from './primitives.js';
 
-import * as ACT from './store/actions.js';
-import { reducer } from './store/reducers.js';
+import * as ACT from '../store/actions.js';
+import { reducer } from '../store/reducers.js';
 
 import * as SF from './frags.js';
 import {Layer, updateMatrices} from './layer.js';
@@ -65,6 +65,7 @@ function listener(){
     if(p.update == true){
       ptTree.insert(p);
       //am I allowed to do this? Prolly not...
+      //solution is to create a reducer that changes this parameter
       p.update = false;
     }
   }
@@ -139,7 +140,7 @@ export function initDraw() {
     console.log("your browser/OS/drivers do not support WebGL2");
     return;
   }
-  console.log(gl.getSupportedExtensions());
+  // console.log(gl.getSupportedExtensions());
 
   ui = new GhostUI();
 

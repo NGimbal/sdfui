@@ -1,20 +1,17 @@
 "use strict";
 
-// import * as HINT from './uihints.js';
 import * as SDFUI from './draw.js';
-import * as ACT from './store/actions.js';
+
+import * as ACT from '../store/actions.js';
+
 import {bakeLayer, createEditLayer} from './layer.js';
-import * as chroma from 'chroma-js';
+// import * as chroma from 'chroma-js';
 import * as twgl from 'twgl.js';
 
-//GhostUI coordinates all UI function
-//Implements UIMode and UIModifiers
-//UIMode is a collection of UIModifiers along with enter & exit functions
-//UIModifier is a collection of functions that are fired by events within uiModes
+//
 class GhostUI{
 
   constructor(){
-    
     // need to check endianess for half float usage
     // https://abdulapopoola.com/2019/01/20/check-endianness-with-javascript/
     function endianNess(){
@@ -50,17 +47,6 @@ class GhostUI{
     // console.log(endianNess());
 
     let editOptions = {
-      // resolution: this.resolution,
-      currEditItem:"PolyLine",
-      strokeColor:"#0063ae",
-      filter:"None",
-      weight:0.003,
-      stroke: twgl.v3.create(0.0, 0.0, 0.0),
-      fill: twgl.v3.create(0.0, 0.384, 0.682),
-      fillToggle:false,
-      radius:0.125,
-      grid: true,
-      points: false,
     };
 
     //MODIFIERS
@@ -132,11 +118,6 @@ class GhostUI{
     let mode = this.modeStack.curr();
     if(!mode.update)return;
 
-    // if (mode.toggle == false){
-    //   mode = this.modeStack.undo();
-    //   mode.enter();
-    // }
-
     if(SDFUI.state.ui.targeting){
       if(twgl.v3.distanceSq(SDFUI.state.ui.target, SDFUI.dPt) > 0.00001){
         twgl.v3.lerp(SDFUI.dPt, SDFUI.state.ui.target, 0.1, SDFUI.dPt);
@@ -146,21 +127,6 @@ class GhostUI{
     }
 
     let newDoc = mode.update();
-    // if (newDoc && newDoc != "exit") this.fluentDoc = newDoc;
-    // if (newDoc == "exit"){
-
-    //   //enter, how to actually make this  a little more modular?
-    //   // let pauseShader = new UIModifier("pauseShader", "view", "/", false, {clck:pauseShaderClck, update:pauseShaderUpdate}, {});
-    //   // let hideGrid = new UIModifier("hideGrid", "view", ".", false, {clck:hideGridClck, update:hideGridUpdate}, {grid:true});
-    //   // let screenshot = new UIModifier("screenshot", "export", "l", false, {clck:screenshotClck, update:screenshotUpdate}, {});
-
-    //   let selMods = [pauseShader, hideGrid, screenshot];
-    //   let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv});
-    //   this.modeStack.push(select);
-    //   this.modeStack.curr().enter();
-    // }
-
-    // this.fluentStack.modCurr(fluentDoc);
   }
 
   mouseUp(e) {
@@ -186,16 +152,9 @@ class GhostUI{
     evPt.y = (evPt.y/resolution.y)  - SDFUI.dPt[1];
     evPt.x = evPt.x * (SDFUI.dPt[2] / 64.);
     evPt.y = evPt.y * (SDFUI.dPt[2] / 64.);
-    // console.log(SDFUI.dPt.z / 64.);
-    // console.log(evPt);
 
     SDFUI.store.dispatch(ACT.cursorSet({x:evPt.x, y:evPt.y}));
 
-    // let mode = this.modeStack.curr();
-
-    // if(!mode.mv)return;
-
-    // let newDoc = mode.mv(e);
   }
 
   //cnrl Z
@@ -225,127 +184,29 @@ class GhostUI{
     if (this.zPressed && this.cntlPressed){
       this.zPressed = false;
       console.log("Control Z!");
-      // let fluentDoc = this.fluentStack.undo();
-      // if (!fluentDoc) {
-      //   let newDoc = new FluentDoc();
-      //   this.fluentStack.modCurr(newDoc);
-      // } else {
-      //   // fluentDoc.shaderUpdate = true;
-      //   SDFUI.store.dispatch(ACT.statusUpdate(true));
-      //   fluentDoc.currEditItem.needsUpdate = true;
-      // }
+      // Control Z code here
+      //
     }
   }
 }
 
-//---SELECT---------------------------
-function selEnter(){
-  // HINT.pushModeHint(this.name, "Select Mode!");
-  // HINT.modButtonStack();
-}
-
-function selExit(){
-  console.log(this);
-}
-
-function selUpdate(){
-
-}
-
-function selMv(){
-
-}
-//---SELECT---------------------------
-
 //---DRAW-----------------------------
 function drawEnter(){
-  // HINT.pushModeHint(this.name, "Begin Drawing!");
-  // this.initUIModeButtons();
 
-  //turns on pt snapping by default
   let snapPt = this.modifiers.find(mod => mod.name == "Snap Point");
   snapPt.clck();
 }
 
 function drawExit(){
-  // HINT.snackHint("End Drawing!");
-  // not implemented
+
 }
 
 //happens on every frame of draw mode
 function drawUpdate(){
-
-  //exit draw condition - no primitive tool active
-  // if(this.options.currEditItem == null){
-  //   this.exit();
-  //   return;
-  // }
-
-  // sel is not defined in these instances cause dispatch.editProps to happen very frequently
-  // let sel = document.getElementById("primitive-select");
-  // let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
-
-  //this is nice
-  // if(type != sel.value){
-  //   let nextPrim = {};
-  //   let newLayer = {};
-
-  //   let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-  //   if(currItem && currItem.pts.length > 1){
-  //     bakeLayer(SDFUI.layers[SDFUI.layers.length - 1]);
-  //     let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-  //     SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
-  //   } else {
-  //     SDFUI.layers.pop();
-  //     // SDFUI.store.dispatch(ACT.sceneEditUpdate(true));
-  //     SDFUI.store.dispatch(ACT.sceneNewEditItem(sel.value));
-  //   }
-  //   nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-  //   newLayer = createEditLayer(nextPrim);
-  //   SDFUI.layers.push(newLayer); 
-  // }
-
-  // sel = document.getElementById("strokeColor-select");
-  // let selVal = chroma(sel.value).hex();
-  // let stroke = chroma(SDFUI.state.ui.properties.stroke).hex();
-  // //TODO: seems to always be true
-  // if(stroke != selVal){
-  //   //this isn't right
-  //   SDFUI.store.dispatch(ACT.drawStroke(chroma(selVal).hex()));
-  // }
-
-  // sel = document.getElementById("fillColor-select");
-  // selVal = chroma(sel.value).hex();
-  // let fill = chroma(SDFUI.state.ui.properties.stroke).hex();
-
-  // if(fill != selVal){
-  //   SDFUI.store.dispatch(ACT.drawFill(chroma(selVal).hex()));
-  // }
-
-  // sel = document.getElementById("strokeWeight-range");
-  // if(SDFUI.state.ui.properties.weight != sel.value / 10000){
-  //   SDFUI.store.dispatch(ACT.drawWeight(sel.value / 10000));
-  // }
-
-  // sel = document.getElementById("opacity-range");
-  // if(SDFUI.state.ui.properties.radius != sel.value / 100){
-  //   SDFUI.store.dispatch(ACT.drawOpacity(sel.value / 100));
-  // }
-
-  // sel = document.getElementById("radius-range");
-  // if(SDFUI.state.ui.properties.radius != sel.value / 250){
-  //   SDFUI.store.dispatch(ACT.drawRadius(sel.value / 250));
-  //   SDFUI.store.dispatch(ACT.sceneEditProps());
-  // }
-
   for(let m of this.modifiers){
     //each update will deal with m.toggle on an individual basis
     if(m.update){
       m.update();
-      // if (m.options.exit && m.options.exit == true){
-      //   this.exit();
-      //   return "exit";
-      // }
     }
   }
   return;
@@ -381,35 +242,22 @@ function drawUp(e){
     let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
     let newLayer = createEditLayer(nextPrim);
     SDFUI.layers.push(newLayer);
-
-    // console.log(SDFUI.state.scene);
-    // console.log(SDFUI.layers);
   }
-
-  // if(item.type == "pointlight"){
-  //   SDFUI.store.dispatch(ACT.sceneItemUpdate(SDFUI.state.scene.editItem, true));
-  //   SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
-  //   SDFUI.newEditTex();
-  // }
- 
   return;
 }
 
 //---DRAW-----------------------------
 function endDrawClck(){
   this.toggle = !this.toggle;
-  // HINT.pulseActive(this);
 }
 //
 function escDrawClck(){
   this.toggle = !this.toggle;
-  // HINT.pulseActive(this);
 }
 
 function endDrawUpdate(){
   if(!this.toggle) return null;
-  // console.log("///////////////////////////////////////////////");  
-  // let scene = SDFUI.state.scene;
+
   if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) return;
  
   //list of layers should probably go in redux store at some point
@@ -544,19 +392,6 @@ class UIMode{
 
     this.options = _options || {factor:1.0};
   }
-
-  // initUIModeButtons(){
-  //   let tags = [];
-
-  //   for (let m of this.modifiers){
-  //     if (!tags.includes(m.tag)){
-  //       tags.push(m.tag);
-  //       // HINT.addButtonHeading(m);
-  //     }
-  //     let newButton = m.addButton();
-  //     m.button = newButton;
-  //   }
-  // }
 }
 
 //simple class to hold modifiers
@@ -637,39 +472,5 @@ class UIModifier{
     }
   }
 }
-
-// good for debugging and for reference
-//returns svg element
-//id as string; x & y as pixel coords; opacity as 0 -1, fill & stroke as colors
-function addSVGCircle(id, x, y, r, opacity, fill, stroke, strokeWeight){
-  var r = r || 15;
-  var height = 2 * r;
-  var width = 2 * r;
-  var id = id || "no-id";
-  var opacity = opacity || 0.85;
-  var fill = fill || 'orange';
-  var stroke = stroke || 'black';
-  var strokeWeight = strokeWeight || 2.0;
-
-  var svg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  svg.setAttribute('width', String(width));
-  svg.setAttribute('height', String(height));
-
-  svg.setAttribute('class', 'annot');
-
-  svg.setAttribute('cx', String(x));
-  svg.setAttribute('cy', String(y));
-  svg.setAttribute('r', String(r));
-  svg.setAttribute('id', String(id));
-  svg.setAttribute('opacity', opacity);
-  svg.setAttribute('fill', fill);
-  svg.setAttribute('stroke', stroke);
-  svg.setAttribute('stroke-width', strokeWeight);
-
-  document.getElementById('draw-shapes').appendChild(svg);
-  return svg;
-}
-
-
 
 export {GhostUI};

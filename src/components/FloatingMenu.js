@@ -1,9 +1,9 @@
 import m from "mithril";
 import { ControlGroup, Classes, Button, Icons, CustomSelect, PopoverMenu, MenuItem } from 'construct-ui';
 // import '../../node_modules/construct-ui/lib/index.css';
-import * as SDFUI from '../draw'
+import * as SDFUI from '../renderer/draw'
 import * as ACT from '../store/actions'
-import {bakeLayer, createEditLayer} from '../layer';
+import {bakeLayer, createEditLayer} from '../renderer/layer';
 
 import chroma from 'chroma-js';
 

@@ -3,7 +3,7 @@
 
 //Not yet implemented
 Dist() //returns distance to primitive at a point for selection
-getSharer() //returns shader function for object
+getShader() //returns shader function for object
 SVG() //returns svg of polyline
 3dm() //returns RhinoCompute representation
 
@@ -12,8 +12,9 @@ SVG() //returns svg of polyline
 'use strict';
 
 // import * as THREE from './libjs/three.module.js';
-import {gl, dPt, state} from './draw.js';
-import { Float16Array, getFloat16, setFloat16, hfround } from "@petamoriken/float16";
+import {gl, state} from './draw.js';
+import {getFloat16, setFloat16} from "@petamoriken/float16";
+
 import * as chroma from 'chroma-js';
 import * as twgl from 'twgl.js';
 
@@ -158,7 +159,6 @@ export class PolyPoint{
   }
 
   clone(){
-    let weight = this.weight;
     let properties  = {...this.properties};
     let dataSize = this.dataSize;
 
@@ -243,7 +243,6 @@ export class PolyPoint{
 
     return pt;
   }
-
 }
 
 //https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
