@@ -183,7 +183,7 @@ function cursor(_state=initialState, action) {
 
         if (ptNear.length > 0){
           pt = ptNear[0];
-          console.log(pt);
+
           return Object.assign({}, state,{
             pos: pt
           });

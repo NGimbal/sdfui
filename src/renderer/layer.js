@@ -99,12 +99,21 @@ export class Layer {
 }
 
 export function setBoundingBox(layer){
-  if(layer.primType == 'polygon' || layer.primType == 'polyline' || layer.primType == 'rectangle'){
+  
+  
+  // if(layer.primType == 'polygon' || layer.primType == 'polyline' || layer.primType == 'rectangle'){
+  //   layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts);
+  // } else if (layer.primType == 'circle'){
+  //   // here 1 should be radius
+  //   // this is kind of weird. 
+  //   layer.bbox = new PRIM.bbox([layer.uniforms.u_eTex.pts[0]], 1.);
+  // }
+
+    
+  if(layer.primType == 'circle'){
+    layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, 0.05, 'circle');
+  } else {
     layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts);
-  } else if (layer.primType == 'circle'){
-    // here 1 should be radius
-    // this is kind of weird. 
-    layer.bbox = new PRIM.bbox([layer.uniforms.u_eTex.pts[0]], 1.);
   }
 
   updateMatrices(layer);

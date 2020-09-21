@@ -57,14 +57,29 @@ export function normVec(_vec){
   return vec;
 }
 
-export function dotVec(_vecA, _vecB){
-  let x = _vecA.x * _vecB.x;
-  let y = _vecA.y * _vecB.y;
+export function dotVec(a, b){
+  let x = a.x * b.x;
+  let y = a.y * b.y;
   return x + y;
 }
 
 export function angleVec(_vec){
   return (Math.atan2( - _vec.y, - _vec.x ) + Math.PI);
+}
+
+function distVec (a, b){
+  let dx = a.x - b.x;
+  let dy = a.y - b.y;
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
+function addVec(a, b){
+  return new vec(a.x + b.x, a.y + b.y);
+}
+
+function subVec (a, b){
+  let bInv = vecSet(b, b.x * -1, b.y * -1);
+  return addVec(a, bInv);
 }
 
 export class bbox{
@@ -78,33 +93,32 @@ export class bbox{
     // this.minY;
     // this.maxX;
     // this.maxY;
-    // this.min;
-    // this.max;
-    // this.width;
-    // this.height;
 
     switch(type){
-      //polygon, polyline, rectangle all can default to this same code
+      //polygon, polyline, rectangle all can default to this
       case('polyline'):
         points.sort((a,b) => (a.x < b.x) ? -1 : 1);
-        let minX = points[0].x - offset;
-        let maxX = points[points.length-1].x + offset;
-        
+        this.minX = points[0].x - offset;
+        this.maxX = points[points.length-1].x + offset;
+
         points.sort((a,b) => (a.y < b.y) ? -1 : 1);
-        let minY = points[0].y - offset;
-        let maxY = points[points.length-1].y + offset;
-    
-        this.min = new vec(minX, minY);
-        this.max = new vec(maxX, maxY);
-        this.width = maxX - minX;
-        this.height = maxY - minY;
+        this.minY = points[0].y - offset;
+        this.maxY = points[points.length-1].y + offset;
         break;
       case('circle'):
-        console.log(points);
+        let radius = distVec(points[0], points[1]);
+        this.minX = points[0].x - radius - offset;
+        this.maxX = points[0].x + radius + offset;
+        this.minY = points[0].y - radius - offset;
+        this.maxY = points[0].y + radius + offset;
         break;
     }
 
-    
+    this.min = new vec(this.minX, this.minY);
+    this.max = new vec(this.maxX, this.maxY);
+    this.width = this.maxX - this.minX;
+    this.height = this.maxY - this.minY;
+
   }
 }
 
@@ -282,8 +296,7 @@ export function distPrim(_mPt, prim){
       dist = Math.min(dist, circleDist(mPt, prim));
       break;
     case "rectangle":
-
-      // dist = Math.min(dist, polygonDist(p, prim));
+      dist = Math.min(dist, rectDist(mPt, prim));
       break;
     default:
       break;
@@ -291,6 +304,46 @@ export function distPrim(_mPt, prim){
   return dist;
 }
 
+// //uv, p translation point, b 1/2 length, width, r radius
+// float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r)
+// {
+//     b -= r;
+//     uv = (uv-p);
+//     vec2 d = abs(uv)-b;
+//     return length(max(d,vec2(0))) + min(max(d.x,d.y),0.0) - r;
+// }
+// posString += '\tvec2 center = 0.5 * (rect2 - rect1) + rect1;\n';
+// posString += '\tvec2 rPt = abs(rect2 - center);\n';
+// posString += '\tfloat d = sdBox(uv, center, rPt, u_radius);\n';
+
+function rectDist(mPt, prim){
+  if (prim.type != "rectangle"){
+    // console.log("pLineDist() called on primitive of " + prim.type + " type.");
+    // console.log(prim);
+    return 1000;
+  }
+
+  let ptA = state.scene.pts.find(pt => pt.id == prim.pts[0]);
+  let ptB = state.scene.pts.find(pt => pt.id == prim.pts[1]);
+
+  ptA = twgl.v3.create(ptA.x, ptA.y, 0);
+  ptB = twgl.v3.create(ptB.x, ptB.y, 0);
+
+  let center = twgl.v3.add(twgl.v3.mulScalar(twgl.v3.subtract(ptB, ptA), 0.5), ptA);
+  let b = twgl.v3.subtract(ptB, center);
+  b = twgl.v3.create(Math.abs(b[0]), Math.abs(b[1]));
+
+  let radius = twgl.v3.create(prim.properties.radius, prim.properties.radius);
+
+  twgl.v3.subtract(b, radius, b);
+
+  let uv = twgl.v3.subtract(mPt, center);
+  let d = twgl.v3.subtract(twgl.v3.create(Math.abs(uv[0]), Math.abs(uv[1])), b);
+
+  let dist = twgl.v3.length(twgl.v3.max(d,twgl.v3.create(0,0))) + Math.min(Math.max(d[0], d[1]),0) - radius[0];
+  
+  return dist;
+}
 //returns distance to a poly line
 function pLineDist(mPt, prim){
   if (prim.type != "polyline"){

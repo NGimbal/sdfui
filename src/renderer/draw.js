@@ -347,7 +347,7 @@ function startDrag(e){
 
 function doDrag(e){
   PRIM.vecSet(dPt, (state.cursor.pos.x - mouseDragStart.x), (state.cursor.pos.y - mouseDragStart.y));
-  console.log(dPt);
+  // console.log(dPt);
 }
 
 function endDrag(e){

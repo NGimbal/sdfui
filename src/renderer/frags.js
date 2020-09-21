@@ -64,9 +64,6 @@ void main() {
   outColor = vec4(0.5, 0.5, 0.5, 0.25);
   vec2 uv = vec2(v_texcoord);
 
-
-
-
 }`;
 //---------------------------------------------
 export const gridFrag =
@@ -953,7 +950,6 @@ float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r)
     vec2 d = abs(uv)-b;
     return length(max(d,vec2(0))) + min(max(d.x,d.y),0.0) - r;
 }
-
 
 //smooth Line Filter
 float line(float d, float w){
