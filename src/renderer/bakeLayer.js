@@ -17,10 +17,10 @@ export function bake(layer){
       return polygon(prim, layer);
     case'circle':
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
-      return circle(prim, layer);
+      return circleCall(prim, layer);
     case'rectangle':
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
-      return rectangle(prim, layer);
+      return rectangleCall(prim, layer);
     default:
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
       return polyLine(prim, layer);
@@ -163,7 +163,7 @@ function polygon(prim, layer){
   let shader = LAYER.getFragStub(prim.type, false);
   let parameters = layer.uniforms.u_eTex;
 
-  shader = polgonFunc(prim, shader, parameters);
+  shader = polygonFunc(prim, shader, parameters);
   shader = polygonCall(prim, shader);
 
   //need to recompile layer program after returning the compiled shader
@@ -171,7 +171,7 @@ function polygon(prim, layer){
 }
 
 //creates function call that draws prim as a polygon
-function polgonFunc(prim, shader, parameters){
+function polygonFunc(prim, shader, parameters){
 
   //insert new function
   let insString = "//$INSERT FUNCTION$------";
@@ -310,18 +310,6 @@ function polygonCall(prim, shader){
 //POLYGON--------------------------------------------------------
 
 //CIRCLE---------------------------------------------------------
-//takes prim and datashader and bakes as a circle
-export function circle(prim, layer){
-  // let shader = LAYER.getFragStub(prim.type, false);
-  // let parameters = layer.uniforms.u_eTex;
-
-  // if(prim.pts.length == 0) return dataShader;
-
-  let shader = circleCall(prim, layer);
-
-  return shader;
-}
-
 //creates function call that draws prim - circle
 export function circleCall(prim, layer){
   let shader = LAYER.getFragStub(prim.type, false);
@@ -390,18 +378,6 @@ export function circleCall(prim, layer){
 
 
 //RECTANGLE---------------------------------------------------------
-//takes prim and datashader and bakes as a circle
-export function rectangle(prim, layer){
-  // let shader = LAYER.getFragStub(prim.type, false);
-  // let parameters = layer.uniforms.u_eTex;
-
-  // if(prim.pts.length == 0) return dataShader;
-
-  let shader = rectangleCall(prim, layer);
-
-  return shader;
-}
-
 //creates function call that draws prim - circle
 export function rectangleCall(prim, layer){
   let shader = LAYER.getFragStub(prim.type, false);

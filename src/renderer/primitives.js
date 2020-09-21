@@ -408,8 +408,17 @@ function circleDist(mPt, prim){
     // console.log(prim);
     return 1000;
   }
-  let dist = 1000;
-  // console.log(prim);
+  let ptA = state.scene.pts.find(pt => pt.id == prim.pts[0]);
+  let ptB = state.scene.pts.find(pt => pt.id == prim.pts[1]);
+
+  ptA = twgl.v3.create(ptA.x, ptA.y, 0);
+  ptB = twgl.v3.create(ptB.x, ptB.y, 0);
+  
+  let radius = twgl.v3.distance(ptA, ptB);
+  let uv = twgl.v3.subtract(mPt, ptA);
+
+  let dist = twgl.v3.length(uv) - radius;
+
   return dist;
 }
 
