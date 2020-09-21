@@ -304,18 +304,7 @@ export function distPrim(_mPt, prim){
   return dist;
 }
 
-// //uv, p translation point, b 1/2 length, width, r radius
-// float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r)
-// {
-//     b -= r;
-//     uv = (uv-p);
-//     vec2 d = abs(uv)-b;
-//     return length(max(d,vec2(0))) + min(max(d.x,d.y),0.0) - r;
-// }
-// posString += '\tvec2 center = 0.5 * (rect2 - rect1) + rect1;\n';
-// posString += '\tvec2 rPt = abs(rect2 - center);\n';
-// posString += '\tfloat d = sdBox(uv, center, rPt, u_radius);\n';
-
+//return distance to a rectangle
 function rectDist(mPt, prim){
   if (prim.type != "rectangle"){
     // console.log("pLineDist() called on primitive of " + prim.type + " type.");
@@ -344,6 +333,7 @@ function rectDist(mPt, prim){
   
   return dist;
 }
+
 //returns distance to a poly line
 function pLineDist(mPt, prim){
   if (prim.type != "polyline"){
