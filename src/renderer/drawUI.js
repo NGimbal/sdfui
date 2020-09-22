@@ -1,15 +1,20 @@
 "use strict";
-
-import * as SDFUI from './draw.js';
+import * as twgl from 'twgl.js';
 
 import * as ACT from '../store/actions.js';
 
+import * as SDFUI from './draw.js';
 import {bakeLayer, createEditLayer} from './layer.js';
-// import * as chroma from 'chroma-js';
-import * as twgl from 'twgl.js';
 
-//
-class GhostUI{
+//So this is going to be a glorified way to register
+//sets of functions to different UI modes
+//Try to move as much as this as possible to the redux store
+//will still need something that calls dispatch on events
+//like mouse move and keyup
+//so this is what will make sure that the right events are
+//registered / the right functions will be called on an event
+
+class DrawUI{
 
   constructor(){
     // need to check endianess for half float usage
@@ -46,21 +51,19 @@ class GhostUI{
 
     // console.log(endianNess());
 
-    let editOptions = {
-    };
-
     //MODIFIERS
-    let targetHome = new UIModifier("Return Home", "view", "h", {act:ACT.uiTargetHome(true)},true, {});
+    // constructor(name, tag, keyCut, events, _pulse, _options, _elem){
+    let targetHome = new UIModifier("Return Home", "view", "h", {act:ACT.uiTargetHome(true)},true);
 
-    let screenshot = new UIModifier("Screenshot", "export", "l", {act:ACT.statusRaster(true)},true, {});
+    let screenshot = new UIModifier("Screenshot", "export", "l", {act:ACT.statusRaster(true)},true);
 
-    let snapPt = new UIModifier("Snap Point", "snap", "p", {act:ACT.cursorSnapPt()},false, {});
-    let snapRef = new UIModifier("Snap Ref", "snap", "s", {act:ACT.cursorSnapRef()},false, {});
-    let snapGlobal = new UIModifier("Snap Global", "snap", "Shift", {act:ACT.cursorSnapGlobal()},false, {});
-    let snapGrid = new UIModifier("Snap Grid", "snap", "g", {act:ACT.cursorSnapGrid()},false, {});
+    let snapPt = new UIModifier("Snap Point", "snap", "p", {act:ACT.cursorSnapPt()},false);
+    let snapRef = new UIModifier("Snap Ref", "snap", "s", {act:ACT.cursorSnapRef()},false);
+    let snapGlobal = new UIModifier("Snap Global", "snap", "Shift", {act:ACT.cursorSnapGlobal()},false);
+    let snapGrid = new UIModifier("Snap Grid", "snap", "g", {act:ACT.cursorSnapGrid()},false);
 
-    let endDraw = new UIModifier("End Draw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true, {exit:false});
-    let escDraw = new UIModifier("Esc Draw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true, {exit:false});
+    let endDraw = new UIModifier("End Draw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true);
+    let escDraw = new UIModifier("Esc Draw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true);
 
     //MODES
     let globalMods = [targetHome, screenshot];
@@ -70,14 +73,12 @@ class GhostUI{
     let selMods = [targetHome, screenshot];
 
     //if no drawing tools are selected, drawExit();
-    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, editOptions);
-    // let move
+    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp});
 
-    //stack of UIModes
-    this.modeStack = new StateStack(draw, 5);
-    this.modeStack.curr().enter();
+    //would like this to be kept track of in the redux store
+    this.modeCurr = draw;
+    this.modeCurr.enter();
 
-    //could pass elem around but...
     document.querySelector('#canvasContainer').addEventListener('mouseup', this.mouseUp.bind(this));
     document.querySelector('#canvasContainer').addEventListener('mousemove', this.mouseMove.bind(this));
 
@@ -115,7 +116,7 @@ class GhostUI{
   //global update to run functions that have been cued by a button press
   //most basic update pattern that will also be used in event handlers
   update(){
-    let mode = this.modeStack.curr();
+    let mode = this.modeCurr;
     if(!mode.update)return;
 
     if(SDFUI.state.ui.targeting){
@@ -130,7 +131,7 @@ class GhostUI{
   }
 
   mouseUp(e) {
-    let mode = this.modeStack.curr();
+    let mode = this.modeCurr;
     // if(!mode.up)return;
 
     let newDoc = mode.up(e);
@@ -165,7 +166,7 @@ class GhostUI{
     else if(key == "Meta") this.cntlPressed = false;
     else if(key == "Control") this.cntlPressed = false;
 
-    let mode = this.modeStack.curr();
+    let mode = this.modeCurr;
 
     for (let m of mode.modifiers){
       if(m.keyCut == key){
@@ -295,82 +296,7 @@ function escDrawUpdate(){
   return;
 }
 
-//Ring buffer of states, type agnostic
-class StateStack{
-  constructor(state, MAX){
-    this.MAX = MAX || 10;
-    this.index = 0;
-    this.stack = [];
-    this.stack[0] = state;
-    this.firstIndex = 0;
-
-    for (let i = 1; i < this.MAX; i++){
-      this.stack.push(null);
-    }
-  }
-
-  //return current state, object is not cloned here
-  curr(){
-    return this.stack[this.index];
-  }
-
-  //current state is replaced by modified state object
-  modCurr(newState){
-    this.stack[this.index] = newState;
-  }
-
-  //push new state
-  push(_state){
-    //clone the state before push
-    let state;
-    if(_state.clone) {
-      state = _state.clone();
-    } else {
-      state = _state;
-    }
-
-    this.incrementIndex();
-
-    this.stack[this.index] = state;
-  }
-
-  //return previous state, decrement index
-  undo(){
-    if (this.index == this.firstIndex){
-      return this.curr();
-    }
-    this.decrementIndex();
-    return this.curr();
-  }
-
-  //return next state, increment index
-  redo(){
-    this.incrementIndex();
-    return this.curr();
-  }
-
-  //increment index, wraps index
-  incrementIndex(){
-    this.index++;
-    this.index = (this.index % this.MAX);
-
-    if (this.index == this.firstIndex){
-      this.firstIndex++;
-      this.firstIndex = (this.firstIndex % this.MAX);
-    }
-  }
-
-  //decrement index, wraps index
-  decrementIndex(){
-    this.index -= 1;
-    if(this.index < 0){
-      this.index = 9;
-    }
-  }
-}
-
-//idea is to allow the creation of modes if/when that's necessary
-//modes are going to be collections of UIModifiers
+//modes are collections of UIModifiers
 class UIMode{
   //bool, [], functions
   // constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
@@ -397,7 +323,7 @@ class UIMode{
 //simple class to hold modifiers
 class UIModifier{
   //clck
-  constructor(name, tag, keyCut, events, _pulse, _options, _elem){
+  constructor(name, tag, keyCut, events, _pulse){
     this.name = name;
     //tag e.g. snap, edit, view, export
     this.tag = tag;
@@ -433,20 +359,6 @@ class UIModifier{
      }else{
        this.pulse = false;
      }
-
-    this.options = _options || {};
-
-    //button element
-    this.elem = _elem || "";
-    if (this.elem != ""){
-      this.innerHTML = this.elem.innerHTML;
-
-      let style = window.getComputedStyle(elem);
-      this.top = style.getPropertyValue('top');
-      this.left = style.getPropertyValue('left');
-
-      elem.onclick = this.clck;
-    }
   }
 
   addButton(){
@@ -473,4 +385,4 @@ class UIModifier{
   }
 }
 
-export {GhostUI};
+export {DrawUI};

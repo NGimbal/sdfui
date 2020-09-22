@@ -13,7 +13,7 @@ import * as RBush from 'rbush';
 import * as ACT from '../store/actions.js';
 import { reducer } from '../store/reducers.js';
 
-import {GhostUI} from './drawUI.js';
+import {DrawUI} from './drawUI.js';
 import * as PRIM from './primitives.js';
 import * as SF from './frags.js';
 import {Layer, updateMatrices} from './layer.js';
@@ -69,8 +69,8 @@ function listener(){
 };
 
 //substcribe to store changes - run listener to set relevant variables
-// store.subscribe(() => console.log(listener()));
-store.subscribe(() => listener());
+store.subscribe(() => console.log(listener()));
+// store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
@@ -119,7 +119,7 @@ export function initDraw() {
   }
   // console.log(gl.getSupportedExtensions());
 
-  ui = new GhostUI();
+  ui = new DrawUI();
 
   canvasContainer.addEventListener('mousedown', startDrag);
 
@@ -136,10 +136,9 @@ export function initDraw() {
   texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
 
   let gridUniforms = {
-    // u_matrix: matrix,
     u_textureMatrix: twgl.m4.copy(texMatrix),
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
+    u_dPt: dPt,
   }
 
   // grid layer
@@ -173,6 +172,7 @@ export function initDraw() {
   updateMatrices(imgLayer);
 
   // layers.push(imgLayer);
+  
   let demoUniforms = {
     // u_matrix: matrix,
     u_textureMatrix: twgl.m4.copy(texMatrix),
@@ -194,10 +194,6 @@ export function initDraw() {
 
   layers.push(plineLayer);
 
-  // console.log(layers);
-
-  // layers[1].uniforms.u_eTex = layers[2].uniforms.u_eTex;
-
   //this is excellent
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -206,7 +202,6 @@ export function initDraw() {
   // gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
 
   requestAnimationFrame(render);
-
 //------------------------------------------------------------------------------
 }
 
@@ -224,27 +219,8 @@ function update() {
   }
   //update uniforms - might want a needsUpdate on these at some point
   layers.forEach(function(layer) {
-    //this is better but still not perfect
+
     if(layer.bbox){ updateMatrices(layer); }
-    if(layer.needsUpdate){
-      // switch(layer.name){
-      //   case "polyline":
-      //     BAKE.polyLine(prim, dataShader);
-      //     break;
-      //   case "polygon":
-      //     BAKE.polygon(prim, dataShader);
-      //     break;
-      //   case "circle":
-      //     BAKE.circle(prim, dataShader);
-      //     break;
-      //   case "rectangle":
-      //     BAKE.rectangle(prim, dataShader);
-      //     break;
-      //   default:
-      //     break;
-      // }
-      store.dispatch(ACT.sceneItemUpdate(index, false));
-    }
 
     gl.useProgram(layer.programInfo.program);
     if(resize){
@@ -257,10 +233,8 @@ function update() {
     }
     if(layer.uniforms.u_dPt){
       layer.uniforms.u_dPt = dPt;
-      // layer.uniforms.u_dPt['0'] = dPt.x;
-      // layer.uniforms.u_dPt['1'] = dPt.y;
-      // layer.uniforms.u_dPt['2'] = dPt.z;
     }
+
     if (layer.prim == state.scene.editItems[state.scene.editItem].id){
       if(typeof layer.uniforms.u_stroke === 'object'){
         layer.uniforms.u_stroke = chroma(state.ui.properties.stroke).gl().slice(0,3);
@@ -282,10 +256,10 @@ function update() {
       }
     }
     
-    //does this work? How many times is this going to trip me up
     if(typeof layer.uniforms.u_cTex === 'number'){
       layer.uniforms.u_cTex = layer.uniforms.u_eTex.cTexel;
     }
+
     twgl.setUniforms(layer.programInfo, layer.uniforms);
   });
 }
@@ -309,13 +283,9 @@ function draw() {
   }
 }
 
-var then = 0;
 function render(time) {
-  var now = time * 0.001;
-  var deltaTime = Math.min(0.1, now - then);
-  then = now;
 
-  update(deltaTime);
+  update();
   draw();
 
   requestAnimationFrame(render);
@@ -388,7 +358,6 @@ function updateCtx(){
   }
 }
 
-
 //need mPt, SDFUI.state.scene if in another file...
 function sceneDist(){
   let dist = 1000;
@@ -436,6 +405,3 @@ export function modifyDefine(_dataShader, define, val){
   shader = startShader + endShader;
   dataShader.shader = shader;
 }
-
-//Run-----------------------------------------------------------
-// main();

@@ -41,6 +41,11 @@ function LeftToolBar() {
                 style="margin: 0px 0px 10px 0px;" />
 
         <hr style={dividerStyle}/>
+        
+        <Button iconLeft={Icons.MOUSE_POINTER}
+                size={"x0"}
+                basic={"true"}
+                style="margin: 0px 0px 10px 0px;"  />
 
         <Button iconLeft={Icons.PEN_TOOL}
                 active={true}
@@ -49,11 +54,6 @@ function LeftToolBar() {
                 style="margin: 0px 0px 10px 0px;"  />
         
         <Button iconLeft={Icons.LAYERS}
-                size={"x0"}
-                basic={"true"}
-                style="margin: 0px 0px 10px 0px;"  />
-
-        <Button iconLeft={Icons.EDIT_2}
                 size={"x0"}
                 basic={"true"}
                 style="margin: 0px 0px 10px 0px;"  />
