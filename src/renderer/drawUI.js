@@ -14,6 +14,8 @@ import {bakeLayer, createEditLayer} from './layer.js';
 //so this is what will make sure that the right events are
 //registered / the right functions will be called on an event
 
+
+//store ui.state = "draw", "select", 
 class DrawUI{
 
   constructor(){
@@ -49,31 +51,28 @@ class DrawUI{
         break;
     }
 
-    // console.log(endianNess());
-
     //MODIFIERS
-    // constructor(name, tag, keyCut, events, _pulse, _options, _elem){
+    // constructor(name, tag, keyCut, events, _pulse){
     let targetHome = new UIModifier("Return Home", "view", "h", {act:ACT.uiTargetHome(true)},true);
 
     let screenshot = new UIModifier("Screenshot", "export", "l", {act:ACT.statusRaster(true)},true);
 
-    let snapPt = new UIModifier("Snap Point", "snap", "p", {act:ACT.cursorSnapPt()},false);
-    let snapRef = new UIModifier("Snap Ref", "snap", "s", {act:ACT.cursorSnapRef()},false);
-    let snapGlobal = new UIModifier("Snap Global", "snap", "Shift", {act:ACT.cursorSnapGlobal()},false);
-    let snapGrid = new UIModifier("Snap Grid", "snap", "g", {act:ACT.cursorSnapGrid()},false);
+    let snapPt = new UIModifier("Snap Point", "snap", "p", {act:ACT.cursorSnapPt()});
+    let snapRef = new UIModifier("Snap Ref", "snap", "s", {act:ACT.cursorSnapRef()});
+    let snapGlobal = new UIModifier("Snap Global", "snap", "Shift", {act:ACT.cursorSnapGlobal()});
+    let snapGrid = new UIModifier("Snap Grid", "snap", "g", {act:ACT.cursorSnapGrid()});
 
     let endDraw = new UIModifier("End Draw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true);
     let escDraw = new UIModifier("Esc Draw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true);
 
     //MODES
-    let globalMods = [targetHome, screenshot];
-    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
-    drawMods = globalMods.concat(drawMods);
+    let drawMods = [targetHome, screenshot, snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
 
     let selMods = [targetHome, screenshot];
 
     //if no drawing tools are selected, drawExit();
     let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp});
+    // let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv, up:selUp});
 
     //would like this to be kept track of in the redux store
     this.modeCurr = draw;
@@ -91,28 +90,6 @@ class DrawUI{
     return this;
   }
 
-  // Helper to save a Uint8 data texture
-  saveDataTUint8(pixels, name, width, height){
-    // Create a 2D canvas to store the result
-    var canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    var context = canvas.getContext('2d');
-
-    // Copy the pixels to a 2D canvas
-    var imageData = context.createImageData(width, height);
-    imageData.data.set(pixels);
-    context.putImageData(imageData, 0, 0);
-
-    var img = new Image();
-    img.src = canvas.toDataURL();
-
-    var dlAnchorElem = document.getElementById('downloadAnchorElem');
-    dlAnchorElem.setAttribute("href",     img.src     );
-    dlAnchorElem.setAttribute("download", name);
-    dlAnchorElem.click();
-  }
-
   //global update to run functions that have been cued by a button press
   //most basic update pattern that will also be used in event handlers
   update(){
@@ -127,14 +104,14 @@ class DrawUI{
       }
     }
 
-    let newDoc = mode.update();
+    mode.update();
   }
 
   mouseUp(e) {
     let mode = this.modeCurr;
     // if(!mode.up)return;
 
-    let newDoc = mode.up(e);
+    mode.up(e);
   }
 
   mouseMove(e) {
@@ -161,10 +138,6 @@ class DrawUI{
   //cnrl Z
   keyUp(e){
     let key = e.key;
-
-    if(key == "z") this.zPressed = false;
-    else if(key == "Meta") this.cntlPressed = false;
-    else if(key == "Control") this.cntlPressed = false;
 
     let mode = this.modeCurr;
 
@@ -200,6 +173,11 @@ function drawEnter(){
 
 function drawExit(){
 
+  // if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1){
+  //   let layer = SDFUI.layers[SDFUI.layers.length - 1];
+  //   bakeLayer(layer);
+  // }
+  
 }
 
 //happens on every frame of draw mode
@@ -230,7 +208,7 @@ function drawUp(e){
     if(!modState) continue;
   }
 
-  let currLayer = SDFUI.layers[SDFUI.layers.length - 1];
+  let currLayer = SDFUI.state.layers.layers[SDFUI.state.layers.layers.length - 1];
   let pt = currLayer.uniforms.u_eTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
 
   SDFUI.store.dispatch(ACT.sceneAddPt(pt));
@@ -242,7 +220,7 @@ function drawUp(e){
     SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
     let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
     let newLayer = createEditLayer(nextPrim);
-    SDFUI.layers.push(newLayer);
+    SDFUI.store.dispatch(ACT.layerPush(newLayer));
   }
   return;
 }
@@ -261,8 +239,8 @@ function endDrawUpdate(){
 
   if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) return;
  
-  //list of layers should probably go in redux store at some point
-  let layer = SDFUI.layers[SDFUI.layers.length - 1];
+  let layer = SDFUI.state.layers.layers[SDFUI.state.layers.layers.length - 1];
+  
   bakeLayer(layer);
   
   let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
@@ -272,7 +250,7 @@ function endDrawUpdate(){
   //next item
   let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
 
-  SDFUI.layers.push(newLayer);
+  SDFUI.store.dispatch(ACT.layerPush(newLayer));
 
   this.toggle = !this.toggle;
 }
@@ -280,7 +258,8 @@ function endDrawUpdate(){
 function escDrawUpdate(){
   if(!this.toggle) return null;
 
-  let currLayer = SDFUI.layers.pop();
+  let currLayer = SDFUI.state.layers.layers[SDFUI.state.layers.layers.length - 1];
+  SDFUI.store.dispatch(ACT.layerPop(currLayer.id));
 
   for (let p of currLayer.uniforms.u_eTex.pts){
     SDFUI.store.dispatch(ACT.sceneRmvPt(p));
@@ -291,6 +270,7 @@ function escDrawUpdate(){
   SDFUI.store.dispatch(ACT.sceneNewEditItem(currLayer.primType))
 
   SDFUI.layers.push(createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]));
+  SDFUI.store.dispatch(ACT.layerPush(createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem])));
 
   this.toggle = !this.toggle;
   return;

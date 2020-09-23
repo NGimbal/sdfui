@@ -22,7 +22,6 @@ var canvas, ctx, ui;
 
 //twgl
 export var gl;
-export var layers;
 
 export var dataShader;
 export var editTex;
@@ -125,11 +124,7 @@ export function initDraw() {
 
   canvasContainer.onwheel = scrollPan;
 
-//------------------------------------------------------------------------------
-
-  //eventually this is going to come from layers in redux store
   //new edit layer is full screen layer that allows for user to input data
-  layers = [];
 
   //full screen texture matrix
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
@@ -143,11 +138,7 @@ export function initDraw() {
 
   // grid layer
   let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, gridUniforms);
-
-  layers.push(gridLayer);
-  // layerPush does not work at the moment
-  // store.dispatch(ACT.layerPush(gridLayer));
-  // console.log(state);
+  store.dispatch(ACT.layerPush(gridLayer));
 
   let image = twgl.createTexture(gl, {
     src: "../assets/textures/leaves.jpg",
@@ -170,8 +161,6 @@ export function initDraw() {
   imgLayer.bbox = new PRIM.bbox([{x:0.25, y:0.25}], 0.5);
   
   updateMatrices(imgLayer);
-
-  // layers.push(imgLayer);
   
   let demoUniforms = {
     // u_matrix: matrix,
@@ -187,12 +176,12 @@ export function initDraw() {
   demoLayer.bbox = new PRIM.bbox([{x:0.1250, y:0.1250}, {x:0.3125, y:0.3125}], 0.0);
   
   updateMatrices(demoLayer);
-  // layers.push(demoLayer);
 
   // edit layer
   let plineLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit);
 
-  layers.push(plineLayer);
+  store.dispatch(ACT.layerPush(plineLayer));
+
 
   //this is excellent
   gl.enable(gl.BLEND);
@@ -218,7 +207,7 @@ function update() {
     store.dispatch(ACT.statusRes({x:gl.canvas.width, y:gl.canvas.height}));
   }
   //update uniforms - might want a needsUpdate on these at some point
-  layers.forEach(function(layer) {
+  state.layers.layers.forEach(function(layer) {
 
     if(layer.bbox){ updateMatrices(layer); }
 
@@ -273,7 +262,7 @@ function draw() {
   gl.clearColor(1, 1, 1, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  twgl.drawObjectList(gl, layers);
+  twgl.drawObjectList(gl, state.layers.layers);
 
   if(state.status.raster){
     canvas.toBlob((blob) => {
