@@ -106,6 +106,10 @@ html, body {
                                   supported by Chrome, Opera and Firefox */
 }
 
+.dragOver{
+  border: 5px dashed !important;
+}
+
 /* https://www.w3schools.com/howto/howto_js_snackbar.asp */
 /* The snackbar - position it at the bottom and in the middle of the screen */
 #snackbar {

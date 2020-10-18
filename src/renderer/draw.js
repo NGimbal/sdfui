@@ -140,28 +140,6 @@ export function initDraw() {
   let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, gridUniforms);
   store.dispatch(ACT.layerPush(gridLayer));
 
-  let image = twgl.createTexture(gl, {
-    src: "../assets/textures/leaves.jpg",
-    color: [0.125, 0.125, 0.125, 0.125],
-  }, () => {
-    // console.log(image);
-  });
-
-  //twgl.loadTextureFromUrl(gl, image);
-
-  let imgUniforms = {
-    // u_matrix: matrix,
-    u_textureMatrix: twgl.m4.copy(texMatrix),
-    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
-    u_img: image,
-  }
-  
-  let imgLayer = new Layer({type:"img"}, SF.simpleVert, SF.imgFrag, imgUniforms);
-  imgLayer.bbox = new PRIM.bbox([{x:0.25, y:0.25}], 0.5);
-  
-  updateMatrices(imgLayer);
-  
   let demoUniforms = {
     // u_matrix: matrix,
     u_textureMatrix: twgl.m4.copy(texMatrix),
@@ -194,6 +172,51 @@ export function initDraw() {
 //------------------------------------------------------------------------------
 }
 
+// addImage function
+export function addImage(_srcURL, dims, evPt) {
+  let srcURL = _srcURL || "../assets/textures/leaves.jpg";
+
+  let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
+  texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
+
+  let image = twgl.createTexture(gl, {
+    src: srcURL,
+    color: [0.125, 0.125, 0.125, 0.125],
+  }, () => {
+    // console.log(image);
+  });
+
+  twgl.loadTextureFromUrl(gl, image);
+
+  let imgUniforms = {
+    // u_matrix: matrix,
+    u_textureMatrix: twgl.m4.copy(texMatrix),
+    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
+    u_img: image,
+  }
+  
+  let imgLayer = new Layer({type:"img"}, SF.imgVert, SF.imgFrag, imgUniforms);
+  
+  //width and height have to be translated to screen space
+  let width = dims.width/2000;
+  let height = dims.height/2000;
+
+  // transforms window / js space to sdf / frag space
+  evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - dPt[0];
+  evPt.y = (evPt.y/resolution.y)  - dPt[1];
+  evPt.x = evPt.x * (dPt[2] / 64.);
+  evPt.y = evPt.y * (dPt[2] / 64.);
+
+  imgLayer.bbox = new PRIM.bbox([{x: evPt.x, y: evPt.y},
+                                 {x: evPt.x + width, y: evPt.y + height}], 
+                                 0.0, '');
+
+  updateMatrices(imgLayer);
+
+  store.dispatch(ACT.layerPushImage(imgLayer));
+}
+
 function update() {
 
   ui.update();
@@ -207,7 +230,7 @@ function update() {
     store.dispatch(ACT.statusRes({x:gl.canvas.width, y:gl.canvas.height}));
   }
   //update uniforms - might want a needsUpdate on these at some point
-  state.layers.layers.forEach(function(layer) {
+  state.render.layers.forEach(function(layer) {
 
     if(layer.bbox){ updateMatrices(layer); }
 
@@ -262,7 +285,7 @@ function draw() {
   gl.clearColor(1, 1, 1, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  twgl.drawObjectList(gl, state.layers.layers);
+  twgl.drawObjectList(gl, state.render.layers);
 
   if(state.status.raster){
     canvas.toBlob((blob) => {

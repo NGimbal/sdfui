@@ -112,6 +112,11 @@ export class bbox{
         this.minY = points[0].y - radius - offset;
         this.maxY = points[0].y + radius + offset;
         break;
+      case('img'):
+        this.minX = points[0].x;
+        this.minY = points[0].y;
+        this.maxX = points[1].x;
+        this.maxY = points[1].y;
     }
 
     this.min = new vec(this.minX, this.minY);

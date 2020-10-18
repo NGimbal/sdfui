@@ -6,7 +6,7 @@ import * as ACT from '../store/actions.js';
 import * as SDFUI from './draw.js';
 import {bakeLayer, createEditLayer} from './layer.js';
 
-//So this is going to be a glorified way to register
+//So this is going to be a way to register
 //sets of functions to different UI modes
 //Try to move as much as this as possible to the redux store
 //will still need something that calls dispatch on events
@@ -14,8 +14,8 @@ import {bakeLayer, createEditLayer} from './layer.js';
 //so this is what will make sure that the right events are
 //registered / the right functions will be called on an event
 
-
 //store ui.state = "draw", "select", 
+//DrawUI.states = {draw: drad, select: select}
 class DrawUI{
 
   constructor(){
@@ -71,13 +71,12 @@ class DrawUI{
     let selMods = [targetHome, screenshot];
 
     //if no drawing tools are selected, drawExit();
-    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp});
-    // let select = new UIMode("select", selMods, selEnter, selExit, selUpdate, {mv:selMv, up:selUp});
+    let draw = new UIMode("draw", drawMods, {mv:drawMv, up:drawUp});
+    let select = new UIMode("select", selMods, {mv:selMv, up:selUp});
 
     //would like this to be kept track of in the redux store
-    this.modeCurr = draw;
-    this.modeCurr.enter();
-
+    this.modes = [draw, select];
+    
     document.querySelector('#canvasContainer').addEventListener('mouseup', this.mouseUp.bind(this));
     document.querySelector('#canvasContainer').addEventListener('mousemove', this.mouseMove.bind(this));
 
@@ -93,9 +92,12 @@ class DrawUI{
   //global update to run functions that have been cued by a button press
   //most basic update pattern that will also be used in event handlers
   update(){
-    let mode = this.modeCurr;
-    if(!mode.update)return;
+    let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
 
+    // if(!mode.update)return;
+
+    //I'm pretty sure that this should always be an option?
+    //Might get more confusing if we want to define other targets?
     if(SDFUI.state.ui.targeting){
       if(twgl.v3.distanceSq(SDFUI.state.ui.target, SDFUI.dPt) > 0.00001){
         twgl.v3.lerp(SDFUI.dPt, SDFUI.state.ui.target, 0.1, SDFUI.dPt);
@@ -104,11 +106,19 @@ class DrawUI{
       }
     }
 
-    mode.update();
+    for(let m of mode.modifiers){
+      //each update will deal with m.toggle on an individual basis
+      if(m.update){
+        m.update();
+      }
+    }
+
+    // mode.update();
   }
 
   mouseUp(e) {
-    let mode = this.modeCurr;
+    let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
+
     // if(!mode.up)return;
 
     mode.up(e);
@@ -118,7 +128,6 @@ class DrawUI{
     let resolution = SDFUI.resolution;
     let canvas = SDFUI.gl.canvas;
     let rect = canvas.getBoundingClientRect();
-    // let resolution = new PRIM.vec(rect.width, rect.height);
 
     let evPt = {
       x: e.clientX - rect.left,
@@ -132,14 +141,13 @@ class DrawUI{
     evPt.y = evPt.y * (SDFUI.dPt[2] / 64.);
 
     SDFUI.store.dispatch(ACT.cursorSet({x:evPt.x, y:evPt.y}));
-
   }
 
   //cnrl Z
   keyUp(e){
     let key = e.key;
 
-    let mode = this.modeCurr;
+    let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
 
     for (let m of mode.modifiers){
       if(m.keyCut == key){
@@ -164,33 +172,6 @@ class DrawUI{
   }
 }
 
-//---DRAW-----------------------------
-function drawEnter(){
-
-  let snapPt = this.modifiers.find(mod => mod.name == "Snap Point");
-  snapPt.clck();
-}
-
-function drawExit(){
-
-  // if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1){
-  //   let layer = SDFUI.layers[SDFUI.layers.length - 1];
-  //   bakeLayer(layer);
-  // }
-  
-}
-
-//happens on every frame of draw mode
-function drawUpdate(){
-  for(let m of this.modifiers){
-    //each update will deal with m.toggle on an individual basis
-    if(m.update){
-      m.update();
-    }
-  }
-  return;
-}
-
 function drawMv(e){
 
   for (let m of this.modifiers){
@@ -208,7 +189,7 @@ function drawUp(e){
     if(!modState) continue;
   }
 
-  let currLayer = SDFUI.state.layers.layers[SDFUI.state.layers.layers.length - 1];
+  let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
   let pt = currLayer.uniforms.u_eTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
 
   SDFUI.store.dispatch(ACT.sceneAddPt(pt));
@@ -225,7 +206,19 @@ function drawUp(e){
   return;
 }
 
-//---DRAW-----------------------------
+function selMv(){
+  //eval sdf scene at mouse
+  //is there a hover item thing?
+  //need to figure out how to add ui indication for 
+  //edit item
+}
+
+function selUp(){
+  // dispatch set curr item
+}
+//---SELECT----------------------------
+
+
 function endDrawClck(){
   this.toggle = !this.toggle;
 }
@@ -239,7 +232,7 @@ function endDrawUpdate(){
 
   if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) return;
  
-  let layer = SDFUI.state.layers.layers[SDFUI.state.layers.layers.length - 1];
+  let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
   
   bakeLayer(layer);
   
@@ -258,7 +251,7 @@ function endDrawUpdate(){
 function escDrawUpdate(){
   if(!this.toggle) return null;
 
-  let currLayer = SDFUI.state.layers.layers[SDFUI.state.layers.layers.length - 1];
+  let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
   SDFUI.store.dispatch(ACT.layerPop(currLayer.id));
 
   for (let p of currLayer.uniforms.u_eTex.pts){
@@ -269,7 +262,6 @@ function escDrawUpdate(){
 
   SDFUI.store.dispatch(ACT.sceneNewEditItem(currLayer.primType))
 
-  SDFUI.layers.push(createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]));
   SDFUI.store.dispatch(ACT.layerPush(createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem])));
 
   this.toggle = !this.toggle;
@@ -280,13 +272,13 @@ function escDrawUpdate(){
 class UIMode{
   //bool, [], functions
   // constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
-  constructor(name, modifiers, enter, exit, update, _events, _options){
+  constructor(name, modifiers, _events, _options){
     this.name = name;
     // this.toggle = toggle;
     this.modifiers = modifiers;
-    this.enter = enter.bind(this);
-    this.exit = exit.bind(this);
-    this.update = update.bind(this);
+    // this.enter = enter.bind(this);
+    // this.exit = exit.bind(this);
+    // this.update = update.bind(this);
 
     this.toggle = true;
 

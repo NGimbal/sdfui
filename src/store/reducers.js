@@ -30,6 +30,7 @@ const uiInit = {
   properties: {...PRIM.propsDefault},
   // targets:[] someday could have multiple tagets for prezi like effect
   target: twgl.v3.create(0,0,64),
+  mode: "draw"
 }
 
 const cursorInit = {
@@ -77,7 +78,7 @@ const initialState={
   status: statusInit,
   ui: uiInit,
   cursor: cursorInit,
-  layers: layersInit,
+  render: layersInit,
   //automerge object
   scene: sceneDoc,
 }
@@ -265,13 +266,20 @@ function cursor(_state=initialState, action) {
     }
 }
 
-function layers(_state=initialState, action) {
-  let state = _state.layers;
+function render(_state=initialState, action) {
+  let state = _state.render;
   switch(action.subtype){
     case ACT.LAYER_PUSH:
       return {
         ...state,
         layers: [...state.layers, action.layer]
+      }
+    case ACT.LAYER_PUSHIMAGE:
+      let layers =  [...state.layers]
+      layers.splice(1, 0, action.layer)
+      return {
+        ...state,
+        layers: layers
       }
     case ACT.LAYER_POP:
       return Object.assign({}, state, {
@@ -368,9 +376,9 @@ export const reducer = function(state = initialState, action){
       return Object.assign({}, state,{
         ui: ui(state, action),
       });
-    case ACT.layers:
+    case ACT.render:
       return Object.assign({}, state,{
-        layers: layers(state, action),
+        render: render(state, action),
       });
     case ACT.scene:
       return Object.assign({}, state,{

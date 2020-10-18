@@ -12,7 +12,7 @@ export const status = 'status';
 export const scene = 'scene';
 export const cursor = 'cursor';
 export const ui = 'ui';
-export const layers = 'layers';
+export const render = 'render';
 
 //sub types
 //STATUS
@@ -42,6 +42,7 @@ export const DRAW_RADIUS        = "DRAW_RADIUS"; //shape radius
 export const DRAW_OPACITY       = "DRAW_OPACITY"; //shape radius
 //LAYERS
 export const LAYER_PUSH         = "LAYER_PUSH"; //push a new layer
+export const LAYER_PUSHIMAGE    = "LAYER_PUSHIMAGE"; //push a new layer
 export const LAYER_POP          = "LAYER_POP"; //pop a layer, should be addressed by id
 export const LAYER_UPDATE       = "LAYER_UPDATE"; //update a layer, should be addressed by id
 
@@ -259,8 +260,17 @@ export function drawOpacity(opacity){
 //pushes a new layer onto the draw stack
 export function layerPush(layer){
   return{
-    type: layers,
+    type: render,
     subtype: LAYER_PUSH,
+    layer
+  }
+}
+
+//pushes a new Image onto the draw stack
+export function layerPushImage(layer){
+  return{
+    type: render,
+    subtype: LAYER_PUSHIMAGE,
     layer
   }
 }
@@ -268,7 +278,7 @@ export function layerPush(layer){
 //pops a new layer from the draw stack
 export function layerPop(layerID){
   return{
-    type: layers,
+    type: render,
     subtype: LAYER_POP,
     layerID
   }
@@ -277,7 +287,7 @@ export function layerPop(layerID){
 //updates a layer from the draw stack
 export function layerUpdate(layerID){
   return{
-    type: layers,
+    type: render,
     subtype: LAYER_UPDATE,
     layerID
   }

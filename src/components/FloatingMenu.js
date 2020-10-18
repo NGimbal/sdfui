@@ -38,14 +38,14 @@ function FloatingMenu() {
       let newLayer = {};
 
       let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+      let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
       
       if(currItem && currItem.pts.length > 1){
-        bakeLayer(SDFUI.layers[SDFUI.layers.length - 1]);
-        let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+        bakeLayer(currLayer);
+        currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
         
         SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
       } else {
-        let currLayer = SDFUI.state.layers.layers[SDFUI.state.layers.layers.length - 1];
 
         SDFUI.store.dispatch(ACT.layerPop(currLayer.id));
         SDFUI.store.dispatch(ACT.sceneNewEditItem(primSel));
