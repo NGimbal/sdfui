@@ -1,13 +1,8 @@
 //reducers
 "use strict";
 
-//current naive thinking
-//ui - state related to a user's view of the world
-//document - state related to a shared scene
-
 import * as PRIM from '../renderer/primitives.js';
 import * as ACT from './actions.js';
-// import * as LAYER from './layer.js';
 import * as twgl from 'twgl.js';
 
 import { ptTree } from '../renderer/draw.js';
@@ -25,17 +20,17 @@ const statusInit = {
 
 const uiInit = {
   drawing: true,
-  //properties
-  properties: {...PRIM.propsDefault},
   pause: false, //pause shader
   grid: false, //show background grid
   points: false, //show points
   drag: false,
-  //where is the view moving
-  target: twgl.v3.create(0,0,64),
   //are we moving towards a target
   targeting: false,
-  //targets:[] someday could have multiple tagets for prezi like effect
+  //where is the view moving
+  properties: {...PRIM.propsDefault},
+  // targets:[] someday could have multiple tagets for prezi like effect
+  target: twgl.v3.create(0,0,64),
+  mode: "draw"
 }
 
 const cursorInit = {
@@ -83,7 +78,7 @@ const initialState={
   status: statusInit,
   ui: uiInit,
   cursor: cursorInit,
-  layers: layersInit,
+  render: layersInit,
   //automerge object
   scene: sceneDoc,
 }
@@ -271,13 +266,21 @@ function cursor(_state=initialState, action) {
     }
 }
 
-function layers(_state=initialState, action) {
-  let state = _state.layers;
+function render(_state=initialState, action) {
+  let state = _state.render;
   switch(action.subtype){
     case ACT.LAYER_PUSH:
-      return Object.assign({}, state, {
-        layers: state.layers.slice().push(action.layer)
-      });
+      return {
+        ...state,
+        layers: [...state.layers, action.layer]
+      }
+    case ACT.LAYER_PUSHIMAGE:
+      let layers =  [...state.layers]
+      layers.splice(1, 0, action.layer)
+      return {
+        ...state,
+        layers: layers
+      }
     case ACT.LAYER_POP:
       return Object.assign({}, state, {
         layers: state.layers.filter((l) => l.id !== action.layerID)
@@ -373,9 +376,9 @@ export const reducer = function(state = initialState, action){
       return Object.assign({}, state,{
         ui: ui(state, action),
       });
-    case ACT.layers:
+    case ACT.render:
       return Object.assign({}, state,{
-        layers: layers(state, action),
+        render: render(state, action),
       });
     case ACT.scene:
       return Object.assign({}, state,{

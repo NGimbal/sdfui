@@ -30,6 +30,21 @@ void main() {
   v_texcoord = (u_textureMatrix * vec4(a_texcoord, 0, 1)).xy;
 }`;
 //---------------------------------------------
+export const imgVert =
+`#version 300 es
+
+in vec4 a_position;
+in vec2 a_texcoord;
+
+uniform mat4 u_matrix;
+
+out vec2 v_texcoord;
+
+void main() {
+  gl_Position = u_matrix * a_position;
+  v_texcoord = a_texcoord;
+}`;
+//---------------------------------------------
 export const imgFrag =
 `#version 300 es
 precision highp float;
@@ -44,9 +59,7 @@ out vec4 outColor;
  
 void main() {
   vec2 uv = vec2(v_texcoord);
-  uv.x *= u_resolution.x / u_resolution.y;
-  uv -= u_dPt.xy;
-  uv *= u_dPt.z / 64.;
+  // uv.x *= u_resolution.x / u_resolution.y;
 
   outColor = texture(u_img, uv);
 }`

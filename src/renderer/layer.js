@@ -20,7 +20,7 @@
 //point.x = 7
 //point a = point b
 //point = (scene.points.['id']) => { scene.points.['id'] }
-//point a = 5units from point b
+//point a = 5 units from point b
 //point = (scene.points.['id'], dist) => { (scene.points.['id'] - point) * dist }
 
 import {gl, state, resolution, mPt, dPt} from './draw.js';
@@ -154,7 +154,8 @@ export function bakeLayer(layer){
 
   layer.programInfo = twgl.createProgramInfo(gl, [layer.vert, fs]);
   
-  gl.useProgram(layer.programInfo.program);
+  // I don't know why this line was here... will delete at some pt
+  // gl.useProgram(layer.programInfo.program);
   twgl.setUniforms(layer.programInfo, layer.uniforms);
 }
 

@@ -1,15 +1,22 @@
 "use strict";
-
-import * as SDFUI from './draw.js';
+import * as twgl from 'twgl.js';
 
 import * as ACT from '../store/actions.js';
 
+import * as SDFUI from './draw.js';
 import {bakeLayer, createEditLayer} from './layer.js';
-// import * as chroma from 'chroma-js';
-import * as twgl from 'twgl.js';
 
-//
-class GhostUI{
+//So this is going to be a way to register
+//sets of functions to different UI modes
+//Try to move as much as this as possible to the redux store
+//will still need something that calls dispatch on events
+//like mouse move and keyup
+//so this is what will make sure that the right events are
+//registered / the right functions will be called on an event
+
+//store ui.state = "draw", "select", 
+//DrawUI.states = {draw: drad, select: select}
+class DrawUI{
 
   constructor(){
     // need to check endianess for half float usage
@@ -44,40 +51,32 @@ class GhostUI{
         break;
     }
 
-    // console.log(endianNess());
-
-    let editOptions = {
-    };
-
     //MODIFIERS
-    let targetHome = new UIModifier("Return Home", "view", "h", {act:ACT.uiTargetHome(true)},true, {});
+    // constructor(name, tag, keyCut, events, _pulse){
+    let targetHome = new UIModifier("Return Home", "view", "h", {act:ACT.uiTargetHome(true)},true);
 
-    let screenshot = new UIModifier("Screenshot", "export", "l", {act:ACT.statusRaster(true)},true, {});
+    let screenshot = new UIModifier("Screenshot", "export", "l", {act:ACT.statusRaster(true)},true);
 
-    let snapPt = new UIModifier("Snap Point", "snap", "p", {act:ACT.cursorSnapPt()},false, {});
-    let snapRef = new UIModifier("Snap Ref", "snap", "s", {act:ACT.cursorSnapRef()},false, {});
-    let snapGlobal = new UIModifier("Snap Global", "snap", "Shift", {act:ACT.cursorSnapGlobal()},false, {});
-    let snapGrid = new UIModifier("Snap Grid", "snap", "g", {act:ACT.cursorSnapGrid()},false, {});
+    let snapPt = new UIModifier("Snap Point", "snap", "p", {act:ACT.cursorSnapPt()});
+    let snapRef = new UIModifier("Snap Ref", "snap", "s", {act:ACT.cursorSnapRef()});
+    let snapGlobal = new UIModifier("Snap Global", "snap", "Shift", {act:ACT.cursorSnapGlobal()});
+    let snapGrid = new UIModifier("Snap Grid", "snap", "g", {act:ACT.cursorSnapGrid()});
 
-    let endDraw = new UIModifier("End Draw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true, {exit:false});
-    let escDraw = new UIModifier("Esc Draw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true, {exit:false});
+    let endDraw = new UIModifier("End Draw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true);
+    let escDraw = new UIModifier("Esc Draw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true);
 
     //MODES
-    let globalMods = [targetHome, screenshot];
-    let drawMods = [snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
-    drawMods = globalMods.concat(drawMods);
+    let drawMods = [targetHome, screenshot, snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
 
     let selMods = [targetHome, screenshot];
 
     //if no drawing tools are selected, drawExit();
-    let draw = new UIMode("draw", drawMods, drawEnter, drawExit, drawUpdate, {mv:drawMv, up:drawUp}, editOptions);
-    // let move
+    let draw = new UIMode("draw", drawMods, {mv:drawMv, up:drawUp});
+    let select = new UIMode("select", selMods, {mv:selMv, up:selUp});
 
-    //stack of UIModes
-    this.modeStack = new StateStack(draw, 5);
-    this.modeStack.curr().enter();
-
-    //could pass elem around but...
+    //would like this to be kept track of in the redux store
+    this.modes = [draw, select];
+    
     document.querySelector('#canvasContainer').addEventListener('mouseup', this.mouseUp.bind(this));
     document.querySelector('#canvasContainer').addEventListener('mousemove', this.mouseMove.bind(this));
 
@@ -90,34 +89,15 @@ class GhostUI{
     return this;
   }
 
-  // Helper to save a Uint8 data texture
-  saveDataTUint8(pixels, name, width, height){
-    // Create a 2D canvas to store the result
-    var canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    var context = canvas.getContext('2d');
-
-    // Copy the pixels to a 2D canvas
-    var imageData = context.createImageData(width, height);
-    imageData.data.set(pixels);
-    context.putImageData(imageData, 0, 0);
-
-    var img = new Image();
-    img.src = canvas.toDataURL();
-
-    var dlAnchorElem = document.getElementById('downloadAnchorElem');
-    dlAnchorElem.setAttribute("href",     img.src     );
-    dlAnchorElem.setAttribute("download", name);
-    dlAnchorElem.click();
-  }
-
   //global update to run functions that have been cued by a button press
   //most basic update pattern that will also be used in event handlers
   update(){
-    let mode = this.modeStack.curr();
-    if(!mode.update)return;
+    let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
 
+    // if(!mode.update)return;
+
+    //I'm pretty sure that this should always be an option?
+    //Might get more confusing if we want to define other targets?
     if(SDFUI.state.ui.targeting){
       if(twgl.v3.distanceSq(SDFUI.state.ui.target, SDFUI.dPt) > 0.00001){
         twgl.v3.lerp(SDFUI.dPt, SDFUI.state.ui.target, 0.1, SDFUI.dPt);
@@ -126,21 +106,28 @@ class GhostUI{
       }
     }
 
-    let newDoc = mode.update();
+    for(let m of mode.modifiers){
+      //each update will deal with m.toggle on an individual basis
+      if(m.update){
+        m.update();
+      }
+    }
+
+    // mode.update();
   }
 
   mouseUp(e) {
-    let mode = this.modeStack.curr();
+    let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
+
     // if(!mode.up)return;
 
-    let newDoc = mode.up(e);
+    mode.up(e);
   }
 
   mouseMove(e) {
     let resolution = SDFUI.resolution;
     let canvas = SDFUI.gl.canvas;
     let rect = canvas.getBoundingClientRect();
-    // let resolution = new PRIM.vec(rect.width, rect.height);
 
     let evPt = {
       x: e.clientX - rect.left,
@@ -154,18 +141,13 @@ class GhostUI{
     evPt.y = evPt.y * (SDFUI.dPt[2] / 64.);
 
     SDFUI.store.dispatch(ACT.cursorSet({x:evPt.x, y:evPt.y}));
-
   }
 
   //cnrl Z
   keyUp(e){
     let key = e.key;
 
-    if(key == "z") this.zPressed = false;
-    else if(key == "Meta") this.cntlPressed = false;
-    else if(key == "Control") this.cntlPressed = false;
-
-    let mode = this.modeStack.curr();
+    let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
 
     for (let m of mode.modifiers){
       if(m.keyCut == key){
@@ -190,28 +172,6 @@ class GhostUI{
   }
 }
 
-//---DRAW-----------------------------
-function drawEnter(){
-
-  let snapPt = this.modifiers.find(mod => mod.name == "Snap Point");
-  snapPt.clck();
-}
-
-function drawExit(){
-
-}
-
-//happens on every frame of draw mode
-function drawUpdate(){
-  for(let m of this.modifiers){
-    //each update will deal with m.toggle on an individual basis
-    if(m.update){
-      m.update();
-    }
-  }
-  return;
-}
-
 function drawMv(e){
 
   for (let m of this.modifiers){
@@ -229,7 +189,7 @@ function drawUp(e){
     if(!modState) continue;
   }
 
-  let currLayer = SDFUI.layers[SDFUI.layers.length - 1];
+  let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
   let pt = currLayer.uniforms.u_eTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
 
   SDFUI.store.dispatch(ACT.sceneAddPt(pt));
@@ -241,12 +201,24 @@ function drawUp(e){
     SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
     let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
     let newLayer = createEditLayer(nextPrim);
-    SDFUI.layers.push(newLayer);
+    SDFUI.store.dispatch(ACT.layerPush(newLayer));
   }
   return;
 }
 
-//---DRAW-----------------------------
+function selMv(){
+  //eval sdf scene at mouse
+  //is there a hover item thing?
+  //need to figure out how to add ui indication for 
+  //edit item
+}
+
+function selUp(){
+  // dispatch set curr item
+}
+//---SELECT----------------------------
+
+
 function endDrawClck(){
   this.toggle = !this.toggle;
 }
@@ -260,8 +232,8 @@ function endDrawUpdate(){
 
   if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) return;
  
-  //list of layers should probably go in redux store at some point
-  let layer = SDFUI.layers[SDFUI.layers.length - 1];
+  let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
+  
   bakeLayer(layer);
   
   let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
@@ -271,7 +243,7 @@ function endDrawUpdate(){
   //next item
   let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
 
-  SDFUI.layers.push(newLayer);
+  SDFUI.store.dispatch(ACT.layerPush(newLayer));
 
   this.toggle = !this.toggle;
 }
@@ -279,7 +251,8 @@ function endDrawUpdate(){
 function escDrawUpdate(){
   if(!this.toggle) return null;
 
-  let currLayer = SDFUI.layers.pop();
+  let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
+  SDFUI.store.dispatch(ACT.layerPop(currLayer.id));
 
   for (let p of currLayer.uniforms.u_eTex.pts){
     SDFUI.store.dispatch(ACT.sceneRmvPt(p));
@@ -289,98 +262,23 @@ function escDrawUpdate(){
 
   SDFUI.store.dispatch(ACT.sceneNewEditItem(currLayer.primType))
 
-  SDFUI.layers.push(createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]));
+  SDFUI.store.dispatch(ACT.layerPush(createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem])));
 
   this.toggle = !this.toggle;
   return;
 }
 
-//Ring buffer of states, type agnostic
-class StateStack{
-  constructor(state, MAX){
-    this.MAX = MAX || 10;
-    this.index = 0;
-    this.stack = [];
-    this.stack[0] = state;
-    this.firstIndex = 0;
-
-    for (let i = 1; i < this.MAX; i++){
-      this.stack.push(null);
-    }
-  }
-
-  //return current state, object is not cloned here
-  curr(){
-    return this.stack[this.index];
-  }
-
-  //current state is replaced by modified state object
-  modCurr(newState){
-    this.stack[this.index] = newState;
-  }
-
-  //push new state
-  push(_state){
-    //clone the state before push
-    let state;
-    if(_state.clone) {
-      state = _state.clone();
-    } else {
-      state = _state;
-    }
-
-    this.incrementIndex();
-
-    this.stack[this.index] = state;
-  }
-
-  //return previous state, decrement index
-  undo(){
-    if (this.index == this.firstIndex){
-      return this.curr();
-    }
-    this.decrementIndex();
-    return this.curr();
-  }
-
-  //return next state, increment index
-  redo(){
-    this.incrementIndex();
-    return this.curr();
-  }
-
-  //increment index, wraps index
-  incrementIndex(){
-    this.index++;
-    this.index = (this.index % this.MAX);
-
-    if (this.index == this.firstIndex){
-      this.firstIndex++;
-      this.firstIndex = (this.firstIndex % this.MAX);
-    }
-  }
-
-  //decrement index, wraps index
-  decrementIndex(){
-    this.index -= 1;
-    if(this.index < 0){
-      this.index = 9;
-    }
-  }
-}
-
-//idea is to allow the creation of modes if/when that's necessary
-//modes are going to be collections of UIModifiers
+//modes are collections of UIModifiers
 class UIMode{
   //bool, [], functions
   // constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
-  constructor(name, modifiers, enter, exit, update, _events, _options){
+  constructor(name, modifiers, _events, _options){
     this.name = name;
     // this.toggle = toggle;
     this.modifiers = modifiers;
-    this.enter = enter.bind(this);
-    this.exit = exit.bind(this);
-    this.update = update.bind(this);
+    // this.enter = enter.bind(this);
+    // this.exit = exit.bind(this);
+    // this.update = update.bind(this);
 
     this.toggle = true;
 
@@ -397,7 +295,7 @@ class UIMode{
 //simple class to hold modifiers
 class UIModifier{
   //clck
-  constructor(name, tag, keyCut, events, _pulse, _options, _elem){
+  constructor(name, tag, keyCut, events, _pulse){
     this.name = name;
     //tag e.g. snap, edit, view, export
     this.tag = tag;
@@ -433,20 +331,6 @@ class UIModifier{
      }else{
        this.pulse = false;
      }
-
-    this.options = _options || {};
-
-    //button element
-    this.elem = _elem || "";
-    if (this.elem != ""){
-      this.innerHTML = this.elem.innerHTML;
-
-      let style = window.getComputedStyle(elem);
-      this.top = style.getPropertyValue('top');
-      this.left = style.getPropertyValue('left');
-
-      elem.onclick = this.clck;
-    }
   }
 
   addButton(){
@@ -473,4 +357,4 @@ class UIModifier{
   }
 }
 
-export {GhostUI};
+export {DrawUI};

@@ -13,7 +13,7 @@ import * as RBush from 'rbush';
 import * as ACT from '../store/actions.js';
 import { reducer } from '../store/reducers.js';
 
-import {GhostUI} from './drawUI.js';
+import {DrawUI} from './drawUI.js';
 import * as PRIM from './primitives.js';
 import * as SF from './frags.js';
 import {Layer, updateMatrices} from './layer.js';
@@ -22,7 +22,6 @@ var canvas, ctx, ui;
 
 //twgl
 export var gl;
-export var layers;
 
 export var dataShader;
 export var editTex;
@@ -69,8 +68,8 @@ function listener(){
 };
 
 //substcribe to store changes - run listener to set relevant variables
-// store.subscribe(() => console.log(listener()));
-store.subscribe(() => listener());
+store.subscribe(() => console.log(listener()));
+// store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
@@ -119,60 +118,28 @@ export function initDraw() {
   }
   // console.log(gl.getSupportedExtensions());
 
-  ui = new GhostUI();
+  ui = new DrawUI();
 
   canvasContainer.addEventListener('mousedown', startDrag);
 
   canvasContainer.onwheel = scrollPan;
 
-//------------------------------------------------------------------------------
-
-  //eventually this is going to come from layers in redux store
   //new edit layer is full screen layer that allows for user to input data
-  layers = [];
 
   //full screen texture matrix
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
   texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
 
   let gridUniforms = {
-    // u_matrix: matrix,
     u_textureMatrix: twgl.m4.copy(texMatrix),
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
+    u_dPt: dPt,
   }
 
   // grid layer
   let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, gridUniforms);
+  store.dispatch(ACT.layerPush(gridLayer));
 
-  layers.push(gridLayer);
-  // layerPush does not work at the moment
-  // store.dispatch(ACT.layerPush(gridLayer));
-  // console.log(state);
-
-  let image = twgl.createTexture(gl, {
-    src: "../assets/textures/leaves.jpg",
-    color: [0.125, 0.125, 0.125, 0.125],
-  }, () => {
-    // console.log(image);
-  });
-
-  //twgl.loadTextureFromUrl(gl, image);
-
-  let imgUniforms = {
-    // u_matrix: matrix,
-    u_textureMatrix: twgl.m4.copy(texMatrix),
-    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
-    u_img: image,
-  }
-  
-  let imgLayer = new Layer({type:"img"}, SF.simpleVert, SF.imgFrag, imgUniforms);
-  imgLayer.bbox = new PRIM.bbox([{x:0.25, y:0.25}], 0.5);
-  
-  updateMatrices(imgLayer);
-
-  // layers.push(imgLayer);
   let demoUniforms = {
     // u_matrix: matrix,
     u_textureMatrix: twgl.m4.copy(texMatrix),
@@ -187,16 +154,12 @@ export function initDraw() {
   demoLayer.bbox = new PRIM.bbox([{x:0.1250, y:0.1250}, {x:0.3125, y:0.3125}], 0.0);
   
   updateMatrices(demoLayer);
-  // layers.push(demoLayer);
 
   // edit layer
   let plineLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit);
 
-  layers.push(plineLayer);
+  store.dispatch(ACT.layerPush(plineLayer));
 
-  // console.log(layers);
-
-  // layers[1].uniforms.u_eTex = layers[2].uniforms.u_eTex;
 
   //this is excellent
   gl.enable(gl.BLEND);
@@ -206,8 +169,52 @@ export function initDraw() {
   // gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
 
   requestAnimationFrame(render);
-
 //------------------------------------------------------------------------------
+}
+
+// addImage function
+export function addImage(_srcURL, dims, evPt) {
+  let srcURL = _srcURL || "../assets/textures/leaves.jpg";
+
+  let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
+  texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
+
+  let image = twgl.createTexture(gl, {
+    src: srcURL,
+    color: [0.125, 0.125, 0.125, 0.125],
+  }, () => {
+    // console.log(image);
+  });
+
+  twgl.loadTextureFromUrl(gl, image);
+
+  let imgUniforms = {
+    // u_matrix: matrix,
+    u_textureMatrix: twgl.m4.copy(texMatrix),
+    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
+    u_img: image,
+  }
+  
+  let imgLayer = new Layer({type:"img"}, SF.imgVert, SF.imgFrag, imgUniforms);
+  
+  //width and height have to be translated to screen space
+  let width = dims.width/2000;
+  let height = dims.height/2000;
+
+  // transforms window / js space to sdf / frag space
+  evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - dPt[0];
+  evPt.y = (evPt.y/resolution.y)  - dPt[1];
+  evPt.x = evPt.x * (dPt[2] / 64.);
+  evPt.y = evPt.y * (dPt[2] / 64.);
+
+  imgLayer.bbox = new PRIM.bbox([{x: evPt.x, y: evPt.y},
+                                 {x: evPt.x + width, y: evPt.y + height}], 
+                                 0.0, '');
+
+  updateMatrices(imgLayer);
+
+  store.dispatch(ACT.layerPushImage(imgLayer));
 }
 
 function update() {
@@ -223,28 +230,9 @@ function update() {
     store.dispatch(ACT.statusRes({x:gl.canvas.width, y:gl.canvas.height}));
   }
   //update uniforms - might want a needsUpdate on these at some point
-  layers.forEach(function(layer) {
-    //this is better but still not perfect
+  state.render.layers.forEach(function(layer) {
+
     if(layer.bbox){ updateMatrices(layer); }
-    if(layer.needsUpdate){
-      // switch(layer.name){
-      //   case "polyline":
-      //     BAKE.polyLine(prim, dataShader);
-      //     break;
-      //   case "polygon":
-      //     BAKE.polygon(prim, dataShader);
-      //     break;
-      //   case "circle":
-      //     BAKE.circle(prim, dataShader);
-      //     break;
-      //   case "rectangle":
-      //     BAKE.rectangle(prim, dataShader);
-      //     break;
-      //   default:
-      //     break;
-      // }
-      store.dispatch(ACT.sceneItemUpdate(index, false));
-    }
 
     gl.useProgram(layer.programInfo.program);
     if(resize){
@@ -257,10 +245,8 @@ function update() {
     }
     if(layer.uniforms.u_dPt){
       layer.uniforms.u_dPt = dPt;
-      // layer.uniforms.u_dPt['0'] = dPt.x;
-      // layer.uniforms.u_dPt['1'] = dPt.y;
-      // layer.uniforms.u_dPt['2'] = dPt.z;
     }
+
     if (layer.prim == state.scene.editItems[state.scene.editItem].id){
       if(typeof layer.uniforms.u_stroke === 'object'){
         layer.uniforms.u_stroke = chroma(state.ui.properties.stroke).gl().slice(0,3);
@@ -282,10 +268,10 @@ function update() {
       }
     }
     
-    //does this work? How many times is this going to trip me up
     if(typeof layer.uniforms.u_cTex === 'number'){
       layer.uniforms.u_cTex = layer.uniforms.u_eTex.cTexel;
     }
+
     twgl.setUniforms(layer.programInfo, layer.uniforms);
   });
 }
@@ -299,7 +285,7 @@ function draw() {
   gl.clearColor(1, 1, 1, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  twgl.drawObjectList(gl, layers);
+  twgl.drawObjectList(gl, state.render.layers);
 
   if(state.status.raster){
     canvas.toBlob((blob) => {
@@ -309,13 +295,9 @@ function draw() {
   }
 }
 
-var then = 0;
 function render(time) {
-  var now = time * 0.001;
-  var deltaTime = Math.min(0.1, now - then);
-  then = now;
 
-  update(deltaTime);
+  update();
   draw();
 
   requestAnimationFrame(render);
@@ -388,7 +370,6 @@ function updateCtx(){
   }
 }
 
-
 //need mPt, SDFUI.state.scene if in another file...
 function sceneDist(){
   let dist = 1000;
@@ -436,6 +417,3 @@ export function modifyDefine(_dataShader, define, val){
   shader = startShader + endShader;
   dataShader.shader = shader;
 }
-
-//Run-----------------------------------------------------------
-// main();

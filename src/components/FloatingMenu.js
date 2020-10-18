@@ -38,19 +38,23 @@ function FloatingMenu() {
       let newLayer = {};
 
       let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+      let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
       
       if(currItem && currItem.pts.length > 1){
-        bakeLayer(SDFUI.layers[SDFUI.layers.length - 1]);
-        let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+        bakeLayer(currLayer);
+        currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+        
         SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
       } else {
-        SDFUI.layers.pop();
+
+        SDFUI.store.dispatch(ACT.layerPop(currLayer.id));
         SDFUI.store.dispatch(ACT.sceneNewEditItem(primSel));
       }
 
       nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
       newLayer = createEditLayer(nextPrim);
-      SDFUI.layers.push(newLayer); 
+
+      SDFUI.store.dispatch(ACT.layerPush(newLayer));
     }
     m.redraw();
   }
