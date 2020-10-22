@@ -1,0 +1,86 @@
+i {
+  color:white;
+}
+
+#fabContainer{
+  width: 50px;
+  height:50px;
+  border-radius:25px;
+
+  bottom: 40px;
+  right: 40px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  position: absolute;
+
+  z-index: 15;
+
+  box-shadow: 0px 3px 12px 2px rgba(0,0,0,0.5);
+  transition: box-shadow 500ms ease-in-out;
+}
+
+#fab{
+  width: 50px;
+  height:50px;
+  border-radius:25px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background-color: #EF5350; /* Construct-UI Colors.Red400 */
+  border: none;
+
+  transition: background-color 500ms ease-in-out;
+}
+
+#fabContainer:hover{
+  box-shadow: 0px 3px 8px 0px rgba(0,0,0,0.65);
+}
+
+#fab:hover{
+  background-color: #B71C1C; /* Construct-UI Colors.Red300 */
+}
+
+.subFab{
+  width: 30px;
+  height:30px;
+  border-radius:15px;
+
+  position: absolute;
+
+  bottom:50px;
+  right:50px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background-color: #B0BEC5; /* Construct-UI Colors.Blue_Grey200 */
+  border: none;
+  
+  box-shadow: 0px 3px 8px 0px rgba(0,0,0,0.65);
+
+  transition: bottom 500ms ease-in-out 200ms;
+}
+
+.iSmall{
+  font-size: large;
+}
+
+/* rotate fab on mouse in / out */
+.rotateIn{
+  animation: rotate 450ms ease-in-out 0ms forwards;
+}
+
+.rotateOut{
+  animation: rotate 300ms ease-in-out 0ms reverse;
+}
+
+@keyframes rotate{
+  from {transform: rotate(0deg);}
+  to   {transform: rotate(135deg);}
+}

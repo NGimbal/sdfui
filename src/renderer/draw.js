@@ -67,9 +67,9 @@ function listener(){
   return state;
 };
 
-//substcribe to store changes - run listener to set relevant variables
-store.subscribe(() => console.log(listener()));
-// store.subscribe(() => listener());
+//subscribe to store changes - run listener to set relevant variables
+// store.subscribe(() => console.log(listener()));
+store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
@@ -198,9 +198,13 @@ export function addImage(_srcURL, dims, evPt) {
   
   let imgLayer = new Layer({type:"img"}, SF.imgVert, SF.imgFrag, imgUniforms);
   
-  //width and height have to be translated to screen space
-  let width = dims.width/2000;
-  let height = dims.height/2000;
+  // image is getting slightly distorted still. or am I seeing things?
+  // Will want to add some cool image processing stuff at some point...
+  // Blending, edge detection, img -> sdf in some way :)
+  
+  // let aspect = dims.width / dims.height;
+  let width = dims.width/1000;
+  let height = dims.height/1000; 
 
   // transforms window / js space to sdf / frag space
   evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - dPt[0];

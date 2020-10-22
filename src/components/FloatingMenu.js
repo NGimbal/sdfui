@@ -95,7 +95,7 @@ function FloatingMenu() {
     view: () => (
       <div style={{top:"8%",
                   padding:"14px",
-                  marginTop:"50px",
+                  // marginTop:"50px",
                   display:"flex",
                   flexDirection:"row"}}>
         

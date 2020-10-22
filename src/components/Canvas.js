@@ -3,6 +3,7 @@ import m from "mithril";
 import '../sdfui.css';
 
 import {initDraw, addImage} from '../renderer/draw';
+import SpeedDial from "./SpeedDial/SpeedDial";
 
 function Canvas() {
   function handleDragEnter(e){
