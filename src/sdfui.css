@@ -6,16 +6,17 @@ html, body {
 }
 
 #canvasContainer{
-  top: 12%;
 
-  height: 86%;
+  height: 100%;
+  width: 96%;
 
-  left: 90px;
-  right:30px;
+  margin: 2%;
+  margin-top: 0px;
 
   border: 1px solid #c5cdd1;
 
-  position: absolute;
+  /* this is important */
+  position: relative;
 }
 
 #c {
@@ -23,6 +24,9 @@ html, body {
    height: 100%;
 
    position: absolute;
+
+   bottom: 0px;
+   top: 0px;
 }
 
 #text {
@@ -31,15 +35,8 @@ html, body {
 
   position: absolute;
 
-  left: 0px;
+  bottom: 0px;
   top: 0px;
-}
-
-.canvas{
-  border-radius: 3px;
-  
-  /* border: 1px solid #c5cdd1; */
-  box-shadow: "0 3px 0 #eef1f2";
 }
 
 #draw-shapes{
@@ -51,49 +48,17 @@ html, body {
   top: 0px;
 }
 
-#Laminar{
-  position: absolute;
-  bottom: 0vmin;
-  right: 1vmin;
-
-  font: bold 6vmin Helvetica;
-  font-style: italic;
-
-  -webkit-user-select: none;  /* Chrome all / Safari all */
-  -moz-user-select: none;     /* Firefox all */
-  -ms-user-select: none;      /* IE 10+ */
-  user-select: none;          /* Likely future */
+.grid{
+  display:flex;
+  width: 100%;
+  height: 100%;
 }
 
-.slider {
-  -webkit-appearance: none;
-  width: 85%;
-  height: 10%;
-  /* background: #111111; */
-  background-image: linear-gradient(to right, #FFFFFF , #000000);
-  outline: none;
-  -webkit-transition: .2s;
-  transition: opacity .2s;
-}
-
-.slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 7px;
-  height: 20px;
-  background: #000000;
-  cursor: pointer;
-}
-
-/* .slider::-webkit-slider-thumb:hover {
-  opacity: 1;
-} */
-
-.slider::-moz-range-thumb {
-  width: 7px;
-  height: 20px;
-  background: #AAAAAA;
-  cursor: pointer;
+.canvas{
+  border-radius: 3px;
+  
+  /* border: 1px solid #c5cdd1; */
+  box-shadow: "0 3px 0 #eef1f2";
 }
 
 .noselect {
@@ -108,53 +73,4 @@ html, body {
 
 .dragOver{
   border: 5px dashed !important;
-}
-
-/* https://www.w3schools.com/howto/howto_js_snackbar.asp */
-/* The snackbar - position it at the bottom and in the middle of the screen */
-#snackbar {
-  visibility: hidden; /* Hidden by default. Visible on click */
-  min-width: 200px; /* Set a default minimum width */
-  margin-left: -100px; /* Divide value of min-width by 2 */
-  color: #fff; /* White text color */
-  text-align: center; /* Centered text */
-  border-radius: 1.25vmin;
-  box-shadow: 2px 2px 2px .5px rgba(136, 161, 180, 0.6);
-  padding: 1.75vmin; /* Padding */
-  position: fixed; /* Sit on top of the screen */
-  z-index: 1; /* Add a z-index if needed */
-  left: 50%; /* Center the snackbar */
-  bottom: 30px; /* 30px from the bottom */
-
-  font: 2vmin Helvetica;
-}
-
-/* Show the snackbar when clicking on a button (class added with JavaScript) */
-#snackbar.show {
-  visibility: visible; /* Show the snackbar */
-  /* Add animation: Take 0.5 seconds to fade in and out the snackbar.
-  However, delay the fade out process for 2.5 seconds */
-  -webkit-animation: fadein 0.5s, fadeout 0.5s 1.5s;
-  animation: fadein 0.5s, fadeout 0.5s 1.5s;
-}
-
-/* Animations to fade the snackbar in and out */
-@-webkit-keyframes fadein {
-  from {bottom: 0; opacity: 0;}
-  to {bottom: 30px; opacity: 1;}
-}
-
-@keyframes fadein {
-  from {bottom: 0; opacity: 0;}
-  to {bottom: 30px; opacity: 1;}
-}
-
-@-webkit-keyframes fadeout {
-  from {bottom: 30px; opacity: 1;}
-  to {bottom: 0; opacity: 0;}
-}
-
-@keyframes fadeout {
-  from {bottom: 30px; opacity: 1;}
-  to {bottom: 0; opacity: 0;}
 }

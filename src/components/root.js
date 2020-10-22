@@ -11,6 +11,7 @@ import ContextMenu from './ContextMenu';
 import LeftToolBar from './LeftToolBar';
 import AppBar from './AppBar';
 import Canvas from './Canvas';
+import SpeedDial from './SpeedDial/SpeedDial';
 //Main UI scheme:
 //Narrow vertical toolbar w/ high level tool options
 //'Floating Action Menu' at top (or bottom?) for each context
@@ -31,12 +32,17 @@ function Root() {
       FocusManager.showFocusOnlyOnTab();
     },
     view: () => (
-      <main>
+      <main className="grid" style={{flexDirection:'column'}}>
         <AppBar/>
-        <Canvas/>
+        <div className="grid" style={{flexDirection:'row'}}>
+          <LeftToolBar/>
+            <div className="grid" style={{flexDirection:'column'}}>
+              <FloatingMenu/>
+              <Canvas/>
+            </div>
+        </div>
         <ContextMenu/>
-        <LeftToolBar/>
-        <FloatingMenu/>
+        <SpeedDial/>
       </main>
     )
   }
