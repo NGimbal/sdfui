@@ -23,7 +23,7 @@
 //point a = 5 units from point b
 //point = (scene.points.['id'], dist) => { (scene.points.['id'] - point) * dist }
 
-import {gl, state, resolution, mPt, dPt} from './draw.js';
+import {gl, state, resolution, mPt, dPt, bboxTree} from './draw.js';
 import * as FS from './frags.js';
 import * as BAKE from './bakeLayer.js';
 import * as PRIM from './primitives.js';
@@ -100,20 +100,10 @@ export class Layer {
 
 export function setBoundingBox(layer){
   
-  
-  // if(layer.primType == 'polygon' || layer.primType == 'polyline' || layer.primType == 'rectangle'){
-  //   layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts);
-  // } else if (layer.primType == 'circle'){
-  //   // here 1 should be radius
-  //   // this is kind of weird. 
-  //   layer.bbox = new PRIM.bbox([layer.uniforms.u_eTex.pts[0]], 1.);
-  // }
-
-    
   if(layer.primType == 'circle'){
-    layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, 0.05, 'circle');
+    layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id, 0.05, 'circle');
   } else {
-    layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts);
+    layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id);
   }
 
   updateMatrices(layer);
@@ -148,7 +138,9 @@ export function updateMatrices(layer){
 export function bakeLayer(layer){
   //set bounding box
   setBoundingBox(layer);
-  
+  console.log(layer.bbox);
+  bboxTree.insert(layer.bbox);
+  console.log(bboxTree);
   let fs = BAKE.bake(layer);
   layer.frag = fs;
 

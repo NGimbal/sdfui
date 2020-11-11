@@ -84,15 +84,11 @@ function subVec (a, b){
 
 export class bbox{
   //input array of points calculate min, max, width, height
-  constructor(points, _offset, _type){
+  constructor(points, id, _offset, _type){
     let offset = _offset ? _offset : 0.05;
     let type = _type ? _type : "polyline";
-
-    // probably will want to have Object id that this belongs to?
-    // this.minX;
-    // this.minY;
-    // this.maxX;
-    // this.maxY;
+    if(!id) {console.log("Bounding box created with no object Id")}
+    else {this.id = id}
 
     switch(type){
       //polygon, polyline, rectangle all can default to this
@@ -104,6 +100,7 @@ export class bbox{
         points.sort((a,b) => (a.y < b.y) ? -1 : 1);
         this.minY = points[0].y - offset;
         this.maxY = points[points.length-1].y + offset;
+
         break;
       case('circle'):
         let radius = distVec(points[0], points[1]);
