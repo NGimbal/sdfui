@@ -299,15 +299,6 @@ function draw() {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   //spatial hashing for rendering
-<<<<<<< HEAD
-  let view = {
-    minX: (0.0 - dPt[0]) * (64 / dPt[2]),
-    minY: (0.0 - dPt[1]) * (64 / dPt[2]),
-    maxX: (resolution.x / resolution.y - dPt[0]) * (64 / dPt[2]) ,
-    maxY: (1.0 - dPt[1]) * (64 / dPt[2]),
-  }
-=======
->>>>>>> development
   let bboxSearch = bboxTree.search(view).map(b => b.id);
   // console.log(inView);
   let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
