@@ -15,7 +15,7 @@ import {bakeLayer, createEditLayer} from './layer.js';
 //registered / the right functions will be called on an event
 
 //store ui.state = "draw", "select", 
-//DrawUI.states = {draw: drad, select: select}
+//DrawUI.states = {draw: draw, select: select}
 class DrawUI{
 
   constructor(){
@@ -65,10 +65,12 @@ class DrawUI{
     let endDraw = new UIModifier("End Draw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true);
     let escDraw = new UIModifier("Esc Draw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true);
 
+    let endSel = new UIModifier("End Sel", "select", "d", {act:ACT.uiMode("draw")});
+
     //MODES
     let drawMods = [targetHome, screenshot, snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
 
-    let selMods = [targetHome, screenshot];
+    let selMods = [targetHome, screenshot, endSel];
 
     //if no drawing tools are selected, drawExit();
     let draw = new UIMode("draw", drawMods, {mv:drawMv, up:drawUp});
@@ -76,6 +78,7 @@ class DrawUI{
 
     //would like this to be kept track of in the redux store
     this.modes = [draw, select];
+    console.log(this.modes);
     
     document.querySelector('#canvasContainer').addEventListener('mouseup', this.mouseUp.bind(this));
     document.querySelector('#canvasContainer').addEventListener('mousemove', this.mouseMove.bind(this));
@@ -94,7 +97,7 @@ class DrawUI{
   update(){
     let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
 
-    // if(!mode.update)return;
+    if(!mode)return;
 
     //I'm pretty sure that this should always be an option?
     //Might get more confusing if we want to define other targets?
@@ -107,13 +110,12 @@ class DrawUI{
     }
 
     for(let m of mode.modifiers){
+      
       //each update will deal with m.toggle on an individual basis
       if(m.update){
         m.update();
       }
     }
-
-    // mode.update();
   }
 
   mouseUp(e) {
@@ -146,11 +148,12 @@ class DrawUI{
   //cnrl Z
   keyUp(e){
     let key = e.key;
-
+    console.log(key);
     let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
 
     for (let m of mode.modifiers){
       if(m.keyCut == key){
+        console.log(m);
         let newDoc = m.clck();
       }
     }
@@ -176,7 +179,6 @@ function drawMv(e){
 
   for (let m of this.modifiers){
     if(!m.mv || !m.toggle || m.update) continue;
-
     let modState = m.mv(e, this.options);
   }
   return;
@@ -206,9 +208,20 @@ function drawUp(e){
   return;
 }
 
+function endSelClck(){
+  this.toggle = true;
+}
+
+
+function endSelUpdate(){
+  if(!this.toggle) return null;
+  SDFUI.store.dispatch(ACT.uiMode("draw"));
+  this.toggle = false;
+}
+
 function selMv(){
   //eval sdf scene at mouse
-  //is there a hover item thing?
+  //is there a hhover item thing?
   //need to figure out how to add ui indication for 
   //edit item
 }
@@ -220,17 +233,21 @@ function selUp(){
 
 
 function endDrawClck(){
-  this.toggle = !this.toggle;
+  this.toggle = true;
 }
 //
 function escDrawClck(){
-  this.toggle = !this.toggle;
+  this.toggle = true;
 }
 
 function endDrawUpdate(){
   if(!this.toggle) return null;
 
-  if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) return;
+  if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) {
+    SDFUI.store.dispatch(ACT.uiMode("select"));
+    this.toggle = false;
+    return;
+  }
  
   let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
   
@@ -245,11 +262,18 @@ function endDrawUpdate(){
 
   SDFUI.store.dispatch(ACT.layerPush(newLayer));
 
-  this.toggle = !this.toggle;
+  this.toggle = false;
+  return;
 }
 
 function escDrawUpdate(){
   if(!this.toggle) return null;
+
+  if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) {
+    SDFUI.store.dispatch(ACT.uiMode("select"));
+    this.toggle = false;
+    return;
+  }
 
   let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
   SDFUI.store.dispatch(ACT.layerPop(currLayer.id));
@@ -264,7 +288,7 @@ function escDrawUpdate(){
 
   SDFUI.store.dispatch(ACT.layerPush(createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem])));
 
-  this.toggle = !this.toggle;
+  this.toggle = true;
   return;
 }
 

@@ -3,7 +3,8 @@ import { Button, Icons, Drawer, DrawerPosition } from 'construct-ui';
 
 import ghlogo from '../../assets/ghlogo.svg';
 // import '../../node_modules/construct-ui/lib/index.css';
-// import {initDraw} from '../draw'
+
+import {store} from '../renderer/draw'
 
 let dividerStyle =   {
   width:"100%",
@@ -17,6 +18,23 @@ let dividerStyle =   {
 
 function LeftToolBar() {
   let drawerOpen = false;
+
+  let mode = "draw";
+
+  //Expose part of state
+  function listener(){
+    let stateMode = store.getState().ui.mode;
+    if ( stateMode === mode){
+      return;
+    } else {
+      mode = stateMode;
+      m.redraw();
+    }
+    // return mode;
+  };
+
+  //subscribe to store changes - run listener to set relevant variables
+  store.subscribe(() => listener());
 
   return {
     view: () => (
@@ -45,13 +63,14 @@ function LeftToolBar() {
         <hr style={dividerStyle}/>
         
         <Button iconLeft={Icons.MOUSE_POINTER}
+                active={mode === "select"}
                 size={"x0"}
                 basic={"true"}
 
                 style="margin: 0px 0px 10px 0px;"  />
 
         <Button iconLeft={Icons.PEN_TOOL}
-                active={true}
+                active={mode === "draw"}
                 size={"x0"}
                 basic={"true"}
                 style="margin: 0px 0px 10px 0px;"  />

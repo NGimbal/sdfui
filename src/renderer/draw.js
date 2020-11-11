@@ -35,6 +35,7 @@ export var mPt = new PRIM.vec(0, 0);
 //dPt z is scale
 export var dPt = new twgl.v3.create(0, 0, 64);
 export var ptTree = new RBush();
+export var bboxTree = new RBush();
 
 // firebase.initializeApp(firebaseConfig);
 // export var db = firebase.firestore();
@@ -289,7 +290,20 @@ function draw() {
   gl.clearColor(1, 1, 1, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  twgl.drawObjectList(gl, state.render.layers);
+  //spatial hashing for rendering
+  let view = {
+    minX: (0.0 - dPt[0]) * (64 / dPt[2]),
+    minY: (0.0 - dPt[1]) * (64 / dPt[2]),
+    maxX: (resolution.x / resolution.y- dPt[0]) * (64 / dPt[2]) ,
+    maxY: (1.0 - dPt[1]) * (64 / dPt[2]),
+  }
+  let bboxSearch = bboxTree.search(view).map(b => b.id);
+  // console.log(inView);
+  let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
+                                              state.scene.editItems[state.scene.editItem].id === l.prim || 
+                                              l.primType === "grid");
+  // console.log(inView);
+  twgl.drawObjectList(gl, inView);
 
   if(state.status.raster){
     canvas.toBlob((blob) => {
@@ -321,8 +335,22 @@ function scrollPan(e){
     dPt[0] += e.deltaX * 0.001;
     dPt[1] += e.deltaY * 0.001;
   }
+
+  // console.log(dPt);
+  let view = {
+    minX: 0.0 - dPt[0],
+    minY: 0.0 - dPt[1],
+    maxX: resolution.x / resolution.y * (64 / dPt[2]) - dPt[0],
+    maxY: 1.0 * (64 / dPt[2]) - dPt[1],
+  }
+  // console.log(view)
+  //max
+  // console.log(bboxTree.search(view))
 }
 
+// mouse dragging - I think this is disabled at the moment
+// would be good with touchstart / touchend for use with an iPad
+// whenever iPads get webgl2
 function startDrag(e){
   if(!state.ui.drag)return;
   PRIM.vecSet(mouseDragStart, state.cursor.pos.x, state.cursor.pos.y);
@@ -351,11 +379,6 @@ function updateCtx(){
   let selDist = sceneDist();
   let dist = selDist.d;
   let selPrim = selDist.sel;
-
-  pixelPt = {
-    x: mPt.x,
-    y: mPt.y
-  }
 
   pixelPt.x = ((mPt.x * (64. / dPt[2]) + dPt[0]) * resolution.x) * (resolution.y/resolution.x);
   pixelPt.y = ((mPt.y * (64. / dPt[2]) + dPt[1]) * resolution.y);

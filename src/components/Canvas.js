@@ -22,7 +22,6 @@ function Canvas() {
     e.preventDefault();
     e.stopPropagation();
     document.querySelector('#canvasContainer').classList.remove('dragOver');
-
   }
 
   function handleDrop(e){
@@ -66,7 +65,7 @@ function Canvas() {
       fr.readAsDataURL(files[0]);
     } else {
       //failure message, toast em prolly
-      console.log("media import failed!")
+      console.log("media import failed!")``
     }
   }
 

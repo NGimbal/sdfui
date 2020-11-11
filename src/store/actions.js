@@ -23,6 +23,8 @@ export const STATUS_RASTER      = 'STATUS_RASTER'; //resolution
 //UI
 export const UI_TARGETHOME      = 'UI_TARGETHOME'; //return to origin rendering
 export const UI_POINTS          = 'UI_POINTS'; //toggle show points
+export const UI_MODE            = 'UI_MODE'; //toggle show points
+
 //CURSOR
 export const CURSOR_SET         = 'CURSOR_SET';  //curr cursor position
 export const CURSOR_SNAPGRID    = 'CURSOR_SNAPGRID'; //snap to grid
@@ -122,7 +124,15 @@ export function uiTargetHome(toggle){
   }
 }
 
-
+//toggles show points
+export function uiMode(mode){
+  console.log(mode);
+  return{
+    type: ui,
+    subtype: UI_MODE,
+    mode: mode,
+  }
+}
 
 //records cursor position
 export function cursorSet(vec2){

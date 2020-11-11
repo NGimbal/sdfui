@@ -159,6 +159,10 @@ function ui(_state=initialState, action){
           filter: action.filter,
         }),
       });
+    case ACT.UI_MODE:
+      return Object.assign({}, state,{
+        mode: action.mode
+      });
     default:
       return state;
   }
