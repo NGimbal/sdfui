@@ -19,6 +19,7 @@ import * as SF from './frags.js';
 import {Layer, updateMatrices} from './layer.js';
 
 var canvas, ctx, ui;
+var view;
 
 //twgl
 export var gl;
@@ -113,6 +114,13 @@ export function initDraw() {
   store.dispatch(ACT.cursorGridScale(64));
   setGrid(state.cursor.scale);
   
+  view = {
+    minX: (0.0 - dPt[0]) * (64 / dPt[2]),
+    minY: (0.0 - dPt[1]) * (64 / dPt[2]),
+    maxX: (resolution.x / resolution.y) * (64 / dPt[2]) - dPt[0] ,
+    maxY: 1.0 * (64 / dPt[2]) - dPt[1],
+  }
+
   if (!gl){
     console.log("your browser/OS/drivers do not support WebGL2");
     return;
@@ -212,7 +220,7 @@ export function addImage(_srcURL, dims, evPt) {
   evPt.y = (evPt.y/resolution.y)  - dPt[1];
   evPt.x = evPt.x * (dPt[2] / 64.);
   evPt.y = evPt.y * (dPt[2] / 64.);
-
+  console.log(imgLayer);
   imgLayer.bbox = new PRIM.bbox([{x: evPt.x, y: evPt.y},
                                  {x: evPt.x + width, y: evPt.y + height}], 
                                  0.0, '');
@@ -291,12 +299,15 @@ function draw() {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   //spatial hashing for rendering
+<<<<<<< HEAD
   let view = {
     minX: (0.0 - dPt[0]) * (64 / dPt[2]),
     minY: (0.0 - dPt[1]) * (64 / dPt[2]),
     maxX: (resolution.x / resolution.y - dPt[0]) * (64 / dPt[2]) ,
     maxY: (1.0 - dPt[1]) * (64 / dPt[2]),
   }
+=======
+>>>>>>> development
   let bboxSearch = bboxTree.search(view).map(b => b.id);
   // console.log(inView);
   let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
@@ -336,16 +347,16 @@ function scrollPan(e){
     dPt[1] += e.deltaY * 0.001;
   }
 
-  // console.log(dPt);
-  let view = {
-    minX: 0.0 - dPt[0],
-    minY: 0.0 - dPt[1],
-    maxX: resolution.x / resolution.y * (64 / dPt[2]) - dPt[0],
-    maxY: 1.0 * (64 / dPt[2]) - dPt[1],
+  // This appears to be correct
+  view = {
+    minX: (0.0 - dPt[0]) / (64 / dPt[2]),
+    minY: (0.0 - dPt[1]) / (64 / dPt[2]),
+    maxX: ((resolution.x / resolution.y) - dPt[0]) / (64 / dPt[2]) ,
+    maxY: (1.0 - dPt[1]) / (64 / dPt[2]) ,
   }
-  // console.log(view)
-  //max
-  // console.log(bboxTree.search(view))
+  // console.log(dPt);
+  // console.log(view);
+
 }
 
 // mouse dragging - I think this is disabled at the moment

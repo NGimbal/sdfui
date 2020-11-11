@@ -65,7 +65,7 @@ class DrawUI{
     let endDraw = new UIModifier("End Draw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true);
     let escDraw = new UIModifier("Esc Draw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true);
 
-    let endSel = new UIModifier("End Sel", "select", "d", {act:ACT.uiMode("draw")});
+    let endSel = new UIModifier("End Sel", "select", "Enter", {act:ACT.uiMode("draw")});
 
     //MODES
     let drawMods = [targetHome, screenshot, snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
@@ -78,7 +78,7 @@ class DrawUI{
 
     //would like this to be kept track of in the redux store
     this.modes = [draw, select];
-    console.log(this.modes);
+    // console.log(this.modes);
     
     document.querySelector('#canvasContainer').addEventListener('mouseup', this.mouseUp.bind(this));
     document.querySelector('#canvasContainer').addEventListener('mousemove', this.mouseMove.bind(this));
@@ -148,13 +148,11 @@ class DrawUI{
   //cnrl Z
   keyUp(e){
     let key = e.key;
-    console.log(key);
     let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
-
+    
     for (let m of mode.modifiers){
       if(m.keyCut == key){
-        console.log(m);
-        let newDoc = m.clck();
+        m.clck();
       }
     }
   }
