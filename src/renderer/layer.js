@@ -138,9 +138,9 @@ export function updateMatrices(layer){
 export function bakeLayer(layer){
   //set bounding box
   setBoundingBox(layer);
-  console.log(layer.bbox);
+  // console.log(layer.bbox);
   bboxTree.insert(layer.bbox);
-  console.log(bboxTree);
+  // console.log(bboxTree);
   let fs = BAKE.bake(layer);
   layer.frag = fs;
 

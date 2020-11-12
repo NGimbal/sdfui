@@ -220,10 +220,12 @@ export function addImage(_srcURL, dims, evPt) {
   evPt.y = (evPt.y/resolution.y)  - dPt[1];
   evPt.x = evPt.x * (dPt[2] / 64.);
   evPt.y = evPt.y * (dPt[2] / 64.);
-  console.log(imgLayer);
+  // console.log(imgLayer);
   imgLayer.bbox = new PRIM.bbox([{x: evPt.x, y: evPt.y},
-                                 {x: evPt.x + width, y: evPt.y + height}], 
+                                 {x: evPt.x + width, y: evPt.y + height}],imgLayer.id,
                                  0.0, '');
+
+  bboxTree.insert(imgLayer.bbox);
 
   updateMatrices(imgLayer);
 
