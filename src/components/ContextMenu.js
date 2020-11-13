@@ -83,7 +83,7 @@ function ContextMenu() {
 
 
   function strokeWeightChange(e){
-    SDFUI.store.dispatch(ACT.editWeight(e.target.value / 10000), SDFUI.state.scene.editItem);
+    SDFUI.store.dispatch(ACT.editWeight(e.target.value / 10000, SDFUI.state.scene.editItem));
   }
 
   function strokeColorChange(e){
@@ -91,7 +91,7 @@ function ContextMenu() {
   }
 
   function fillOpacityChange(e){
-    SDFUI.store.dispatch(ACT.editOpacity(e.currentTarget.value / 100), SDFUI.state.scene.editItem);
+    SDFUI.store.dispatch(ACT.editOpacity(e.currentTarget.value / 100, SDFUI.state.scene.editItem));
   }
 
   function fillColorChange(e){

@@ -264,6 +264,7 @@ function render(_state=initialState, action) {
 function scene(_state=initialState, action) {
   let state = _state.scene;
   let ptIndex = -1;
+  console.log(action);
   switch(action.subtype){
     case ACT.SCENE_ADDPT:
       let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItems[state.editItem].id , action.pt.id, true);
@@ -318,6 +319,7 @@ function scene(_state=initialState, action) {
         editItems: removeItem(state.editItems, index)
       });
     case ACT.EDIT_WEIGHT:
+      console.log(action)
       return Object.assign({}, state,{
         editItems: state.editItems.map((item, index) => {
           if(index !== action.index) return item;
@@ -340,11 +342,12 @@ function scene(_state=initialState, action) {
         editItems: state.editItems.map((item, index) => {
           if(index !== action.index) return item;
           return Object.assign({}, item, {
-            properties: {...item.properties, radius: action.opacity}
+            properties: {...item.properties, opacity: action.opacity}
           })
         }),
       });
     case ACT.EDIT_FILL:
+      console.log(action)
       return Object.assign({}, state,{
         editItems: state.editItems.map((item, index) => {
           if(index !== action.index) return item;

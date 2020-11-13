@@ -232,13 +232,13 @@ export function editStroke(hex, index){
   }
 }
 
-//what is the current fill color - vec(r, g, b, a)
+//current fill color
 export function editFill(hex, index){
   return{
     type: scene,
     subtype: EDIT_FILL,
-    hex,
-    index,
+    hex: hex,
+    index: index,
   }
 }
 

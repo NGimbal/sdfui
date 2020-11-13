@@ -75,20 +75,20 @@ function FloatingMenu() {
     SDFUI.store.dispatch(ACT.cursorSnapGrid());
   }
 
+  function strokeWeightChange(e){
+    SDFUI.store.dispatch(ACT.editWeight(e.target.value / 10000, SDFUI.state.scene.editItem));
+  }
+
   function strokeColorChange(e){
     SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), SDFUI.state.scene.editItem));
   }
 
+  function fillOpacityChange(e){
+    SDFUI.store.dispatch(ACT.editOpacity(e.currentTarget.value / 100, SDFUI.state.scene.editItem));
+  }
+
   function fillColorChange(e){
     SDFUI.store.dispatch(ACT.editFill(chroma(e.currentTarget.value).hex(), SDFUI.state.scene.editItem));
-  }
-
-  function strokeWeightChange(e){
-    SDFUI.store.dispatch(ACT.editWeight(e.target.value / 10000), SDFUI.state.scene.editItem);
-  }
-
-  function fillOpacityChange(e){
-    SDFUI.store.dispatch(ACT.editOpacity(e.currentTarget.value / 100), SDFUI.state.scene.editItem);
   }
 
   return {
