@@ -7,7 +7,7 @@ import * as ACT from '../store/actions';
 function LayerTree() {
 
   function strokeColorChange(e){
-    SDFUI.store.dispatch(ACT.drawStroke(chroma(e.target.value).hex()));
+    SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex()));
   }
 
   // let layers = [];

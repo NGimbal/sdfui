@@ -301,13 +301,13 @@ export function layerPop(layerID){
 }
 
 //updates a layer from the draw stack
-export function layerUpdate(layerID){
-  return{
-    type: render,
-    subtype: LAYER_UPDATE,
-    layerID
-  }
-}
+// export function layerUpdate(layerID){
+//   return{
+//     type: render,
+//     subtype: LAYER_UPDATE,
+//     layerID
+//   }
+// }
 
 //adds point
 export function sceneAddPt(pt){
@@ -338,13 +338,13 @@ export function sceneFinRmvPt(id){
 }
 
 //marks edit item for update
-export function sceneEditUpdate(toggle){
-  return {
-    type: scene,
-    subtype: SCENE_EDITUPDATE,
-    toggle
-  };
-}
+// export function sceneEditUpdate(toggle){
+//   return {
+//     type: scene,
+//     subtype: SCENE_EDITUPDATE,
+//     toggle
+//   };
+// }
 
 //pushes new item onto scene graph - prim is type
 export function scenePushEditItem(primType){
@@ -374,19 +374,19 @@ export function sceneRmvItem(id){
 }
 
 //fires when drawing properties are changed
-export function sceneEditProps(){
-  return {
-    type: scene,
-    subtype: SCENE_EDITPROPS,
-  };
-}
+// export function sceneEditProps(){
+//   return {
+//     type: scene,
+//     subtype: SCENE_EDITPROPS,
+//   };
+// }
 
 //toggles update status of item
-export function sceneItemUpdate(index, toggle){
-  return {
-    type: scene,
-    subtype: SCENE_ITEMUPDATE,
-    index,
-    toggle
-  };
-}
+// export function sceneItemUpdate(index, toggle){
+//   return {
+//     type: scene,
+//     subtype: SCENE_ITEMUPDATE,
+//     index,
+//     toggle
+//   };
+// }
