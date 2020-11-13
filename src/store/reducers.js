@@ -288,15 +288,15 @@ function scene(_state=initialState, action) {
             pts: removeItem(item.pts, {index:editPtIndex})
           })
         }),
-        pts: removeItem(item.pts, {index:ptIndex}),
-        rmPts: [...item.rmPts, state.pts[ptIndex].id.slice()]
+        pts: state.pts.filter(i => i !== action.pt.id),
+        rmPts: [...state.rmPts, action.pt.id.slice()]
       });
     case ACT.SCENE_FINRMVPT:
       //remove point from rmPts array
       //this also may be on a per user basis, kd tree needs to be updated by all users
-      ptIndex = state.rmPts.findIndex(i => i === action.id);
+      // ptIndex = state.rmPts.findIndex(i => i === action.id);
       return Object.assign({}, state,{
-        rmPts: removeItem(state.rmPts, ptIndex)
+        rmPts: state.rmPts.filter(id => id !== action.id)
       });
     case ACT.SCENE_PUSHEDITITEM: //takes prim type
       return Object.assign({}, state,{

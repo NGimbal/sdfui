@@ -4,7 +4,8 @@ import LayerTree from './LayerTree';
 import ghlogo from '../../assets/ghlogo.svg';
 // import '../../node_modules/construct-ui/lib/index.css';
 
-import {store} from '../renderer/draw'
+import * as SDFUI from "../renderer/draw";
+import * as ACT from '../store/actions';
 
 let dividerStyle =   {
   width:"100%",
@@ -18,24 +19,7 @@ let dividerStyle =   {
 
 function LeftToolBar() {
   let drawerOpen = false;
-
-  let mode = "draw";
-
-  //Expose part of state
-  function listener(){
-    let stateMode = store.getState().ui.mode;
-    if ( stateMode === mode){
-      return;
-    } else {
-      mode = stateMode;
-      m.redraw();
-    }
-    // return mode;
-  };
-
-  //subscribe to store changes - run listener to set relevant variables
-  store.subscribe(() => listener());
-
+  
   return {
     view: () => (
       <div style={{
@@ -66,16 +50,17 @@ function LeftToolBar() {
         <hr style={dividerStyle}/>
         
         <Button iconLeft={Icons.MOUSE_POINTER}
-                active={mode === "select"}
+                active={SDFUI.state.ui.mode === "select"}
                 size={"x0"}
                 basic={"true"}
-
+                onclick={() => SDFUI.store.dispatch(ACT.uiMode("select"))}
                 style="margin: 0px 0px 10px 0px;"  />
 
         <Button iconLeft={Icons.PEN_TOOL}
-                active={mode === "draw"}
+                active={SDFUI.state.ui.mode === "draw"}
                 size={"x0"}
                 basic={"true"}
+                onclick={() => SDFUI.store.dispatch(ACT.uiMode("draw"))}
                 style="margin: 0px 0px 10px 0px;"  />
         
         <Button iconLeft={Icons.LAYERS}
@@ -92,7 +77,7 @@ function LeftToolBar() {
 
         
         </div>
-        <Drawer closeOnEscapeKey={true} 
+        <Drawer closeOnEscapeKey={false} 
                 closeOnOutsideClick={false}
                 content={
                   <LayerTree/>

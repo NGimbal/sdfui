@@ -37,11 +37,12 @@ export const CURSOR_GRID        = 'CURSOR_GRID'; //grid, vec
 export const DRAW_DRAWING       = "DRAW_DRAWING"; //are we drawing?
 export const DRAW_EDITITEM      = "DRAW_EDITITEM"; //curr edit item
 export const EDIT_FILTER        = "DRAW_FILTER"; //curr filter
-export const EDIT_STROKE        = "DRAW_STROKE"; //stroke color
-export const EDIT_FILL          = "DRAW_FILL"; //fill color
-export const EDIT_WEIGHT        = "DRAW_WEIGHT"; //stroke weight
-export const EDIT_RADIUS        = "DRAW_RADIUS"; //shape radius
-export const EDIT_OPACITY       = "DRAW_OPACITY"; //shape radius
+//
+export const EDIT_STROKE        = "EDIT_STROKE"; //stroke color
+export const EDIT_FILL          = "EDIT_FILL"; //fill color
+export const EDIT_WEIGHT        = "EDIT_WEIGHT"; //stroke weight
+export const EDIT_RADIUS        = "EDIT_RADIUS"; //shape radius
+export const EDIT_OPACITY       = "EDIT_OPACITY"; //shape radius
 //LAYERS
 export const LAYER_PUSH         = "LAYER_PUSH"; //push a new layer
 export const LAYER_PUSHIMAGE    = "LAYER_PUSHIMAGE"; //push a new layer
@@ -96,15 +97,14 @@ export function uiPause(toggle){
   }
 }
 
-
 //toggle show grid
-export function uiGrid(toggle){
-  return{
-    type: ui,
-    subtype: UI_GRID,
-    toggle,
-  }
-}
+// export function uiGrid(toggle){
+//   return{
+//     type: ui,
+//     subtype: UI_GRID,
+//     toggle,
+//   }
+// }
 
 //toggles show points
 export function uiPoints(toggle){
@@ -115,7 +115,7 @@ export function uiPoints(toggle){
   }
 }
 
-//toggles show points
+//
 export function uiTargetHome(toggle){
   return{
     type: ui,
@@ -124,9 +124,8 @@ export function uiTargetHome(toggle){
   }
 }
 
-//toggles show points
+//
 export function uiMode(mode){
-  console.log(mode);
   return{
     type: ui,
     subtype: UI_MODE,

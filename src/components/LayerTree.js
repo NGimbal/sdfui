@@ -29,7 +29,7 @@ function LayerTree() {
   return {
     view: () => (
       <div>
-        <List>
+        <List style={{height:"100%", maxHeight:"unset"}}>
           {
             SDFUI.state.scene.editItems.map(item => <ListItem label={item.type + " " + item.id} contentRight={
               <div style={{display:"flex", flexDirection:"row", width:"100px"}}>
