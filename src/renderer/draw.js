@@ -25,7 +25,7 @@ var view;
 export var gl;
 
 export var dataShader;
-export var editTex;
+// export var editTex;
 
 export const store = createStore(reducer);
 export var state = store.getState();
@@ -432,9 +432,9 @@ const saveBlob = (function() {
   };
 }());
 
-export function newEditTex(){
-  editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
-}
+// export function newEditTex(){
+//   editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
+// }
 
 export function modifyDefine(_dataShader, define, val){
   let shader = _dataShader.shader.slice();

@@ -189,6 +189,7 @@ function getUniforms(type){
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
   texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
   
+  let properties = {...state.scene.editItems[state.scene.editItem].properties}
   switch(type){
     case'polyline':
       return {
@@ -199,9 +200,9 @@ function getUniforms(type){
         u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
         u_dPt: twgl.v3.create(dPt[0], dPt[1], 0),
         u_eTex: {},
-        u_weight: state.ui.properties.weight,
-        u_opacity: state.ui.properties.opacity,
-        u_stroke: chroma(state.ui.properties.stroke).gl().slice(0,3),
+        u_weight: properties.weight,
+        u_opacity: properties.opacity,
+        u_stroke: chroma(properties.stroke).gl().slice(0,3),
       }
     case'polygon':
       return {
@@ -213,10 +214,10 @@ function getUniforms(type){
         u_dPt: twgl.v3.create(dPt[0], dPt[1], 0),
         u_eTex: {},
         u_cTex: -1,
-        u_weight: state.ui.properties.weight,
-        u_opacity: state.ui.properties.opacity,
-        u_stroke: chroma(state.ui.properties.stroke).gl().slice(0,3),
-        u_fill: chroma(state.ui.properties.fill).gl().slice(0,3),
+        u_weight: properties.weight,
+        u_opacity: properties.opacity,
+        u_stroke: chroma(properties.stroke).gl().slice(0,3),
+        u_fill: chroma(properties.fill).gl().slice(0,3),
       }
     case'circle':
       return {
@@ -228,10 +229,10 @@ function getUniforms(type){
         u_dPt: twgl.v3.create(dPt[0], dPt[1], 0),
         u_eTex: {},
         u_cTex: -1,
-        u_weight: state.ui.properties.weight,
-        u_opacity: state.ui.properties.opacity,
-        u_stroke: chroma(state.ui.properties.stroke).gl().slice(0,3),
-        u_fill: chroma(state.ui.properties.fill).gl().slice(0,3),
+        u_weight: properties.weight,
+        u_opacity: properties.opacity,
+        u_stroke: chroma(properties.stroke).gl().slice(0,3),
+        u_fill: chroma(properties.fill).gl().slice(0,3),
       }
     case'rectangle':
       return {
@@ -243,10 +244,10 @@ function getUniforms(type){
         u_dPt: twgl.v3.create(dPt[0], dPt[1], 0),
         u_eTex: {},
         u_cTex: -1,
-        u_weight: state.ui.properties.weight,
-        u_opacity: state.ui.properties.opacity,
-        u_stroke: chroma(state.ui.properties.stroke).gl().slice(0,3),
-        u_fill: chroma(state.ui.properties.fill).gl().slice(0,3),
+        u_weight: properties.weight,
+        u_opacity: properties.opacity,
+        u_stroke: chroma(properties.stroke).gl().slice(0,3),
+        u_fill: chroma(properties.fill).gl().slice(0,3),
         u_radius: 0.01,
       }
     default:
@@ -258,9 +259,9 @@ function getUniforms(type){
         u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
         u_dPt: twgl.v3.create(dPt[0], dPt[1], 0),
         u_eTex: {},
-        u_weight: state.ui.properties.weight,
-        u_opacity: state.ui.properties.opacity,
-        u_stroke: chroma(state.ui.properties.stroke).gl().slice(0,3),
+        u_weight: properties.weight,
+        u_opacity: properties.opacity,
+        u_stroke: chroma(properties.stroke).gl().slice(0,3),
       }
   }
 }

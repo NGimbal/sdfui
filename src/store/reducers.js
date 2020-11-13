@@ -27,9 +27,10 @@ const uiInit = {
   //are we moving towards a target
   targeting: false,
   //where is the view moving
-  properties: {...PRIM.propsDefault},
   // targets:[] someday could have multiple tagets for prezi like effect
   target: twgl.v3.create(0,0,64),
+  //this is going away
+  // properties: {...PRIM.propsDefault},
   mode: "draw"
 }
 
