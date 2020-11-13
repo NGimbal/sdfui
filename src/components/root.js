@@ -4,7 +4,7 @@ import { FocusManager } from 'construct-ui';
 import '../../node_modules/construct-ui/lib/index.css';
 import '../sdfui.css';
 
-import {initDraw} from '../renderer/draw';
+import {store} from '../renderer/draw';
 
 import FloatingMenu from './FloatingMenu';
 import ContextMenu from './ContextMenu';

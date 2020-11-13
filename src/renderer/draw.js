@@ -25,7 +25,7 @@ var view;
 export var gl;
 
 export var dataShader;
-export var editTex;
+// export var editTex;
 
 export const store = createStore(reducer);
 export var state = store.getState();
@@ -261,28 +261,30 @@ function update() {
     if(layer.uniforms.u_dPt){
       layer.uniforms.u_dPt = dPt;
     }
-
-    if (layer.prim == state.scene.editItems[state.scene.editItem].id){
-      if(typeof layer.uniforms.u_stroke === 'object'){
-        layer.uniforms.u_stroke = chroma(state.ui.properties.stroke).gl().slice(0,3);
-      }
-      if(typeof layer.uniforms.u_fill === 'object'){
-        layer.uniforms.u_fill = chroma(state.ui.properties.fill).gl().slice(0,3);
-      }
-      if(typeof layer.uniforms.u_weight === 'number'){
-        layer.uniforms.u_weight = state.ui.properties.weight;
-      }
-      if(typeof layer.uniforms.u_weight === 'number'){
-        layer.uniforms.u_weight = state.ui.properties.weight;
-      }
-      if(typeof layer.uniforms.u_opacity  === 'number'){
-        layer.uniforms.u_opacity = state.ui.properties.opacity;
-      }
-      if(typeof layer.uniforms.u_radius  === 'number'){
-        layer.uniforms.u_radius = state.ui.properties.radius;
-      }
+    
+    //keep layer uniforms aligned with drawObject
+    let drawObject = state.scene.editItems.find(a => a.id === layer.prim);
+    
+    if(typeof layer.uniforms.u_stroke === 'object'){
+      layer.uniforms.u_stroke = chroma(drawObject.properties.stroke).gl().slice(0,3);
+    }
+    if(typeof layer.uniforms.u_fill === 'object'){
+      layer.uniforms.u_fill = chroma(drawObject.properties.fill).gl().slice(0,3);
+    }
+    if(typeof layer.uniforms.u_weight === 'number'){
+      layer.uniforms.u_weight = drawObject.properties.weight;
+    }
+    if(typeof layer.uniforms.u_weight === 'number'){
+      layer.uniforms.u_weight = drawObject.properties.weight;
+    }
+    if(typeof layer.uniforms.u_opacity  === 'number'){
+      layer.uniforms.u_opacity = drawObject.properties.opacity;
+    }
+    if(typeof layer.uniforms.u_radius  === 'number'){
+      layer.uniforms.u_radius = drawObject.properties.radius;
     }
     
+    // this doesn't make me feel good
     if(typeof layer.uniforms.u_cTex === 'number'){
       layer.uniforms.u_cTex = layer.uniforms.u_eTex.cTexel;
     }
@@ -430,9 +432,9 @@ const saveBlob = (function() {
   };
 }());
 
-export function newEditTex(){
-  editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
-}
+// export function newEditTex(){
+//   editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
+// }
 
 export function modifyDefine(_dataShader, define, val){
   let shader = _dataShader.shader.slice();

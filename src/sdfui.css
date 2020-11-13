@@ -52,6 +52,8 @@ html, body {
   display:flex;
   width: 100%;
   height: 100%;
+  /* this doesn't seem to be working for drawer / canvas */
+  transition: flex 0.3s ease-out;
 }
 
 .canvas{

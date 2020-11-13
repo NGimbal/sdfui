@@ -23,7 +23,6 @@
   "homepage": "https://github.com/NGimbal/sdfui#readme",
   "dependencies": {
     "@petamoriken/float16": "^2.0.0",
-    "automerge": "^0.14.1",
     "chroma-js": "^2.1.0",
     "construct-ui": "^0.2.8",
     "firebase": "^7.20.0",
