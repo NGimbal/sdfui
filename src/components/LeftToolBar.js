@@ -36,8 +36,6 @@ function LeftToolBar() {
   //subscribe to store changes - run listener to set relevant variables
   store.subscribe(() => listener());
 
-  console.log(this.attrs.mode);
-
   return {
     view: () => (
       <div style={{

@@ -146,8 +146,8 @@ export function bakeLayer(layer){
 
   layer.programInfo = twgl.createProgramInfo(gl, [layer.vert, fs]);
   
-  // I don't know why this line was here... will delete at some pt
-  // gl.useProgram(layer.programInfo.program);
+  // This line is important- otherwise you get lots of errors 
+  gl.useProgram(layer.programInfo.program);
   twgl.setUniforms(layer.programInfo, layer.uniforms);
 }
 
