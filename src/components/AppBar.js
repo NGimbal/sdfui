@@ -14,7 +14,7 @@ function AppBar() {
                   background: Colors.RED400,
                   borderBottom:"2px solid #c5cdd1",
                   boxShadow: "0px 2px 2px 1px rgba(55,71,79,0.125)",
-                  zIndex:"10",
+                  zIndex:"22",
                   display:"flex",
                   alignItems: "center",
                   justifyContent:"flex-end",

@@ -36,12 +36,12 @@ export const CURSOR_GRID        = 'CURSOR_GRID'; //grid, vec
 //DRAW
 export const DRAW_DRAWING       = "DRAW_DRAWING"; //are we drawing?
 export const DRAW_EDITITEM      = "DRAW_EDITITEM"; //curr edit item
-export const DRAW_FILTER        = "DRAW_FILTER"; //curr filter
-export const DRAW_STROKE        = "DRAW_STROKE"; //stroke color
-export const DRAW_FILL          = "DRAW_FILL"; //fill color
-export const DRAW_WEIGHT        = "DRAW_WEIGHT"; //stroke weight
-export const DRAW_RADIUS        = "DRAW_RADIUS"; //shape radius
-export const DRAW_OPACITY       = "DRAW_OPACITY"; //shape radius
+export const EDIT_FILTER        = "DRAW_FILTER"; //curr filter
+export const EDIT_STROKE        = "DRAW_STROKE"; //stroke color
+export const EDIT_FILL          = "DRAW_FILL"; //fill color
+export const EDIT_WEIGHT        = "DRAW_WEIGHT"; //stroke weight
+export const EDIT_RADIUS        = "DRAW_RADIUS"; //shape radius
+export const EDIT_OPACITY       = "DRAW_OPACITY"; //shape radius
 //LAYERS
 export const LAYER_PUSH         = "LAYER_PUSH"; //push a new layer
 export const LAYER_PUSHIMAGE    = "LAYER_PUSHIMAGE"; //push a new layer
@@ -213,57 +213,63 @@ export function drawEditItem(primType){
 }
 
 //what is the current filter - string
-export function drawFilter(filter){
+export function editFilter(filter, index){
   return{
-    type: ui,
-    subtype: DRAW_FILTER,
+    type: scene,
+    subtype: EDIT_FILTER,
     filter,
+    index,
   }
 }
 
 //what is the current stroke color - vec(r, g, b, a)
-export function drawStroke(hex){
+export function editStroke(hex, index){
   return{
-    type: ui,
-    subtype: DRAW_STROKE,
+    type: scene,
+    subtype: EDIT_STROKE,
     hex,
+    index,
   }
 }
 
 //what is the current fill color - vec(r, g, b, a)
-export function drawFill(hex){
+export function editFill(hex, index){
   return{
-    type: ui,
-    subtype: DRAW_FILL,
+    type: scene,
+    subtype: EDIT_FILL,
     hex,
+    index,
   }
 }
 
 //what is the current stroke weight int
-export function drawWeight(weight){
+export function editWeight(weight, index){
   return{
-    type: ui,
-    subtype: DRAW_WEIGHT,
+    type: scene,
+    subtype: EDIT_WEIGHT,
     weight,
+    index,
   }
 }
 
 //what is the current shape radius int
-export function drawRadius(radius){
+export function editRadius(radius, index){
   return{
-    type: ui,
-    subtype: DRAW_RADIUS,
+    type: scene,
+    subtype: EDIT_RADIUS,
     radius,
+    index,
   }
 }
 
 
 //what is the current shape radius float
-export function drawOpacity(opacity){
+export function editOpacity(opacity, index){
   return{
-    type: ui,
-    subtype: DRAW_OPACITY,
+    type: scene,
+    subtype: EDIT_OPACITY,
     opacity,
+    index,
   }
 }
 

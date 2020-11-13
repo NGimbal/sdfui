@@ -6,7 +6,7 @@ import * as ACT from './actions.js';
 import * as twgl from 'twgl.js';
 
 import { ptTree } from '../renderer/draw.js';
-// import {knn} from 'rbush-knn';
+
 var knn = require('rbush-knn');
 
 import * as Automerge from 'automerge';
@@ -122,42 +122,6 @@ function ui(_state=initialState, action){
     case ACT.UI_TARGETHOME:
       return Object.assign({}, state,{
         targeting : action.toggle,
-      });
-    case ACT.DRAW_WEIGHT:
-      return Object.assign({}, state,{
-        properties: Object.assign({}, state.properties,{
-          weight: action.weight,
-        }),
-      });
-    case ACT.DRAW_RADIUS:
-      return Object.assign({}, state,{
-        properties: Object.assign({}, state.properties,{
-          radius: action.radius,
-        }),
-      });
-    case ACT.DRAW_OPACITY:
-      return Object.assign({}, state,{
-        properties: Object.assign({}, state.properties,{
-          opacity: action.opacity,
-        }),
-      });
-    case ACT.DRAW_FILL:
-      return Object.assign({}, state,{
-        properties: Object.assign({}, state.properties,{
-          fill: action.hex,
-        }),
-      });
-    case ACT.DRAW_STROKE:
-      return Object.assign({}, state,{
-        properties: Object.assign({}, state.properties,{
-          stroke: action.hex.slice(),
-        }),
-      });
-    case ACT.DRAW_FILTER:
-      return Object.assign({}, state,{
-        properties: Object.assign({}, state.properties,{
-          filter: action.filter,
-        }),
       });
     case ACT.UI_MODE:
       return Object.assign({}, state,{
@@ -355,6 +319,61 @@ function scene(_state=initialState, action) {
     case ACT.SCENE_ITEMUPDATE:
       return Automerge.change(state, 'edit item update', doc=>{
         doc.editItems[action.index].needsUpdate = action.toggle;
+      });
+    // these are being reclassicied from draw to scene
+    case ACT.EDIT_WEIGHT:
+      return Object.assign({}, state,{
+        editItems: state.editItems.map((item, index) => {
+          if(index !== action.index) return item;
+          return Object.assign({}, item, {
+            properties: {...item.properties, weight:action.weight}
+          })
+        }),
+      });
+    case ACT.EDIT_RADIUS:
+      return Object.assign({}, state,{
+        editItems: state.editItems.map((item, index) => {
+          if(index !== action.index) return item;
+          return Object.assign({}, item, {
+            properties: {...item.properties, radius: action.radius}
+          })
+        }),
+      });
+    case ACT.EDIT_OPACITY:
+      return Object.assign({}, state,{
+        editItems: state.editItems.map((item, index) => {
+          if(index !== action.index) return item;
+          return Object.assign({}, item, {
+            properties: {...item.properties, radius: action.opacity}
+          })
+        }),
+      });
+    case ACT.EDIT_FILL:
+      return Object.assign({}, state,{
+        editItems: state.editItems.map((item, index) => {
+          if(index !== action.index) return item;
+          return Object.assign({}, item, {
+            properties: {...item.properties, fill: action.hex}
+          })
+        }),
+      });
+    case ACT.EDIT_STROKE:
+      return Object.assign({}, state,{
+        editItems: state.editItems.map((item, index) => {
+          if(index !== action.index) return item;
+          return Object.assign({}, item, {
+            properties: {...item.properties, stroke: action.hex.slice()}
+          })
+        }),
+      });
+    case ACT.EDIT_FILTER:
+      return Object.assign({}, state,{
+        editItems: state.editItems.map((item, index) => {
+          if(index !== action.index) return item;
+          return Object.assign({}, item, {
+            properties: {...item.properties, filter: action.filter}
+          })
+        }),
       });
     default:
       return state;

@@ -76,19 +76,19 @@ function FloatingMenu() {
   }
 
   function strokeColorChange(e){
-    SDFUI.store.dispatch(ACT.drawStroke(chroma(e.target.value).hex()));
+    SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), SDFUI.state.scene.editItem));
   }
 
   function fillColorChange(e){
-    SDFUI.store.dispatch(ACT.drawFill(chroma(e.currentTarget.value).hex()));
+    SDFUI.store.dispatch(ACT.editFill(chroma(e.currentTarget.value).hex(), SDFUI.state.scene.editItem));
   }
 
   function strokeWeightChange(e){
-    SDFUI.store.dispatch(ACT.drawWeight(e.target.value / 10000));
+    SDFUI.store.dispatch(ACT.editWeight(e.target.value / 10000), SDFUI.state.scene.editItem);
   }
 
   function fillOpacityChange(e){
-    SDFUI.store.dispatch(ACT.drawOpacity(e.currentTarget.value / 100));
+    SDFUI.store.dispatch(ACT.editOpacity(e.currentTarget.value / 100), SDFUI.state.scene.editItem);
   }
 
   return {
@@ -105,11 +105,11 @@ function FloatingMenu() {
           <PopoverMenu content={[
                             // <hr style={dividerStyle}/>,
                             <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Color</h6>,
-                            <input type="color" style={{margin:"auto", width:"100%"}} value={SDFUI.state.ui.properties.stroke} oninput={strokeColorChange}/>,
+                            <input type="color" style={{margin:"auto", width:"100%"}} value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.stroke} oninput={strokeColorChange}/>,
                             
                             <hr style={dividerStyle}/>,
                             <h6 class={Classes.Muted} style={inputLabelStyle}>Fill Color</h6>,
-                            <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={SDFUI.state.ui.properties.fill}/>,
+                            <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.fill}/>,
                             // <hr style={dividerStyle}/>
                           ]}
                         trigger={m(Button, { iconLeft: Icons.DROPLET })}
@@ -118,18 +118,18 @@ function FloatingMenu() {
 
             <PopoverMenu content={[
                         <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Weight</h6>,
-                        <input type="range" oninput={strokeWeightChange} min="0" max="100" value={SDFUI.state.ui.properties.weight * 10000}/>,
+                        <input type="range" oninput={strokeWeightChange} min="0" max="100" value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.weight * 10000}/>,
                         
                         <hr style={dividerStyle}/>,
                         <h6 class={Classes.Muted} style={inputLabelStyle}>Opacity</h6>,
-                        <input type="range" oninput={fillOpacityChange} min="0" max="100" value={SDFUI.state.ui.properties.opacity * 100}/>,
+                        <input type="range" oninput={fillOpacityChange} min="0" max="100" value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.opacity * 100}/>,
                       
                         ]}
                         trigger={m(Button, { iconLeft: Icons.PEN_TOOL })}
                         menuAttrs={{style:{padding:"8px"}}}
                         />
 
-          <PopoverMenu content={[
+            <PopoverMenu content={[
                             <MenuItem iconLeft={Icons.GRID}
                               active={SDFUI.state.cursor.snapGrid}
                               onclick={toggleSnapGrid}
@@ -149,7 +149,7 @@ function FloatingMenu() {
                         trigger={m(Button, { iconLeft: Icons.SETTINGS })}
                         />
           
-          <CustomSelect options={primList} defaultValue={"Polyline"} onSelect={primitiveChange}/>
+            <CustomSelect options={primList} defaultValue={"Polyline"} onSelect={primitiveChange}/>
         
         </ControlGroup>
       </div>
