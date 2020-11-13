@@ -14,6 +14,12 @@ function LayerTree() {
     SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), index));
   }
 
+  function fillColorChange(e){
+    let id = e.target.getAttribute('data-id');
+    let index = SDFUI.state.scene.editItems.findIndex(item => item.id === id);
+    SDFUI.store.dispatch(ACT.editFill(chroma(e.target.value).hex(), index));
+  }
+
   function trashObject(e){
     console.log(this)
     // this doesn't work yet - will need more time to figure out I think >.<
@@ -28,7 +34,7 @@ function LayerTree() {
             SDFUI.state.scene.editItems.map(item => <ListItem label={item.type + " " + item.id} contentRight={
               <div style={{display:"flex", flexDirection:"row", width:"100px"}}>
               <input type="color" style={{margin:"auto", width:"100%", backgroundColor:"white", border:"none"}} value={item.properties.stroke} data-id={item.id} oninput={strokeColorChange}/>
-              <input type="color" style={{margin:"auto", width:"100%", backgroundColor:"white", border:"none"}} value={item.properties.fill} data-id={item.id}/>
+              <input type="color" style={{margin:"auto", width:"100%", backgroundColor:"white", border:"none"}} value={item.properties.fill} data-id={item.id} oninput={fillColorChange}/>
               <Button iconLeft={Icons.TRASH_2}
                 size={"x0"}
                 basic={"true"}
