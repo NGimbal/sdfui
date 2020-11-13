@@ -1,8 +1,6 @@
 import m from "mithril";
 import { Button, Icons, List, ListItem, Size, Switch } from 'construct-ui';
 
-import {ColorButton} from './ColorButton/ColorButton'
-
 import * as SDFUI from "../renderer/draw";
 import * as ACT from '../store/actions';
 
