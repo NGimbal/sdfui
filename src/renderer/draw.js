@@ -70,8 +70,8 @@ function listener(){
 };
 
 //subscribe to store changes - run listener to set relevant variables
-// store.subscribe(() => console.log(listener()));
-store.subscribe(() => listener());
+store.subscribe(() => console.log(listener()));
+// store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
@@ -264,6 +264,10 @@ function update() {
     
     //keep layer uniforms aligned with drawObject
     let drawObject = state.scene.editItems.find(a => a.id === layer.prim);
+    
+    // how can I make sure that this doesn't happen?
+    // how do I keep edit item array and layer array in sync as I add / remove / modify things?
+    if(!drawObject) return;
     
     if(typeof layer.uniforms.u_stroke === 'object'){
       layer.uniforms.u_stroke = chroma(drawObject.properties.stroke).gl().slice(0,3);

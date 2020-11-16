@@ -266,6 +266,10 @@ function scene(_state=initialState, action) {
   let state = _state.scene;
   let ptIndex = -1;
   switch(action.subtype){
+    case ACT.SCENE_SETEDITITEM:
+      return Object.assign({}, state,{
+        editItem: action.editItem
+      });
     case ACT.SCENE_ADDPT:
       let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItems[state.editItem].id , action.pt.id, true);
       return Object.assign({}, state,{
@@ -279,13 +283,14 @@ function scene(_state=initialState, action) {
       });
     case ACT.SCENE_RMVPT:
       ptIndex = state.pts.findIndex(i => i.id === action.pt.id);
-      let editPtIndex = state.editItems[state.editItem].pts.findIndex(i => i === action.pt.id);
+      let parent = state.editItems.find(i => i.id === action.pt.parentId);
+      let editPtIndex = parent.pts.findIndex(i => i === action.pt.id);
       
       return Object.assign({}, state,{
         editItems: state.editItems.map((item, index) => {
           if(index !== state.editItem) return item;
           return Object.assign({}, item, {
-            pts: removeItem(item.pts, {index:editPtIndex})
+            pts: removeItem(item.pts, editPtIndex)
           })
         }),
         pts: state.pts.filter(i => i !== action.pt.id),
@@ -315,8 +320,10 @@ function scene(_state=initialState, action) {
       });
     case ACT.SCENE_RMVITEM:
       let index = state.editItems.findIndex(i => i.id === action.id);
+      console.log("remove at index: " + index);
       return Object.assign({}, state,{
-        editItems: removeItem(state.editItems, index)
+        editItems: removeItem(state.editItems, index),
+        editItem: state.editItem - 1,
       });
     case ACT.EDIT_WEIGHT:
       return Object.assign({}, state,{
@@ -382,6 +389,7 @@ export const reducer = function(state = initialState, action){
     console.error('Reducer got null state. Should be initialized');
     return initialState;
   }
+  console.log(action);
   // console.log(initialState);
   switch (action.type) {
     case ACT.status:
@@ -419,8 +427,8 @@ function insertItem(array, action) {
 }
 
 // remove array[action.index]
-function removeItem(array, action) {
-  return array.filter((item, index) => index !== action.index)
+function removeItem(array, index) {
+  return array.filter((item, i) => i !== index)
 }
 
 // set array[action.index] equal to action.item

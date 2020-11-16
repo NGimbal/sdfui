@@ -3,6 +3,7 @@ import { Button, Icons, List, ListItem, Size, Switch } from 'construct-ui';
 
 import * as SDFUI from "../renderer/draw";
 import * as ACT from '../store/actions';
+import {deleteItem}  from '../renderer/drawUI'
 
 import chroma from 'chroma-js';
 
@@ -21,7 +22,10 @@ function LayerTree() {
   }
 
   function trashObject(e){
-    console.log(this)
+    // console.log(this)
+    let index = SDFUI.state.scene.editItems.findIndex(i => i.id === this);
+    console.log( "delete " + this + " at " + index);
+    deleteItem(index);
     // this doesn't work yet - will need more time to figure out I think >.<
     // SDFUI.store.dispatch(ACT.sceneRmvItem(this));
   }

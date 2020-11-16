@@ -16,7 +16,7 @@ import {bakeLayer, createEditLayer} from './layer.js';
 
 //store ui.state = "draw", "select", 
 //DrawUI.states = {draw: draw, select: select}
-class DrawUI{
+export class DrawUI{
 
   constructor(){
     // need to check endianess for half float usage
@@ -266,29 +266,61 @@ function endDrawUpdate(){
 
 function escDrawUpdate(){
   if(!this.toggle) return null;
+  
+  let index = SDFUI.state.scene.editItem;
+  let item = SDFUI.state.scene.editItems[index];
+  let layer = SDFUI.state.render.layers.find(l => l.prim === item.id);
+  
+  SDFUI.store.dispatch(ACT.sceneNewEditItem(layer.primType))
+  SDFUI.store.dispatch(ACT.layerPush(createEditLayer(SDFUI.state.scene.editItems[index])));
 
-  if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) {
+  let del = deleteItem(index);
+  
+  if (!del) {
     SDFUI.store.dispatch(ACT.uiMode("select"));
     this.toggle = false;
     return;
   }
 
-  let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
-  SDFUI.store.dispatch(ACT.layerPop(currLayer.id));
-
-  for (let p of currLayer.uniforms.u_eTex.pts){
-    SDFUI.store.dispatch(ACT.sceneRmvPt(p));
-  }
-
-  SDFUI.store.dispatch(ACT.sceneRmvItem(currLayer.prim))
-
-  SDFUI.store.dispatch(ACT.sceneNewEditItem(currLayer.primType))
-
-  SDFUI.store.dispatch(ACT.layerPush(createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem])));
-
-  this.toggle = true;
+  this.toggle = false;
   return;
 }
+
+// Deletes item in editItems at index
+// this function needs examination
+export function deleteItem(index){
+  //which of these conditions are even possible?
+  if(index >= SDFUI.state.scene.editItems.length ||
+    !SDFUI.state.scene.editItems[index] || 
+    SDFUI.state.scene.editItems[index].pts.length < 1) {
+
+    return false;
+  }
+
+  let item = SDFUI.state.scene.editItems[index];
+  let layer = SDFUI.state.render.layers.find(l => l.prim === item.id);
+
+  console.log("layer is : " + layer.id);
+
+  SDFUI.store.dispatch(ACT.layerPop(layer.id));
+
+  for (let p of item.pts){
+    //this feels so convoluted - why do I have this separate array?
+    //I think the original idea was w/ regards to "denormalization"
+    //and the way firebase works
+    //want to have access to those points as the list changes
+    //at the same time they really are pretty useless outside the context of
+    //might have been a case of premature optimization for a particular system
+    //it gives some performance boost for loading a large scene into an R tree
+    //but that is pretty premature when you have to go through this whole
+    //effing array every time you want to delete something
+    let point = SDFUI.state.scene.pts.find(pt => pt.id === p)
+    SDFUI.store.dispatch(ACT.sceneRmvPt(point));
+  }
+
+  SDFUI.store.dispatch(ACT.sceneRmvItem(item.id))
+  return true;
+} 
 
 //modes are collections of UIModifiers
 class UIMode{
@@ -378,5 +410,3 @@ class UIModifier{
     }
   }
 }
-
-export {DrawUI};

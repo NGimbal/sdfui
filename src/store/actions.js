@@ -50,6 +50,8 @@ export const LAYER_POP          = "LAYER_POP"; //pop a layer, should be addresse
 export const LAYER_UPDATE       = "LAYER_UPDATE"; //update a layer, should be addressed by id
 
 //SCENE
+export const SCENE_SETEDITITEM  = 'SCENE_SETEDITITEM' //sets edit item
+export const SCENE_UNSETEDITITEM= 'SCENE_UNSETEDITITEM' //resets edit item
 export const SCENE_ADDPT        = 'SCENE_ADDPT'; //add point to scene
 export const SCENE_RMVPT        = 'SCENE_RMVPT'; //stages pt for removal
 export const SCENE_FINRMVPT     = 'SCENE_FINRMVPT'; //finishes removing pt from state
@@ -307,6 +309,14 @@ export function layerPop(layerID){
 //     layerID
 //   }
 // }
+
+export function setEditItem(editItem){
+  return {
+    type: scene,
+    subtype: SCENE_SETEDITITEM,
+    editItem: editItem,
+  };
+}
 
 //adds point
 export function sceneAddPt(pt){

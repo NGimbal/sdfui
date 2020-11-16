@@ -19,7 +19,7 @@ let dividerStyle =   {
 
 function LeftToolBar() {
   let drawerOpen = false;
-  
+
   return {
     view: () => (
       <div style={{
@@ -64,6 +64,7 @@ function LeftToolBar() {
                 style="margin: 0px 0px 10px 0px;"  />
         
         <Button iconLeft={Icons.LAYERS}
+                active={drawerOpen}
                 size={"x0"}
                 basic={"true"}
                 onclick={() => drawerOpen = !drawerOpen}
@@ -74,7 +75,6 @@ function LeftToolBar() {
             <img src={ghlogo} style={{width:"24px"}}/>
           </div>
         </a>
-
         
         </div>
         <Drawer closeOnEscapeKey={false} 
