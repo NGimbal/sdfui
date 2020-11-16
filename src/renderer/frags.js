@@ -219,7 +219,8 @@ void main(){
 
   float texelOffset = 0.5 * (1. / (16. * 16.));
 
-  float dist = sdCircle(uv, u_mPt.xy, 0.003);
+  //float dist = sdCircle(uv, u_mPt.xy, 0.003);
+  float dist = 10.0;
 
   vec2 prevPt = texture(u_eTex, vec2(texelOffset, texelOffset)).xy;
   float one = 1.0;
@@ -241,7 +242,7 @@ void main(){
       if (tPt == vec2(0.)){ break; }
 
       dist = min(dist, drawLine(uv, prevPt, tPt, u_weight, 0.0));
-      dist = min(dist, sdCircle(uv, tPt, 0.003));
+      //dist = min(dist, sdCircle(uv, tPt, 0.003));
 
       prevPt = tPt;
     }
@@ -250,21 +251,22 @@ void main(){
 
   dist = min(dist, drawLine(uv, prevPt, u_mPt.xy, u_weight, 1.0));
 
-  // float ao = dist;
+  float ao = dist;
 
   dist = line(dist, u_weight);
   vec3 col = mix(vec3(1.0), u_stroke, dist);
   
   //ao interface hint for edit object...would be nice
-  // can't figure out how to properly set opacity with this
-  // ao = 0.75 + 0.25*smoothstep( 0.0, 0.13, sqrt(ao) );
-  // col *= ao;
+  //can't figure out how to properly set opacity with this
+  //ao = 0.75 + 0.25 * smoothstep( 0.0, 0.13, sqrt(ao) );
+  //col *= ao;
   if ( dist < 0.001) discard;
 
 
+  //outColor = vec4(vec3(ao), 1.0);
 
-  // outColor = vec4(col, (dist + ao) * 0.5);
-  outColor = vec4(col, dist * u_opacity);
+  outColor = vec4(col, (dist + ao) * 0.5);
+  //outColor = vec4(col, dist * u_opacity);
 }`;
 
 //---------------------------------------------
