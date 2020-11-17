@@ -389,8 +389,7 @@ export const reducer = function(state = initialState, action){
     console.error('Reducer got null state. Should be initialized');
     return initialState;
   }
-  console.log(action);
-  // console.log(initialState);
+  // console.log(action);
   switch (action.type) {
     case ACT.status:
       return Object.assign({}, state,{

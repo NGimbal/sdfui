@@ -201,15 +201,6 @@ vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
     return color;
 }
 
-float ao2D_simple(float d, float pixSize, float width, float coef)
-{
-	float max_dist = pixSize * width * 3.0;
-	float dRef = max_dist * coef;
-	if (d <= max_dist)
-		return clamp(d, 0.0, dRef) / dRef;
-	return 1.0;
-}
-
 void main(){
   outColor = vec4(1.0);
   vec2 uv = vec2(v_texcoord);
@@ -227,6 +218,10 @@ void main(){
 
   if(prevPt == vec2(0.)) {discard;}
 
+  //drop shadow
+  vec2 dShTrans = normalize(vec2(-0.125, 0.125))*.01;
+  float dSh = 10.0;
+
   for (float i = 0.; i < 16.; i++ ){
     float yIndex = i / 16. + texelOffset;
 
@@ -242,31 +237,25 @@ void main(){
       if (tPt == vec2(0.)){ break; }
 
       dist = min(dist, drawLine(uv, prevPt, tPt, u_weight, 0.0));
+      dSh = min(dSh, drawLine(uv - dShTrans, prevPt, tPt, u_weight, 0.0));
       //dist = min(dist, sdCircle(uv, tPt, 0.003));
 
       prevPt = tPt;
     }
   }
 
-
   dist = min(dist, drawLine(uv, prevPt, u_mPt.xy, u_weight, 1.0));
-
-  float ao = dist;
+  dSh = min(dSh, drawLine(uv - dShTrans, prevPt, u_mPt.xy, u_weight, 1.0));
 
   dist = line(dist, u_weight);
   vec3 col = mix(vec3(1.0), u_stroke, dist);
-  
-  //ao interface hint for edit object...would be nice
-  //can't figure out how to properly set opacity with this
-  //ao = 0.75 + 0.25 * smoothstep( 0.0, 0.13, sqrt(ao) );
-  //col *= ao;
-  if ( dist < 0.001) discard;
+  dSh = (1. - smoothstep(0., 0.15, sqrt(dSh)))*.25;
+  //col = mix(col, vec3(0), dSh);
 
+  if ( dist + dSh < 0.001) discard;
 
-  //outColor = vec4(vec3(ao), 1.0);
-
-  outColor = vec4(col, (dist + ao) * 0.5);
-  //outColor = vec4(col, dist * u_opacity);
+  //outColor = vec4(col, dist + (1. - smoothstep(0., 0.15, sqrt(dSh))));
+  outColor = vec4(col * vec3(max(dSh, dist)), (dist + dSh) * u_opacity);
 }`;
 
 //---------------------------------------------
@@ -388,10 +377,7 @@ void main(){
   //   outColor = vec4(col, dist);
   // }
 
-  outColor = vec4(col, dist * u_opacity);
-
-  //TODO: try alpha = dist, enable gl.BLEND
-  
+  outColor = vec4(col, dist * u_opacity);  
 }`;
 //---------------------------------------------
 export const polygonEdit =
