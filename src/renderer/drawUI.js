@@ -6,6 +6,10 @@ import * as ACT from '../store/actions.js';
 import * as SDFUI from './draw.js';
 import {bakeLayer, createEditLayer} from './layer.js';
 
+import * as PRIM from './primitives'
+
+import * as chroma from 'chroma-js';
+
 //So this is going to be a way to register
 //sets of functions to different UI modes
 //Try to move as much as this as possible to the redux store
@@ -190,6 +194,7 @@ function drawUp(e){
   }
 
   let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
+  // I feel like the following line should also go in a reducer
   let pt = currLayer.uniforms.u_eTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
 
   SDFUI.store.dispatch(ACT.sceneAddPt(pt));
@@ -209,7 +214,6 @@ function drawUp(e){
 function endSelClck(){
   this.toggle = true;
 }
-
 
 function endSelUpdate(){
   if(!this.toggle) return null;
@@ -409,4 +413,37 @@ class UIModifier{
       // HINT.toggleActive(this);
     }
   }
+}
+
+//stress test
+// create a lines of n points
+// needs prim and chroma
+export function stressTest(){
+  console.log("stress test");
+  let n = 50;
+  let lociX = Math.random() * 4;
+  let lociY = Math.random() * 4;
+  let stroke = chroma.random().hex();
+
+  SDFUI.store.dispatch(ACT.editStroke(stroke, SDFUI.state.scene.editItem));
+
+  for(let j = 0; j < n; j++){
+    let x = Math.random() + lociX;
+    let y = Math.random() + lociY;
+    let randPt = new PRIM.vec(x, y)
+    let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
+    // I feel like the following line should also go in a reducer
+    let pt = currLayer.uniforms.u_eTex.addPoint(randPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
+    SDFUI.store.dispatch(ACT.sceneAddPt(pt));
+  }
+
+  let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
+  bakeLayer(layer);
+  
+  let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+  SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
+
+  //next item
+  let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
+  SDFUI.store.dispatch(ACT.layerPush(newLayer));
 }

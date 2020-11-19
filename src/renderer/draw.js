@@ -24,8 +24,9 @@ var view;
 //twgl
 export var gl;
 
-export var dataShader;
+// export var dataShader;
 // export var editTex;
+var inView = [];
 
 export const store = createStore(reducer);
 export var state = store.getState();
@@ -169,7 +170,6 @@ export function initDraw() {
 
   store.dispatch(ACT.layerPush(plineLayer));
 
-
   //this is excellent
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -236,7 +236,7 @@ function update() {
 
   ui.update();
 
-  updateCtx();
+  // updateCtx();
 
   let resize = twgl.resizeCanvasToDisplaySize(gl.canvas);
 
@@ -309,7 +309,7 @@ function draw() {
   //spatial hashing for rendering
   let bboxSearch = bboxTree.search(view).map(b => b.id);
   // console.log(inView);
-  let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
+  inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
                                               state.scene.editItems[state.scene.editItem].id === l.prim || 
                                               l.primType === "grid");
   // console.log(inView);
@@ -411,7 +411,10 @@ function updateCtx(){
 function sceneDist(){
   let dist = 1000;
   let selPrim;
-  for (let prim of state.scene.editItems){
+  // console.log(inView);
+  for (let layer of inView){
+    if(!layer.prim) continue;
+    let prim = state.scene.editItems.find(p => p.id === layer.prim);
     if (prim.id == state.scene.editItems[state.scene.editItem].id) continue;
     // also should have a "broad phase" check here on bounding box
     // this is where some spatial hashing could go
@@ -436,10 +439,7 @@ const saveBlob = (function() {
   };
 }());
 
-// export function newEditTex(){
-//   editTex = new PRIM.PolyPoint({...state.ui.properties}, 16);
-// }
-
+// this is not being called currently
 export function modifyDefine(_dataShader, define, val){
   let shader = _dataShader.shader.slice();
   //change #define

@@ -7,6 +7,8 @@ import ghlogo from '../../assets/ghlogo.svg';
 import * as SDFUI from "../renderer/draw";
 import * as ACT from '../store/actions';
 
+import {stressTest} from '../renderer/drawUI'
+
 let dividerStyle =   {
   width:"100%",
   boxShadow:"0 1px 0 #eef1f2;",
@@ -39,6 +41,7 @@ function LeftToolBar() {
 
         <Button iconLeft={Icons.USER}
                 size={"x0"}
+                onclick={stressTest}
                 basic={"true"}
                 style="margin: 12px 0px 10px 0px;" />
 

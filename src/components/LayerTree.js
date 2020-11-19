@@ -1,5 +1,5 @@
 import m from "mithril";
-import { Button, Icons, List, ListItem, Size, Switch } from 'construct-ui';
+import { Button, Icon, Icons, List, ListItem, Size, Switch } from 'construct-ui';
 
 import * as SDFUI from "../renderer/draw";
 import * as ACT from '../store/actions';
@@ -30,23 +30,36 @@ function LayerTree() {
     // SDFUI.store.dispatch(ACT.sceneRmvItem(this));
   }
 
+  function rowBeginDrag(e){
+    console.log("row begin drag");
+    console.log(e);
+  }
+
   return {
     view: () => (
       <div>
         <List style={{height:"100%", maxHeight:"unset"}}>
           {
-            SDFUI.state.scene.editItems.map(item => <ListItem label={item.type + " " + item.id} contentRight={
-              <div style={{display:"flex", flexDirection:"row", width:"100px"}}>
-              <input type="color" style={{margin:"auto", width:"100%", backgroundColor:"white", border:"none"}} value={item.properties.stroke} data-id={item.id} oninput={strokeColorChange}/>
-              <input type="color" style={{margin:"auto", width:"100%", backgroundColor:"white", border:"none"}} value={item.properties.fill} data-id={item.id} oninput={fillColorChange}/>
-              <Button iconLeft={Icons.TRASH_2}
-                size={"x0"}
-                basic={"true"}
-                //there's gotta be a better way to do this
-                onclick={trashObject.bind(item.id)}
-                />
-              </div>
-            }/>)
+            SDFUI.state.scene.editItems.map(item => <ListItem label={item.type.charAt(0).toUpperCase() + item.type.slice(1)} contentRight={
+                      <div style={{display:"flex", flexDirection:"row", width:"100px"}}>
+                        <input type="color" style={{margin:"auto", width:"100%", backgroundColor:"white", border:"none"}} value={item.properties.stroke} data-id={item.id} oninput={strokeColorChange}/>
+                        <input type="color" style={{margin:"auto", width:"100%", backgroundColor:"white", border:"none"}} value={item.properties.fill} data-id={item.id} oninput={fillColorChange}/>
+                        <Button iconLeft={Icons.TRASH_2}
+                          size={"x0"}
+                          basic={"true"}
+                          //there's gotta be a better way to do this
+                          onclick={trashObject.bind(item.id)}
+                          />
+                      </div>
+                    }
+                    contentLeft={
+                      <Icon
+                        style={{cursor:"move"}}
+                        name={Icons.MORE_VERTICAL}
+                        onclick={rowBeginDrag}
+                      />
+                    }
+            />)
           }
         </List>
       </div>
