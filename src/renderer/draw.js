@@ -235,6 +235,7 @@ function update() {
 
   if(selDist.d < 0.01 && state.ui.mode === "select" && selDist.sel){
     document.getElementById("canvasContainer").style.cursor = "grab";
+    // console.log(selDist.sel.id);
     store.dispatch(ACT.editHoverSet(selDist.sel.id)) // add item to hover state
   } else {
     document.getElementById("canvasContainer").style.cursor = "auto"
@@ -301,9 +302,11 @@ function update() {
 
     if(typeof layer.uniforms.u_sel  === 'number'){
       if(state.scene.selected.includes(drawObject.id)){
-        layer.uniforms.u_sel = 1.0;
+        if (layer.uniforms.u_sel < 1.0) layer.uniforms.u_sel += 0.15;
+      } else if (state.scene.hover === drawObject.id) {
+        if (layer.uniforms.u_sel < 0.7) layer.uniforms.u_sel += 0.08;
       } else {
-        layer.uniforms.u_sel = 0.0;
+        if (layer.uniforms.u_sel > 0.0) layer.uniforms.u_sel -= 0.15;
       }
     }
     

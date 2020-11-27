@@ -282,20 +282,19 @@ export function editOpacity(opacity, id){
 }
 
 // can only hover over a single item
-export function editHoverSet(hover){
+export function editHoverSet(id){
   return{
     type: scene,
     subtype: EDIT_HOVERSET,
-    hover,
+    id,
   }
 }
 
 // can only hover over a single item
-export function editHoverClr(hover){
+export function editHoverClr(){
   return{
     type: scene,
     subtype: EDIT_HOVERCLR,
-    hover,
   }
 }
 // array of selected items
