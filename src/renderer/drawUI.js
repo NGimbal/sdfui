@@ -428,13 +428,16 @@ export function stressTest(){
   SDFUI.store.dispatch(ACT.editStroke(stroke, SDFUI.state.scene.editItem));
 
   for(let j = 0; j < n; j++){
-    let x = Math.random() + lociX;
-    let y = Math.random() + lociY;
-    let randPt = new PRIM.vec(x, y)
-    let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
-    // I feel like the following line should also go in a reducer
-    let pt = currLayer.uniforms.u_eTex.addPoint(randPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
-    SDFUI.store.dispatch(ACT.sceneAddPt(pt));
+    //need to debounce for pt id method still not working perfectly...
+    setTimeout(() => {
+      let x = Math.random() + lociX;
+      let y = Math.random() + lociY;
+      let randPt = new PRIM.vec(x, y)
+      let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
+      // I feel like the following line should also go in a reducer
+      let pt = currLayer.uniforms.u_eTex.addPoint(randPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
+      SDFUI.store.dispatch(ACT.sceneAddPt(pt));
+    }, 200)
   }
 
   let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];

@@ -71,6 +71,8 @@ const sceneInit = {
   rmPts:[],
   //all items in scene
   editItems:[new PRIM.prim("polyline", [], {...PRIM.propsDefault})],
+  hover:{},
+  selected:[],
 }
 
 // const sceneDoc = Automerge.from(sceneInit);
@@ -327,8 +329,8 @@ function scene(_state=initialState, action) {
       });
     case ACT.EDIT_WEIGHT:
       return Object.assign({}, state,{
-        editItems: state.editItems.map((item, index) => {
-          if(index !== action.index) return item;
+        editItems: state.editItems.map((item) => {
+          if(item.id !== action.id) return item;
           return Object.assign({}, item, {
             properties: {...item.properties, weight:action.weight}
           })
@@ -336,8 +338,8 @@ function scene(_state=initialState, action) {
       });
     case ACT.EDIT_RADIUS:
       return Object.assign({}, state,{
-        editItems: state.editItems.map((item, index) => {
-          if(index !== action.index) return item;
+        editItems: state.editItems.map((item) => {
+          if(item.id !== action.id) return item;
           return Object.assign({}, item, {
             properties: {...item.properties, radius: action.radius}
           })
@@ -345,8 +347,8 @@ function scene(_state=initialState, action) {
       });
     case ACT.EDIT_OPACITY:
       return Object.assign({}, state,{
-        editItems: state.editItems.map((item, index) => {
-          if(index !== action.index) return item;
+        editItems: state.editItems.map((item) => {
+          if(item.id !== action.id) return item;
           return Object.assign({}, item, {
             properties: {...item.properties, opacity: action.opacity}
           })
@@ -354,8 +356,8 @@ function scene(_state=initialState, action) {
       });
     case ACT.EDIT_FILL:
       return Object.assign({}, state,{
-        editItems: state.editItems.map((item, index) => {
-          if(index !== action.index) return item;
+        editItems: state.editItems.map((item) => {
+          if(item.id !== action.id) return item;
           return Object.assign({}, item, {
             properties: {...item.properties, fill: action.hex}
           })
@@ -363,21 +365,50 @@ function scene(_state=initialState, action) {
       });
     case ACT.EDIT_STROKE:
       return Object.assign({}, state,{
-        editItems: state.editItems.map((item, index) => {
-          if(index !== action.index) return item;
+        editItems: state.editItems.map((item) => {
+          if(item.id !== action.id) return item;
           return Object.assign({}, item, {
             properties: {...item.properties, stroke: action.hex.slice()}
           })
         }),
       });
+    case ACT.EDIT_SETSEL:
+      //action.id action.state
+      return Object.assign({}, state,{
+        editItems: state.editItems.map((item) => {
+          if(item.id !== action.id) return item;
+          return Object.assign({}, item, {
+            properties: {...item.properties, sel: action.state}
+          })
+        }),
+      });
     case ACT.EDIT_FILTER:
       return Object.assign({}, state,{
-        editItems: state.editItems.map((item, index) => {
-          if(index !== action.index) return item;
+        editItems: state.editItems.map((item) => {
+          if(item.id !== action.id) return item;
           return Object.assign({}, item, {
             properties: {...item.properties, filter: action.filter}
           })
         }),
+      });
+    // 
+    case ACT.EDIT_HOVERSET:
+      return Object.assign({}, state,{
+        hover: action.id
+      });
+    case ACT.EDIT_HOVERCLR:
+      return Object.assign({}, state,{
+        hover: ""
+      });
+    // Selection array
+    case ACT.EDIT_SELECTINS:
+      return Object.assign({}, state,{
+        selected: [...state.selected, action.sel]
+      });
+    // Selection array
+    case ACT.EDIT_SELECTRMV:
+      return Object.assign({}, state,{
+        selected: state.selected.filter(item => item !== action.sel)
       });
     default:
       return state;

@@ -83,19 +83,30 @@ function ContextMenu() {
 
 
   function strokeWeightChange(e){
-    SDFUI.store.dispatch(ACT.editWeight(e.target.value / 10000, SDFUI.state.scene.editItem));
+    for (let sel of SDFUI.state.scene.selected){
+      SDFUI.store.dispatch(ACT.editWeight(e.target.value / 10000, sel));
+    }
   }
 
   function strokeColorChange(e){
-    SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), SDFUI.state.scene.editItem));
+    for (let sel of SDFUI.state.scene.selected){
+      SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), sel));
+    }
+    // SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), SDFUI.state.scene.editItem));
   }
 
   function fillOpacityChange(e){
-    SDFUI.store.dispatch(ACT.editOpacity(e.currentTarget.value / 100, SDFUI.state.scene.editItem));
+    for (let sel of SDFUI.state.scene.selected){
+      SDFUI.store.dispatch(ACT.editOpacity(e.currentTarget.value / 100, sel));
+    }
+    // SDFUI.store.dispatch(ACT.editOpacity(e.currentTarget.value / 100, SDFUI.state.scene.editItem));
   }
 
   function fillColorChange(e){
-    SDFUI.store.dispatch(ACT.editFill(chroma(e.currentTarget.value).hex(), SDFUI.state.scene.editItem));
+    for (let sel of SDFUI.state.scene.selected){
+      SDFUI.store.dispatch(ACT.editFill(chroma(e.currentTarget.value).hex(), sel));
+    }
+    // SDFUI.store.dispatch(ACT.editFill(chroma(e.currentTarget.value).hex(), SDFUI.state.scene.editItem));
   }
 
   return {
