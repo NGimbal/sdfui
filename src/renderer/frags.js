@@ -278,6 +278,7 @@ uniform vec3 u_stroke;
 uniform float u_opacity;
 
 uniform vec3 u_idCol;
+uniform float u_sel;
 
 out vec4 outColor;
 
@@ -356,28 +357,39 @@ vec4 sceneDist(vec2 uv) {
 
 void main(){
   outColor = vec4(u_idCol, 0.125);
+
   vec2 uv = vec2(v_texcoord);
   uv.x *= u_resolution.x / u_resolution.y;
-  // uv.xy = u_scale.xy;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
 
   vec4 scene = sceneDist(uv);
+
+
   vec3 col = scene.xyz;
-  float dist = scene.w;
+  float dist = line(scene.w, u_weight);
 
-  // dist = line(dist, u_weight);
-  // col = mix(vec3(1.0), col, dist);
+  //drop shadow
+  vec2 dShTrans = normalize(vec2(-0.125, 0.125))*.01;
 
-  if ( dist < 0.0000000000000001){
+  float dSh = sceneDist(uv - dShTrans).w;
+  dSh = (1. - smoothstep(0., 0.15, sqrt(dSh)))*.25;
+  dSh *= u_sel;
+  
+  if ( dist + dSh < 0.01){
     discard;
   }
 
-  // if ( dist > 0.0000000000000001){
-  //   outColor = vec4(col, dist);
-  // }
+  // outColor = vec4(dSh);
+  outColor = vec4(col * vec3(max(dSh, dist)), (dist + dSh) * u_opacity);
+  // #else
 
-  outColor = vec4(col, dist * u_opacity);  
+  //   if ( dist < 0.0000000000000001){
+  //     discard;
+  //   }
+
+  //   outColor = vec4(col, dist * u_opacity);
+  // #endif
 }`;
 //---------------------------------------------
 export const polygonEdit =

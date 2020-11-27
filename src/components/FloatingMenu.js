@@ -27,6 +27,10 @@ function FloatingMenu() {
   let primSel = "Circle";
   let primList = ["Polyline", "Polygon", "Circle", "Rectangle"];
 
+  // how does this work with the unified theory of selection?
+  // someday will be able to transform one type to the next...
+  // not today...
+  // should clear selection and revert to most recent
   function primitiveChange(e){
     primSel = e.toLowerCase();
     console.log(primSel);
@@ -76,19 +80,27 @@ function FloatingMenu() {
   }
 
   function strokeWeightChange(e){
-    SDFUI.store.dispatch(ACT.editWeight(e.target.value / 10000, SDFUI.state.scene.editItem));
+    for (let sel of SDFUI.state.scene.selected){
+      SDFUI.store.dispatch(ACT.editWeight(e.target.value / 10000, sel));
+    }
   }
 
   function strokeColorChange(e){
-    SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), SDFUI.state.scene.editItem));
+    for (let sel of SDFUI.state.scene.selected){
+      SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), sel));
+    }
   }
 
   function fillOpacityChange(e){
-    SDFUI.store.dispatch(ACT.editOpacity(e.currentTarget.value / 100, SDFUI.state.scene.editItem));
+    for (let sel of SDFUI.state.scene.selected){
+      SDFUI.store.dispatch(ACT.editOpacity(e.currentTarget.value / 100, sel));
+    }
   }
 
   function fillColorChange(e){
-    SDFUI.store.dispatch(ACT.editFill(chroma(e.currentTarget.value).hex(), SDFUI.state.scene.editItem));
+    for (let sel of SDFUI.state.scene.selected){
+      SDFUI.store.dispatch(ACT.editFill(chroma(e.currentTarget.value).hex(), sel));
+    }
   }
 
   return {

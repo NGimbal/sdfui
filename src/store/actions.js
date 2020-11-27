@@ -20,47 +20,53 @@ export const STATUS_RES         = 'STATUS_RES'; //resolution
 export const STATUS_EXPORT      = 'STATUS_EXPORT'; //resolution
 export const STATUS_RASTER      = 'STATUS_RASTER'; //resolution
 
-//UI
-export const UI_TARGETHOME      = 'UI_TARGETHOME'; //return to origin rendering
-export const UI_POINTS          = 'UI_POINTS'; //toggle show points
-export const UI_MODE            = 'UI_MODE'; //toggle show points
+//UI 
+export const UI_TARGETHOME       = 'UI_TARGETHOME'; //return to origin rendering
+export const UI_POINTS           = 'UI_POINTS'; //toggle show points
+export const UI_MODE             = 'UI_MODE'; //toggle show points
+ 
+//CURSOR 
+export const CURSOR_SET          = 'CURSOR_SET';  //curr cursor position
+export const CURSOR_SNAPGRID     = 'CURSOR_SNAPGRID'; //snap to grid
+export const CURSOR_SNAPPT       = 'CURSOR_SNAPPT';  //snap to points
+export const CURSOR_SNAPGLOBAL   = 'CURSOR_SNAPGLOBAL'; //snap global angle
+export const CURSOR_SNAPREF      = 'CURSOR_SNAPREF'; // snap reference angle
+export const CURSOR_GRIDSCALE    = 'CURSOR_GRIDSCALE'; //gridscale, int
+export const CURSOR_GRID         = 'CURSOR_GRID'; //grid, vec
+//DRAW 
+export const DRAW_DRAWING        = "DRAW_DRAWING"; //are we drawing?
+export const DRAW_EDITITEM       = "DRAW_EDITITEM"; //curr edit item
+export const EDIT_FILTER         = "DRAW_FILTER"; //curr filter
+// 
+export const EDIT_STROKE         = "EDIT_STROKE"; //stroke color
+export const EDIT_FILL           = "EDIT_FILL"; //fill color
+export const EDIT_WEIGHT         = "EDIT_WEIGHT"; //stroke weight
+export const EDIT_RADIUS         = "EDIT_RADIUS"; //shape radius
+export const EDIT_OPACITY        = "EDIT_OPACITY"; //shape radius
+export const EDIT_SETSEL         = "EDIT_SETSEL"; //set selection state
+//LAYERS 
+export const LAYER_PUSH          = "LAYER_PUSH"; //push a new layer
+export const LAYER_PUSHIMAGE     = "LAYER_PUSHIMAGE"; //push a new layer
+export const LAYER_POP           = "LAYER_POP"; //pop a layer, should be addressed by id
+export const LAYER_UPDATE        = "LAYER_UPDATE"; //update a layer, should be addressed by id
+ 
+//SCENE 
+export const SCENE_SETEDITITEM   = 'SCENE_SETEDITITEM' //sets edit item
+export const SCENE_UNSETEDITITEM = 'SCENE_UNSETEDITITEM' //resets edit item
+export const SCENE_ADDPT         = 'SCENE_ADDPT'; //add point to scene
+export const SCENE_RMVPT         = 'SCENE_RMVPT'; //stages pt for removal
+export const SCENE_FINRMVPT      = 'SCENE_FINRMVPT'; //finishes removing pt from state
+export const SCENE_EDITUPDATE    = 'SCENE_EDITUPDATE'; //marks the edit item for update
+export const SCENE_NEWEDITITEM   = 'SCENE_NEWEDITITEM';
+export const SCENE_PUSHEDITITEM  = 'SCENE_PUSHEDITITEM';
+export const SCENE_EDITPROPS     = 'SCENE_EDITPROPS'; //needs to fire when properties are changed
+export const SCENE_ITEMUPDATE    = 'SCENE_ITEMUPDATE'; //marks prim for update
+export const SCENE_RMVITEM       = 'SCENE_RMVITEM'; //remove item w/ id - must also remove points
+export const EDIT_HOVERSET       = 'EDIT_HOVERSET'; // set current hover item
+export const EDIT_HOVERCLR       = 'EDIT_HOVERCLR'; // set current hover item
+export const EDIT_SELECTINS      = 'EDIT_SELECTINS'; //add selected item
+export const EDIT_SELECTRMV      = 'EDIT_SELECTRMV'; //Remove selected item
 
-//CURSOR
-export const CURSOR_SET         = 'CURSOR_SET';  //curr cursor position
-export const CURSOR_SNAPGRID    = 'CURSOR_SNAPGRID'; //snap to grid
-export const CURSOR_SNAPPT      = 'CURSOR_SNAPPT';  //snap to points
-export const CURSOR_SNAPGLOBAL  = 'CURSOR_SNAPGLOBAL'; //snap global angle
-export const CURSOR_SNAPREF     = 'CURSOR_SNAPREF'; // snap reference angle
-export const CURSOR_GRIDSCALE   = 'CURSOR_GRIDSCALE'; //gridscale, int
-export const CURSOR_GRID        = 'CURSOR_GRID'; //grid, vec
-//DRAW
-export const DRAW_DRAWING       = "DRAW_DRAWING"; //are we drawing?
-export const DRAW_EDITITEM      = "DRAW_EDITITEM"; //curr edit item
-export const EDIT_FILTER        = "DRAW_FILTER"; //curr filter
-//
-export const EDIT_STROKE        = "EDIT_STROKE"; //stroke color
-export const EDIT_FILL          = "EDIT_FILL"; //fill color
-export const EDIT_WEIGHT        = "EDIT_WEIGHT"; //stroke weight
-export const EDIT_RADIUS        = "EDIT_RADIUS"; //shape radius
-export const EDIT_OPACITY       = "EDIT_OPACITY"; //shape radius
-//LAYERS
-export const LAYER_PUSH         = "LAYER_PUSH"; //push a new layer
-export const LAYER_PUSHIMAGE    = "LAYER_PUSHIMAGE"; //push a new layer
-export const LAYER_POP          = "LAYER_POP"; //pop a layer, should be addressed by id
-export const LAYER_UPDATE       = "LAYER_UPDATE"; //update a layer, should be addressed by id
-
-//SCENE
-export const SCENE_SETEDITITEM  = 'SCENE_SETEDITITEM' //sets edit item
-export const SCENE_UNSETEDITITEM= 'SCENE_UNSETEDITITEM' //resets edit item
-export const SCENE_ADDPT        = 'SCENE_ADDPT'; //add point to scene
-export const SCENE_RMVPT        = 'SCENE_RMVPT'; //stages pt for removal
-export const SCENE_FINRMVPT     = 'SCENE_FINRMVPT'; //finishes removing pt from state
-export const SCENE_EDITUPDATE   = 'SCENE_EDITUPDATE'; //marks the edit item for update
-export const SCENE_NEWEDITITEM  = 'SCENE_NEWEDITITEM';
-export const SCENE_PUSHEDITITEM = 'SCENE_PUSHEDITITEM';
-export const SCENE_EDITPROPS    = 'SCENE_EDITPROPS'; //needs to fire when properties are changed
-export const SCENE_ITEMUPDATE   = 'SCENE_ITEMUPDATE'; //marks prim for update
-export const SCENE_RMVITEM      = 'SCENE_RMVITEM'; //remove item w/ id - must also remove points
 //ACTION CREATORS
 
 //establishes grid offset
@@ -134,6 +140,7 @@ export function uiMode(mode){
     mode: mode,
   }
 }
+
 
 //records cursor position
 export function cursorSet(vec2){
@@ -214,63 +221,99 @@ export function drawEditItem(primType){
 }
 
 //what is the current filter - string
-export function editFilter(filter, index){
+export function editFilter(filter, id){
   return{
     type: scene,
     subtype: EDIT_FILTER,
     filter,
-    index,
+    id,
   }
 }
 
 //what is the current stroke color - vec(r, g, b, a)
-export function editStroke(hex, index){
+export function editStroke(hex, id){
   return{
     type: scene,
     subtype: EDIT_STROKE,
     hex,
-    index,
+    id,
   }
 }
 
 //current fill color
-export function editFill(hex, index){
+export function editFill(hex, id){
   return{
     type: scene,
     subtype: EDIT_FILL,
-    hex: hex,
-    index: index,
+    hex,
+    id
   }
 }
 
 //what is the current stroke weight int
-export function editWeight(weight, index){
+export function editWeight(weight, id){
   return{
     type: scene,
     subtype: EDIT_WEIGHT,
     weight,
-    index,
+    id,
   }
 }
 
 //what is the current shape radius int
-export function editRadius(radius, index){
+export function editRadius(radius, id){
   return{
     type: scene,
     subtype: EDIT_RADIUS,
     radius,
-    index,
+    id,
   }
 }
 
 
 //what is the current shape radius float
-export function editOpacity(opacity, index){
+export function editOpacity(opacity, id){
   return{
     type: scene,
     subtype: EDIT_OPACITY,
     opacity,
-    index,
+    id,
+  }
+}
+
+// can only hover over a single item
+export function editHoverSet(id){
+  return{
+    type: scene,
+    subtype: EDIT_HOVERSET,
+    id,
+  }
+}
+
+// can only hover over a single item
+export function editHoverClr(){
+  return{
+    type: scene,
+    subtype: EDIT_HOVERCLR,
+  }
+}
+// array of selected items
+// might want to have different types of selection?
+export function editSelectIns(sel){
+  return{
+    type: scene,
+    subtype: EDIT_SELECTINS,
+    sel,
+  }
+}
+
+// array of selected items
+// might want to have different types of selection?
+export function editSelectRmv(sel){
+  return{
+    type: scene,
+    subtype: EDIT_SELECTRMV,
+    sel,
   }
 }
 

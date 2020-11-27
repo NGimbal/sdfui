@@ -73,7 +73,6 @@ export class Layer {
     this.matrix = twgl.m4.ortho(0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
     this.matrix = twgl.m4.translate(this.matrix, twgl.v3.create(0, 0, 0));
     this.matrix = twgl.m4.scale(this.matrix, twgl.v3.create(gl.canvas.width, gl.canvas.height, 1));
-
     this.uniforms.u_matrix = this.matrix;
 
     //create program
@@ -81,19 +80,14 @@ export class Layer {
 
     //create plane
     let positions = new Float32Array([0,0, 0,1, 1,0, 1,0, 0,1, 1,1,]);
-
     let texcoords = new Float32Array([0,0, 0,1, 1,0, 1,0, 0,1, 1,1,]);
-
     var arrays = {
       position: {numComponents: 2, data: positions},
       texcoord: {numComponents: 2, data:texcoords}
     }
-
-    // this is the plane
     this.bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
 
     gl.useProgram(this.programInfo.program);
-
     twgl.setBuffersAndAttributes(gl, this.programInfo, this.bufferInfo);
   }
 }
@@ -203,6 +197,7 @@ function getUniforms(type){
         u_weight: properties.weight,
         u_opacity: properties.opacity,
         u_stroke: chroma(properties.stroke).gl().slice(0,3),
+        u_sel: properties.sel,
       }
     case'polygon':
       return {

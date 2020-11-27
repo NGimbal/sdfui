@@ -35,19 +35,39 @@ function LayerTree() {
     console.log(e);
   }
 
+  function selectObject(e){
+
+    let item = SDFUI.state.scene.editItems.find(item => item.id === this);
+    
+    if(SDFUI.state.scene.selected.filter(id => id === this).length > 0){
+      SDFUI.store.dispatch(ACT.editSelectRmv(this));
+    } else {
+      SDFUI.store.dispatch(ACT.editSelectIns(this));
+    }
+
+    if(SDFUI.state.scene.selected.length > 0){
+      SDFUI.store.dispatch(ACT.uiMode("select"));
+    } else {
+      SDFUI.store.dispatch(ACT.uiMode("draw"));
+    }
+  }
+
   return {
     view: () => (
       <div>
         <List style={{height:"100%", maxHeight:"unset"}}>
           {
-            SDFUI.state.scene.editItems.map(item => <ListItem label={item.type.charAt(0).toUpperCase() + item.type.slice(1)} contentRight={
+            SDFUI.state.scene.editItems.map(item => <ListItem label={item.type.charAt(0).toUpperCase() + item.type.slice(1)} 
+                    onclick={selectObject.bind(item.id)}
+                    selected={SDFUI.state.scene.selected.includes(item.id)}
+                    contentRight={
                       <div style={{display:"flex", flexDirection:"row", width:"100px"}}>
                         <input type="color" style={{margin:"auto", width:"100%", backgroundColor:"white", border:"none"}} value={item.properties.stroke} data-id={item.id} oninput={strokeColorChange}/>
                         <input type="color" style={{margin:"auto", width:"100%", backgroundColor:"white", border:"none"}} value={item.properties.fill} data-id={item.id} oninput={fillColorChange}/>
                         <Button iconLeft={Icons.TRASH_2}
                           size={"x0"}
                           basic={"true"}
-                          //there's gotta be a better way to do this
+
                           onclick={trashObject.bind(item.id)}
                           />
                       </div>

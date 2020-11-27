@@ -24,10 +24,6 @@ var view;
 //twgl
 export var gl;
 
-// export var dataShader;
-// export var editTex;
-var inView = [];
-
 export const store = createStore(reducer);
 export var state = store.getState();
 
@@ -71,8 +67,8 @@ function listener(){
 };
 
 //subscribe to store changes - run listener to set relevant variables
-// store.subscribe(() => console.log(listener()));
-store.subscribe(() => listener());
+store.subscribe(() => console.log(listener()));
+// store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
@@ -207,7 +203,6 @@ export function addImage(_srcURL, dims, evPt) {
   
   let imgLayer = new Layer({type:"img"}, SF.imgVert, SF.imgFrag, imgUniforms);
   
-  // image is getting slightly distorted still. or am I seeing things?
   // Will want to add some cool image processing stuff at some point...
   // Blending, edge detection, img -> sdf in some way :)
   
@@ -236,7 +231,19 @@ function update() {
 
   ui.update();
 
-  // updateCtx();
+  let selDist = sceneDist();
+
+  if(selDist.d < 0.01 && state.ui.mode === "select" && selDist.sel){
+    document.getElementById("canvasContainer").style.cursor = "grab";
+    // console.log(selDist.sel.id);
+    store.dispatch(ACT.editHoverSet(selDist.sel.id)) // add item to hover state
+  } else {
+    document.getElementById("canvasContainer").style.cursor = "auto"
+    // clear state.hover
+    store.dispatch(ACT.editHoverClr())
+  }
+
+  updateCtx(selDist);
 
   let resize = twgl.resizeCanvasToDisplaySize(gl.canvas);
 
@@ -245,6 +252,8 @@ function update() {
     store.dispatch(ACT.statusRes({x:gl.canvas.width, y:gl.canvas.height}));
   }
   //update uniforms - might want a needsUpdate on these at some point
+  //also might want to switch this to loop over edit items
+  //and only edit items in view
   state.render.layers.forEach(function(layer) {
 
     if(layer.bbox){ updateMatrices(layer); }
@@ -265,9 +274,12 @@ function update() {
     //keep layer uniforms aligned with drawObject
     let drawObject = state.scene.editItems.find(a => a.id === layer.prim);
     
-    // how can I make sure that this doesn't happen?
-    // how do I keep edit item array and layer array in sync as I add / remove / modify things?
+    // edit item array and layer array may become out of sync temporarily
+    // as edit items are added and removed
     if(!drawObject) return;
+
+    // could put check here to see if the layer uniforms need to be updated
+    // update on every render seems fine at the moment
     
     if(typeof layer.uniforms.u_stroke === 'object'){
       layer.uniforms.u_stroke = chroma(drawObject.properties.stroke).gl().slice(0,3);
@@ -287,8 +299,18 @@ function update() {
     if(typeof layer.uniforms.u_radius  === 'number'){
       layer.uniforms.u_radius = drawObject.properties.radius;
     }
+
+    if(typeof layer.uniforms.u_sel  === 'number'){
+      if(state.scene.selected.includes(drawObject.id)){
+        if (layer.uniforms.u_sel < 1.0) layer.uniforms.u_sel += 0.15;
+      } else if (state.scene.hover === drawObject.id) {
+        if (layer.uniforms.u_sel < 0.7) layer.uniforms.u_sel += 0.08;
+      } else {
+        if (layer.uniforms.u_sel > 0.0) layer.uniforms.u_sel -= 0.15;
+      }
+    }
     
-    // this doesn't make me feel good
+    // weird but probably okay
     if(typeof layer.uniforms.u_cTex === 'number'){
       layer.uniforms.u_cTex = layer.uniforms.u_eTex.cTexel;
     }
@@ -306,15 +328,16 @@ function draw() {
   gl.clearColor(1, 1, 1, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  //spatial hashing for rendering
+  //spatial indexing / hashing for rendering
   let bboxSearch = bboxTree.search(view).map(b => b.id);
-  // console.log(inView);
-  inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
+
+  let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
                                               state.scene.editItems[state.scene.editItem].id === l.prim || 
                                               l.primType === "grid");
   // console.log(inView);
   twgl.drawObjectList(gl, inView);
 
+  // save raster image
   if(state.status.raster){
     canvas.toBlob((blob) => {
       saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
@@ -355,12 +378,10 @@ function scrollPan(e){
   }
   // console.log(dPt);
   // console.log(view);
-
 }
 
 // mouse dragging - I think this is disabled at the moment
-// would be good with touchstart / touchend for use with an iPad
-// whenever iPads get webgl2
+// would be good with touchstart / touchend
 function startDrag(e){
   if(!state.ui.drag)return;
   PRIM.vecSet(mouseDragStart, state.cursor.pos.x, state.cursor.pos.y);
@@ -371,22 +392,19 @@ function startDrag(e){
 
 function doDrag(e){
   PRIM.vecSet(dPt, (state.cursor.pos.x - mouseDragStart.x), (state.cursor.pos.y - mouseDragStart.y));
-  // console.log(dPt);
 }
 
 function endDrag(e){
-  // console.log('endDrag');
   canvasContainer.removeEventListener('mousemove', doDrag);
   canvasContainer.removeEventListener('mouseup', endDrag);
 }
 
-function updateCtx(){
+function updateCtx(selDist){
   ctx.clearRect(0,0, ctx.canvas.width, ctx.canvas.height);
 
   let pixelPt = {x:0, y:0};
 
-  
-  let selDist = sceneDist();
+  // let selDist = sceneDist();
   let dist = selDist.d;
   let selPrim = selDist.sel;
 
@@ -411,14 +429,29 @@ function updateCtx(){
 function sceneDist(){
   let dist = 1000;
   let selPrim;
-  // console.log(inView);
-  for (let layer of inView){
+
+  let mouse = {
+    minX: mPt.x,
+    maxX: mPt.x,
+    minY: mPt.y,
+    maxY: mPt.y,
+  }
+
+  let bboxSearch = bboxTree.search(mouse).map(b => b.id);
+
+  let inMouse = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
+                                              state.scene.editItems[state.scene.editItem].id === l.prim || 
+                                              l.primType === "grid");
+
+  for (let layer of inMouse){
     if(!layer.prim) continue;
     let prim = state.scene.editItems.find(p => p.id === layer.prim);
     if (prim.id == state.scene.editItems[state.scene.editItem].id) continue;
     // also should have a "broad phase" check here on bounding box
     // this is where some spatial hashing could go
     let currDist = PRIM.distPrim(mPt, prim);
+    // console.log(prim);
+
     if (currDist < dist){
       selPrim = prim;
       dist = currDist;
@@ -440,8 +473,9 @@ const saveBlob = (function() {
 }());
 
 // this is not being called currently
-export function modifyDefine(_dataShader, define, val){
-  let shader = _dataShader.shader.slice();
+// could this be used for selection?
+export function modifyDefine(_shader, define, val){
+  let shader = _shader.slice();
   //change #define
   let insString = "#define " + define + " ";
   let insIndex = shader.indexOf(insString);
@@ -452,5 +486,8 @@ export function modifyDefine(_dataShader, define, val){
 
   startShader += val + "\n";
   shader = startShader + endShader;
-  dataShader.shader = shader;
+  
+  console.log(shader);
+  
+  return shader;
 }

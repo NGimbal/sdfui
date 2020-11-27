@@ -7,6 +7,11 @@ import {getFloat16, setFloat16} from "@petamoriken/float16";
 import * as chroma from 'chroma-js';
 import * as twgl from 'twgl.js';
 
+//uuid function
+export function uuid(){
+  return (+new Date).toString(36).slice(-8);
+}
+
 //simple class for packaging shader and polypoint
 export class DataShader{
   constructor(shader, parameters){
@@ -32,7 +37,7 @@ export class vec{
     //parentId
     this.parentId = pId || "";
 
-    this.id = id || (+new Date).toString(36).slice(-8);
+    this.id = id || uuid();
     this.update = update || false;
   }
 }
@@ -132,6 +137,7 @@ export var propsDefault = {
   weight:0.001,
   radius:0.001,
   opacity:0.85,
+  sel: 0.0,  //deselected by default when it's "baked"
 }
 
 export class prim{
@@ -141,7 +147,7 @@ export class prim{
     this.pts = pts || [];
     this.properties = _props || {...propsDefault};
     this.needsUpdate = false;
-    this.id = id ||  (+new Date).toString(36).slice(-8);
+    this.id = id ||  uuid();
     //parent id
     this.pId = pId || "";
 
@@ -186,7 +192,7 @@ export class PolyPoint{
       });
 
     this.needsUpdate = false;
-    this.id = (+new Date).toString(36).slice(-8);
+    this.id = uuid();
   }
 
   clone(){
@@ -354,7 +360,7 @@ function pLineDist(mPt, prim){
     }
 
     dist = Math.min(dist, lineDist(mPt, prev, p, prim.properties.weight));
-
+    
     prev = p;
   }
   return dist;
