@@ -19,11 +19,11 @@ const statusInit = {
 }
 
 const uiInit = {
-  drawing: true,
   pause: false, //pause shader
   grid: false, //show background grid
-  points: false, //show points
-  drag: false,
+  dragging: false,
+  dragStart: false,
+  dragOrigin: new PRIM.vec(0, 0),
   //are we moving towards a target
   targeting: false,
   //where is the view moving
@@ -118,10 +118,6 @@ function ui(_state=initialState, action){
     //   return Object.assign({}, state,{
     //     grid: !state.grid
     //   });
-    case ACT.UI_POINTS:
-      return Object.assign({}, state,{
-        points: !state.points
-      });
     case ACT.UI_TARGETHOME:
       return Object.assign({}, state,{
         targeting : action.toggle,
@@ -129,6 +125,15 @@ function ui(_state=initialState, action){
     case ACT.UI_MODE:
       return Object.assign({}, state,{
         mode: action.mode
+      });
+    case ACT.UI_DRAGGING:
+      return Object.assign({}, state,{
+        dragging: action.toggle
+      });
+    case ACT.UI_DRAGSTART:
+      return Object.assign({}, state,{
+        dragStart: action.toggle,
+        dragOrigin: action.pt,
       });
     default:
       return state;
@@ -409,6 +414,11 @@ function scene(_state=initialState, action) {
     case ACT.EDIT_SELECTRMV:
       return Object.assign({}, state,{
         selected: state.selected.filter(item => item !== action.sel)
+      });
+    // Selection array
+    case ACT.EDIT_SELECTCLR:
+      return Object.assign({}, state,{
+        selected: []
       });
     default:
       return state;

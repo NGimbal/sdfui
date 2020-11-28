@@ -22,9 +22,9 @@ export const STATUS_RASTER      = 'STATUS_RASTER'; //resolution
 
 //UI 
 export const UI_TARGETHOME       = 'UI_TARGETHOME'; //return to origin rendering
-export const UI_POINTS           = 'UI_POINTS'; //toggle show points
 export const UI_MODE             = 'UI_MODE'; //toggle show points
- 
+export const UI_DRAGGING         = 'UI_DRAGGING'; //dragging state
+export const UI_DRAGSTART        = 'UI_DRAGSTART'; //start drag state
 //CURSOR 
 export const CURSOR_SET          = 'CURSOR_SET';  //curr cursor position
 export const CURSOR_SNAPGRID     = 'CURSOR_SNAPGRID'; //snap to grid
@@ -66,6 +66,7 @@ export const EDIT_HOVERSET       = 'EDIT_HOVERSET'; // set current hover item
 export const EDIT_HOVERCLR       = 'EDIT_HOVERCLR'; // set current hover item
 export const EDIT_SELECTINS      = 'EDIT_SELECTINS'; //add selected item
 export const EDIT_SELECTRMV      = 'EDIT_SELECTRMV'; //Remove selected item
+export const EDIT_SELECTCLR      = 'EDIT_SELECTCLR'; //Remove selected item
 
 //ACTION CREATORS
 
@@ -114,20 +115,28 @@ export function uiPause(toggle){
 //   }
 // }
 
-//toggles show points
-export function uiPoints(toggle){
-  return{
-    type: ui,
-    subtype: UI_POINTS,
-    toggle,
-  }
-}
-
 //
 export function uiTargetHome(toggle){
   return{
     type: ui,
     subtype: UI_TARGETHOME,
+    toggle,
+  }
+}
+
+export function uiDragStart(toggle, pt){
+  return{
+    type: ui,
+    subtype: UI_DRAGSTART,
+    toggle,
+    pt,
+  }
+}
+
+export function uiDragging(toggle){
+  return{
+    type: ui,
+    subtype: UI_DRAGGING,
     toggle,
   }
 }
@@ -314,6 +323,13 @@ export function editSelectRmv(sel){
     type: scene,
     subtype: EDIT_SELECTRMV,
     sel,
+  }
+}
+
+export function editSelectClr(){
+  return{
+    type: scene,
+    subtype: EDIT_SELECTCLR,
   }
 }
 

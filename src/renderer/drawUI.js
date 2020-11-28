@@ -69,7 +69,8 @@ export class DrawUI{
     let endDraw = new UIModifier("End Draw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true);
     let escDraw = new UIModifier("Esc Draw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true);
 
-    let endSel = new UIModifier("End Sel", "select", "Enter", {act:ACT.uiMode("draw")});
+    // hard cancel, clears selection
+    let endSel = new UIModifier("End Sel", "select", "Escape", {clck:endSelClck, update:endSelUpdate});
 
     //MODES
     let drawMods = [targetHome, screenshot, snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
@@ -78,13 +79,14 @@ export class DrawUI{
 
     //if no drawing tools are selected, drawExit();
     let draw = new UIMode("draw", drawMods, {mv:drawMv, up:drawUp});
-    let select = new UIMode("select", selMods, {mv:selMv, up:selUp});
+    let select = new UIMode("select", selMods, {mv:selMv, up:selUp, dwn:selDwn});
 
     //would like this to be kept track of in the redux store
     this.modes = [draw, select];
     // console.log(this.modes);
     
     document.querySelector('#canvasContainer').addEventListener('mouseup', this.mouseUp.bind(this));
+    document.querySelector('#canvasContainer').addEventListener('mousedown', this.mouseDown.bind(this));
     document.querySelector('#canvasContainer').addEventListener('mousemove', this.mouseMove.bind(this));
 
     //cntrl+z
@@ -113,8 +115,23 @@ export class DrawUI{
       }
     }
 
+    // I don't know where the right place for this is... 
+    // but that shouldn't stop me
+    // I do want it to be in this function because it's called
+    // in the render loop...
+    if(SDFUI.state.ui.mode === "select" && SDFUI.state.ui.dragging){
+      for (let id of SDFUI.state.scene.selected){
+        let layer = SDFUI.state.render.layers.find(layer => layer.prim === id);
+        
+        let trans = PRIM.subVec(SDFUI.mPt, SDFUI.state.ui.dragOrigin);
+        console.log(SDFUI.resolution);
+        layer.translate = twgl.v3.create(trans.x * 80, trans.y  * 80, 0);
+
+        // console.log("hi");
+      }
+    }
+
     for(let m of mode.modifiers){
-      
       //each update will deal with m.toggle on an individual basis
       if(m.update){
         m.update();
@@ -125,12 +142,21 @@ export class DrawUI{
   mouseUp(e) {
     let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
 
-    // if(!mode.up)return;
+    if(!mode.up)return;
 
     mode.up(e);
   }
 
+  mouseDown(e) {
+    let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
+
+    if(!mode.dwn)return;
+
+    mode.dwn(e);
+  }
+
   mouseMove(e) {
+    // record mouse position
     let resolution = SDFUI.resolution;
     let canvas = SDFUI.gl.canvas;
     let rect = canvas.getBoundingClientRect();
@@ -147,9 +173,14 @@ export class DrawUI{
     evPt.y = evPt.y * (SDFUI.dPt[2] / 64.);
 
     SDFUI.store.dispatch(ACT.cursorSet({x:evPt.x, y:evPt.y}));
+
+    // get mode
+    let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
+    if(!mode.up)return;
+
+    mode.mv(e);
   }
 
-  //cnrl Z
   keyUp(e){
     let key = e.key;
     let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
@@ -218,19 +249,42 @@ function endSelClck(){
 function endSelUpdate(){
   if(!this.toggle) return null;
   SDFUI.store.dispatch(ACT.uiMode("draw"));
+  SDFUI.store.dispatch(ACT.editSelectClr());
   this.toggle = false;
 }
 
-function selMv(){
-  //eval sdf scene at mouse
-  //is there a hhover item thing?
-  //need to figure out how to add ui indication for 
-  //edit item
+function selUp(e){
+  if(SDFUI.state.ui.dragging){
+    SDFUI.store.dispatch(ACT.uiDragStart(false, SDFUI.mPt));
+    SDFUI.store.dispatch(ACT.uiDragging(false));
+  } else if (SDFUI.state.ui.dragStart){
+    SDFUI.store.dispatch(ACT.uiDragStart(false, SDFUI.mPt));
+  } else if (SDFUI.state.scene.hover !== "" && 
+             SDFUI.state.scene.selected.includes(SDFUI.state.scene.hover)) {
+      // console.log("deselect");
+      SDFUI.store.dispatch(ACT.editSelectRmv(SDFUI.state.scene.hover));
+      SDFUI.store.dispatch(ACT.uiDragStart(false, SDFUI.mPt));
+  }
 }
 
-function selUp(){
+function selDwn(e){
   // dispatch set curr item
+  if(SDFUI.state.scene.hover !== ""){
+    if (!SDFUI.state.scene.selected.includes(SDFUI.state.scene.hover)){
+      // console.log("select");
+      SDFUI.store.dispatch(ACT.editSelectIns(SDFUI.state.scene.hover));
+      SDFUI.store.dispatch(ACT.uiDragStart(true, SDFUI.mPt));
+    }
+  }
 }
+
+function selMv(){
+  if(SDFUI.state.ui.dragStart && !SDFUI.state.ui.dragging){
+    // console.log("dragging");
+    SDFUI.store.dispatch(ACT.uiDragging(true));
+  }
+}
+
 //---SELECT----------------------------
 
 
@@ -281,7 +335,7 @@ function escDrawUpdate(){
   let del = deleteItem(index);
   
   if (!del) {
-    SDFUI.store.dispatch(ACT.uiMode("select"));
+    // SDFUI.store.dispatch(ACT.uiMode("select"));
     this.toggle = false;
     return;
   }
@@ -308,16 +362,10 @@ export function deleteItem(index){
 
   SDFUI.store.dispatch(ACT.layerPop(layer.id));
 
+  // questions re: why denormalzing scene this way. 
+  // premature optimization?
+  // might also be cool for multiple objects to reference same points
   for (let p of item.pts){
-    //this feels so convoluted - why do I have this separate array?
-    //I think the original idea was w/ regards to "denormalization"
-    //and the way firebase works
-    //want to have access to those points as the list changes
-    //at the same time they really are pretty useless outside the context of
-    //might have been a case of premature optimization for a particular system
-    //it gives some performance boost for loading a large scene into an R tree
-    //but that is pretty premature when you have to go through this whole
-    //effing array every time you want to delete something
     let point = SDFUI.state.scene.pts.find(pt => pt.id === p)
     SDFUI.store.dispatch(ACT.sceneRmvPt(point));
   }
@@ -429,7 +477,7 @@ export function stressTest(){
 
   for(let j = 0; j < n; j++){
     //need to debounce for pt id method still not working perfectly...
-    setTimeout(() => {
+    // setTimeout(() => {
       let x = Math.random() + lociX;
       let y = Math.random() + lociY;
       let randPt = new PRIM.vec(x, y)
@@ -437,7 +485,7 @@ export function stressTest(){
       // I feel like the following line should also go in a reducer
       let pt = currLayer.uniforms.u_eTex.addPoint(randPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
       SDFUI.store.dispatch(ACT.sceneAddPt(pt));
-    }, 200)
+    // }, 200)
   }
 
   let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];

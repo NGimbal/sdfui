@@ -56,7 +56,7 @@ function polyLineFunc(prim, shader, parameters){
   let endShader = shader.slice(insIndex);
 
   // if function exists start and end should be before beginning and after end
-  let exFuncStr = '//$START-' + prim.id;
+  let exFuncStr = '//$START-' + prim.id.substr(0,7);
 
   let exFuncIndex = shader.indexOf(exFuncStr);
 
@@ -64,7 +64,7 @@ function polyLineFunc(prim, shader, parameters){
   if(exFuncIndex >= 0){
     startShader = shader.slice(0, exFuncIndex);
 
-    let postFuncStr = '//$END-' + prim.id;
+    let postFuncStr = '//$END-' + prim.id.substr(0,7);
     let postIndex = shader.indexOf(postFuncStr);
     postIndex += postFuncStr.length;
     endShader = shader.slice(postIndex);
@@ -72,10 +72,10 @@ function polyLineFunc(prim, shader, parameters){
 
   //create function
   let posString = '\n';
-  posString += '//$START-' + prim.id + '\n';
+  posString += '//$START-' + prim.id.substr(0,7) + '\n';
 
   // p is a translation for polyLine
-  posString += 'vec4 ' + prim.id + '(vec2 uv, vec2 p) {';
+  posString += 'vec4 ' + "pline" + prim.id.substr(0,7) + '(vec2 uv, vec2 p) {';
 
   posString += '\n\tvec2 tUv = uv - p;';
 
@@ -124,7 +124,7 @@ function polyLineFunc(prim, shader, parameters){
   posString += '\n\tfinalColor = mix(finalColor, u_stroke, line(accumD, u_weight));';
   posString += '\n\treturn vec4(finalColor, accumD);';
   posString += '\n}\n';
-  posString += '//$END-' + prim.id + '\n';
+  posString += '//$END-' + prim.id.substr(0,7) + '\n';
 
   // prim.fragShader = posString;
   startShader += posString;
@@ -147,7 +147,7 @@ function polyLineCall(prim, shader){
   let posString = '\n';
 
   // p here vec2(0.0,0.0) is a translation for polygon
-  posString += '\t colDist = ' + prim.id + '(uv, vec2(0.0,0.0));\n';
+  posString += '\t colDist = ' + "pline" + prim.id.substr(0,7) + '(uv, vec2(0.0,0.0));\n';
   startShader += posString;
 
   let fragShader = startShader + endShader;
@@ -182,7 +182,7 @@ function polygonFunc(prim, shader, parameters){
   let endShader = shader.slice(insIndex);
 
   // if function exists start and end should be before beginning and after end
-  let exFuncStr = '//$START-' + prim.id;
+  let exFuncStr = '//$START-' + prim.id.substr(0,7);
 
   let exFuncIndex = shader.indexOf(exFuncStr);
 
@@ -190,7 +190,7 @@ function polygonFunc(prim, shader, parameters){
   if(exFuncIndex >= 0){
     startShader = shader.slice(0, exFuncIndex);
 
-    let postFuncStr = '//$END-' + prim.id;
+    let postFuncStr = '//$END-' + prim.id.substr(0,7);
     let postIndex = shader.indexOf(postFuncStr);
     postIndex += postFuncStr.length;
     endShader = shader.slice(postIndex);
@@ -198,7 +198,7 @@ function polygonFunc(prim, shader, parameters){
 
   //create function
   let posString = '\n';
-  posString += '//$START-' + prim.id + '\n';
+  posString += '//$START-' + prim.id.substr(0,7) + '\n';
 
   let indexX = 0;
   let indexY = 0;
@@ -214,7 +214,7 @@ function polygonFunc(prim, shader, parameters){
   // let radius = prim.properties.radius.toFixed(4);
 
   // p is a translation for polygon
-  posString += 'vec4 ' + prim.id + '(vec2 uv, vec2 p) {';
+  posString += 'vec4 ' + "pgon" + prim.id.substr(0,7) + '(vec2 uv, vec2 p) {';
 
   posString += '\n\tvec2 tUv = uv - p;\n';
 
@@ -276,7 +276,7 @@ function polygonFunc(prim, shader, parameters){
   posString += '\treturn vec4(d);\n';
   
   posString += '\n}\n';
-  posString += '//$END-' + prim.id + '\n';
+  posString += '//$END-' + prim.id.substr(0,7) + '\n';
 
   startShader += posString;
   let fragShader = startShader + endShader;
@@ -299,7 +299,7 @@ function polygonCall(prim, shader){
 
   // p here vec2(0.0,0.0) is a translation for polygon
   // eventually this will be a reference to another data texture
-  posString += '\t colDist = ' + prim.id +' (uv, vec2(0.0,0.0));\n';
+  posString += '\t colDist = ' + "pgon" + prim.id.substr(0,7) +' (uv, vec2(0.0,0.0));\n';
   startShader += posString;
 
   let fragShader = startShader + endShader;
@@ -327,7 +327,7 @@ export function circleCall(prim, layer){
   // let pt1 = SDFUI.state.scene.pts[j];
 
   // let _pt = {x:pt0.x, y:pt0.y, z:pt1.x, w:pt1.y};
-  // parameters.addPoint(_pt, prim.id);
+  // parameters.addPoint(_pt, prim.id.substr(0,7));
 
   // let cTexel = parameters.cTexel;
   // let dataSize = parameters.dataSize;

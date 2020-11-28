@@ -67,8 +67,8 @@ function listener(){
 };
 
 //subscribe to store changes - run listener to set relevant variables
-store.subscribe(() => console.log(listener()));
-// store.subscribe(() => listener());
+// store.subscribe(() => console.log(listener()));
+store.subscribe(() => listener());
 
 function setGrid(scale){
   let rX = resolution.x / resolution.y; //resolution.x
@@ -297,14 +297,14 @@ function update() {
       layer.uniforms.u_opacity = drawObject.properties.opacity;
     }
     if(typeof layer.uniforms.u_radius  === 'number'){
-      layer.uniforms.u_radius = drawObject.properties.radius;
+      layer.uniforms.u_radius = drawObject.properties.radius; 
     }
 
     if(typeof layer.uniforms.u_sel  === 'number'){
       if(state.scene.selected.includes(drawObject.id)){
         if (layer.uniforms.u_sel < 1.0) layer.uniforms.u_sel += 0.15;
       } else if (state.scene.hover === drawObject.id) {
-        if (layer.uniforms.u_sel < 0.7) layer.uniforms.u_sel += 0.08;
+        if (layer.uniforms.u_sel < 0.7) layer.uniforms.u_sel += 0.06;
       } else {
         if (layer.uniforms.u_sel > 0.0) layer.uniforms.u_sel -= 0.15;
       }
@@ -328,9 +328,11 @@ function draw() {
   gl.clearColor(1, 1, 1, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  //spatial indexing / hashing for rendering
+  // spatial indexing / hashing for rendering
   let bboxSearch = bboxTree.search(view).map(b => b.id);
 
+  // it may be that bringing objects in and out of the render list causes the framerate to drop
+  // seems to have no trouble rendering 100 plines @ 50 points each
   let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
                                               state.scene.editItems[state.scene.editItem].id === l.prim || 
                                               l.primType === "grid");

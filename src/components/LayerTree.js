@@ -11,14 +11,14 @@ function LayerTree() {
 
   function strokeColorChange(e){
     let id = e.target.getAttribute('data-id');
-    let index = SDFUI.state.scene.editItems.findIndex(item => item.id === id);
-    SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), index));
+    // let index = SDFUI.state.scene.editItems.findIndex(item => item.id === id);
+    SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), id));
   }
 
   function fillColorChange(e){
     let id = e.target.getAttribute('data-id');
-    let index = SDFUI.state.scene.editItems.findIndex(item => item.id === id);
-    SDFUI.store.dispatch(ACT.editFill(chroma(e.target.value).hex(), index));
+    // let index = SDFUI.state.scene.editItems.findIndex(item => item.id === id);
+    SDFUI.store.dispatch(ACT.editFill(chroma(e.target.value).hex(), id));
   }
 
   function trashObject(e){
@@ -57,7 +57,10 @@ function LayerTree() {
       <div>
         <List style={{height:"100%", maxHeight:"unset"}}>
           {
-            SDFUI.state.scene.editItems.map(item => <ListItem label={item.type.charAt(0).toUpperCase() + item.type.slice(1)} 
+            SDFUI.state.scene.editItems.map(item => {
+            if(item.pts.length === 0) return;
+            return (
+                  <ListItem label={item.type.charAt(0).toUpperCase() + item.type.slice(1)} 
                     onclick={selectObject.bind(item.id)}
                     selected={SDFUI.state.scene.selected.includes(item.id)}
                     contentRight={
@@ -79,7 +82,10 @@ function LayerTree() {
                         onclick={rowBeginDrag}
                       />
                     }
-            />)
+                  />
+                )
+              }
+            )
           }
         </List>
       </div>

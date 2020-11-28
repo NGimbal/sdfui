@@ -116,7 +116,15 @@ export function updateMatrices(layer){
   //matrix transformation, transformation can be baked into layer
   layer.matrix = twgl.m4.ortho(0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
 
-  layer.matrix = twgl.m4.translate(layer.matrix, twgl.v3.create(minX, minY, 0));
+  let translation = twgl.v3.create(minX, minY, 0);
+  
+  if(layer.translate){
+    // console.log(translation)
+    twgl.v3.add(translation, layer.translate, translation)
+  }
+
+  layer.matrix = twgl.m4.translate(layer.matrix, translation);
+  
   // scale our 1 unit quad - from 1 unit to texWidth, texHeight units
   layer.matrix = twgl.m4.scale(layer.matrix, twgl.v3.create(width, height, 1));
 
