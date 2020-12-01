@@ -117,14 +117,13 @@ export function updateMatrices(layer){
   layer.matrix = twgl.m4.ortho(0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
 
   let translation = twgl.v3.create(minX, minY, 0);
-  
-  if(layer.translate){
-    // console.log(translation)
-    twgl.v3.add(translation, layer.translate, translation)
-  }
 
   layer.matrix = twgl.m4.translate(layer.matrix, translation);
-  
+
+  if(layer.translate){
+    layer.matrix = twgl.m4.translate(layer.matrix, layer.translate);
+  }
+
   // scale our 1 unit quad - from 1 unit to texWidth, texHeight units
   layer.matrix = twgl.m4.scale(layer.matrix, twgl.v3.create(width, height, 1));
 
@@ -132,7 +131,7 @@ export function updateMatrices(layer){
 
   let texMatrix = twgl.m4.translation(twgl.v3.create(minX / resolution.x, minY / resolution.y, 0));
   texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(width / resolution.x, height / resolution.y, 1));
-  // layer.uniforms.u_resolution = twgl.v3.create(width, height, 0);
+
   layer.uniforms.u_textureMatrix = texMatrix;
 }
 

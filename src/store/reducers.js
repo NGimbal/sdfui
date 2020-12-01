@@ -134,7 +134,7 @@ function ui(_state=initialState, action){
     case ACT.UI_DRAGSTART:
       return Object.assign({}, state,{
         dragStart: action.toggle,
-        dragOrigin: action.pt,
+        dragOrigin: {...action.pt},
       });
     default:
       return state;

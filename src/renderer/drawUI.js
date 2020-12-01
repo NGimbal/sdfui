@@ -123,15 +123,15 @@ export class DrawUI{
       for (let id of SDFUI.state.scene.selected){
         let layer = SDFUI.state.render.layers.find(layer => layer.prim === id);
         
-        let trans = PRIM.subVec(SDFUI.state.ui.dragOrigin, SDFUI.mPt);
-        
-        //not quite sure what this factor should be
-        //also need to apply translation to edit Prim
-        //for selection evaluation
-        //all this begs the question re: whether coordinates of prims could / should be totally normalized?
-        layer.translate = twgl.v3.create(trans.x * 80, trans.y  * 80, 0);
+        // let trans = PRIM.subVec(SDFUI.mPt, SDFUI.state.ui.dragOrigin);
+        let mouse = twgl.v3.create(SDFUI.mPt.x, SDFUI.mPt.y, 1.0);
+        let origin = twgl.v3.create(SDFUI.state.ui.dragOrigin.x, SDFUI.state.ui.dragOrigin.y, 1.0);
 
-        // console.log("hi");
+        //need to apply translation to edit Prim
+        //for selection evaluation
+        layer.translate = twgl.v3.subtract(mouse, origin);
+        let res = twgl.v3.create(SDFUI.resolution.x, SDFUI.resolution.y)
+        layer.translate = twgl.v3.multiply(layer.translate, res);
       }
     }
 
@@ -472,16 +472,15 @@ class UIModifier{
 // needs prim and chroma
 export function stressTest(){
   console.log("stress test");
-  let n = 50;
-  let lociX = Math.random() * 4;
-  let lociY = Math.random() * 4;
-  let stroke = chroma.random().hex();
-
-  SDFUI.store.dispatch(ACT.editStroke(stroke, SDFUI.state.scene.editItem));
-
-  for(let j = 0; j < n; j++){
-    //need to debounce for pt id method still not working perfectly...
-    // setTimeout(() => {
+  for(let i = 0; i < 100; i++){
+    let n = 50;
+    let lociX = Math.random() * 10;
+    let lociY = Math.random() * 10;
+    let stroke = chroma.random().hex();
+  
+    SDFUI.store.dispatch(ACT.editStroke(stroke, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id));
+  
+    for(let j = 0; j < n; j++){
       let x = Math.random() + lociX;
       let y = Math.random() + lociY;
       let randPt = new PRIM.vec(x, y)
@@ -489,16 +488,16 @@ export function stressTest(){
       // I feel like the following line should also go in a reducer
       let pt = currLayer.uniforms.u_eTex.addPoint(randPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
       SDFUI.store.dispatch(ACT.sceneAddPt(pt));
-    // }, 200)
-  }
-
-  let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
-  bakeLayer(layer);
+    }
   
-  let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-  SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
-
-  //next item
-  let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
-  SDFUI.store.dispatch(ACT.layerPush(newLayer));
+    let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
+    bakeLayer(layer);
+    
+    let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+    SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
+  
+    //next item
+    let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
+    SDFUI.store.dispatch(ACT.layerPush(newLayer));
+  }
 }

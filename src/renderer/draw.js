@@ -5,11 +5,6 @@ import * as twgl from 'twgl.js';
 import {createStore} from 'redux';
 import * as RBush from 'rbush';
 
-// import firebaseConfig from './firebaseConfig.js';
-// import * as firebase from 'firebase/app';
-// import 'firebase/firestore';
-// import "firebase/auth";
-
 import * as ACT from '../store/actions.js';
 import { reducer } from '../store/reducers.js';
 
@@ -124,18 +119,18 @@ export function initDraw() {
   store.dispatch(ACT.layerPush(gridLayer));
 
   // demo shader
-  let demoUniforms = {
-    // u_matrix: matrix,
-    u_textureMatrix: twgl.m4.copy(texMatrix),
-    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_dPt: dPt,
-    u_eTex: {},
-  }
+  // let demoUniforms = {
+  //   // u_matrix: matrix,
+  //   u_textureMatrix: twgl.m4.copy(texMatrix),
+  //   u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+  //   u_dPt: dPt,
+  //   u_eTex: {},
+  // }
 
-  let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.demoFrag, demoUniforms);
-  demoLayer.bbox = new PRIM.bbox([{x:0.1250, y:0.1250}, {x:0.3125, y:0.3125}], "demo"); 
-  updateMatrices(demoLayer);
-  store.dispatch(ACT.layerPush(demoLayer));
+  // let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.demoFrag, demoUniforms);
+  // demoLayer.bbox = new PRIM.bbox([{x:0.7250, y:0.7250}, {x:1.3125, y:1.3125}], "demo"); 
+  // updateMatrices(demoLayer);
+  // store.dispatch(ACT.layerPush(demoLayer));
 
   // full screen edit layer
   let plineLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit);
@@ -208,11 +203,9 @@ function update() {
 
   if(selDist.d < 0.01 && state.ui.mode === "select" && selDist.sel){
     document.getElementById("canvasContainer").style.cursor = "grab";
-    // console.log(selDist.sel.id);
-    store.dispatch(ACT.editHoverSet(selDist.sel.id)) // add item to hover state
+    store.dispatch(ACT.editHoverSet(selDist.sel.id))
   } else {
     document.getElementById("canvasContainer").style.cursor = "auto"
-    // clear state.hover
     store.dispatch(ACT.editHoverClr())
   }
 
@@ -222,8 +215,9 @@ function update() {
 
   if(resize){
     twgl.resizeCanvasToDisplaySize(ctx.canvas);
-    store.dispatch(ACT.statusRes({x:gl.canvas.width, y:gl.canvas.height}));
+    store.dispatch(ACT.statusRes({x:gl.canvas.clientWidth, y:gl.canvas.clientHeight}));
   }
+
   //update uniforms - might want a needsUpdate on these at some point
   //also might want to switch this to loop over edit items
   //and only edit items in view
@@ -232,9 +226,10 @@ function update() {
     if(layer.bbox){ updateMatrices(layer); }
 
     gl.useProgram(layer.programInfo.program);
+
     if(resize){
-      layer.uniforms.u_resolution['0'] = gl.canvas.width;
-      layer.uniforms.u_resolution['1'] = gl.canvas.height;
+      layer.uniforms.u_resolution['0'] = gl.canvas.clientWidth;
+      layer.uniforms.u_resolution['1'] = gl.canvas.clientHeight;
     }
     if(layer.uniforms.u_mPt){
       layer.uniforms.u_mPt['0'] = mPt.x;
@@ -295,7 +290,7 @@ function update() {
 function draw() {
 
   // Tell WebGL how to convert from clip space to pixels
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+  gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
 
   // Clear the canvas
   gl.clearColor(1, 1, 1, 1);

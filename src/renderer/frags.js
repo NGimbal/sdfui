@@ -71,11 +71,16 @@ in vec2 v_texcoord;
 
 uniform sampler2D u_eTex;
 uniform vec3 u_dPt;
+uniform vec3 u_resolution;
 
 out vec4 outColor;
 
 void main() {
   vec2 uv = v_texcoord;
+  // uv.x *= u_resolution.x / u_resolution.y;
+  // uv -= u_dPt.xy;
+  // uv *= u_dPt.z;
+
   outColor = vec4(uv.x, uv.y, 0.0, 1.0);
 }`;
 //---------------------------------------------
@@ -94,34 +99,31 @@ out vec4 outColor;
 
 // float repeat(float x) { return abs(fract(x*0.5+0.5)-0.5)*2.0; }
 float gridMnr(float x) { return abs(fract(x*0.5+0.5)-0.5) * 2.; }
-float gridMjr(float x) { return abs(fract(x*0.5+0.5)-0.5) * 2.; }
 
 void main() {
   outColor = vec4(1.0);
+
   vec2 uv = v_texcoord;
   uv.x *= u_resolution.x / u_resolution.y;
-  vec2 q = v_texcoord;
   uv -= u_dPt.xy;
   uv *= u_dPt.z;
 
-  // vec2 q = uv-0.5;
+  vec2 q = v_texcoord;
 
   //https://www.shadertoy.com/view/XtVcWc - beautiful grid
-  // vec3 col = vec3(1.0) - smoothstep(0.018,0.0, abs(uv.x-0.05))*vec3(.25,0.17,0.02);
-  // col -= smoothstep(0.018,0.0, abs(uv.y-0.05))*vec3(.25,0.17,0.02);
-  // vec2 rp = mod(uv,0.75)-0.05;
-  // vec2 rp = fract(x*0.5+0.5)-0.5;
   
+  // red lines
   vec3 col = vec3(1.) - smoothstep( (u_dPt.z * 0.001),0.0, abs(gridMnr(uv.x)))*vec3(.25,0.15,0.02);
   col -= smoothstep((u_dPt.z * 0.001), 0.0, abs(gridMnr(uv.y)))*vec3(.25,0.15,0.02);
   
-  col -= (smoothstep( (u_dPt.z * 0.0002),0.0, abs(gridMnr(uv.x / 12.)))*vec3(0.,0.77,0.7)) * 0.25;
-  col -= (smoothstep((u_dPt.z * 0.0002), 0.0, abs(gridMnr(uv.y / 12.)))*vec3(0.,0.77,0.7)) * 0.25;
+  // blue lines
+  col -= (smoothstep( (u_dPt.z * 0.00015),0.0, abs(gridMnr(uv.x / 12.)))*vec3(0.,0.77,0.7)) * 0.25;
+  col -= (smoothstep((u_dPt.z * 0.00015), 0.0, abs(gridMnr(uv.y / 12.)))*vec3(0.,0.77,0.7)) * 0.25;
   
   // subtle paper texture
-  // col *= (smoothstep(0.26,.25,(fract(sin(dot(uv.x, uv.y))*150130.1)))*0.03+0.97)*vec3(1.005,1.,0.99);
+  //col *= (smoothstep(0.26,.25,(fract(sin(dot(uv.x, uv.y))*150130.1)))*0.03+0.97)*vec3(1.005,1.,0.99);
   //vignette
-  // col *= clamp(pow( 256.0*q.x*q.y*(1.0-q.x)*(1.0-q.y), .09 ),0.,1.)*.325+0.7;
+  //col *= clamp(pow( 256.0*q.x*q.y*(1.0-q.x)*(1.0-q.y), .09 ),0.,1.)*.325+0.7;
 
   outColor = vec4(col,1.0);
 }`;
