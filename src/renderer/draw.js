@@ -35,8 +35,7 @@ export var dPt = new twgl.v3.create(0, 0, 64);
 export var ptTree = new RBush();
 export var bboxTree = new RBush();
 
-// firebase.initializeApp(firebaseConfig);
-// export var db = firebase.firestore();
+var mouseDragStart = new PRIM.vec(0, 0);
 
 //Expose part of state
 function listener(){
@@ -56,6 +55,7 @@ function listener(){
       p.update = false;
     }
   }
+
   for(let pId of state.scene.rmPts){
     //normal tree search function doesnt work
     ptTree.remove(pId, (a, pId) => {
@@ -70,27 +70,6 @@ function listener(){
 // store.subscribe(() => console.log(listener()));
 store.subscribe(() => listener());
 
-function setGrid(scale){
-  let rX = resolution.x / resolution.y; //resolution.x
-  // let rY = 1.0; resolution.y
-  let scaleX = 2.0 / scale;
-  let scaleY = 2.0 / scale;
-
-  //Is the remainder odd or even?
-  let r = ((rX / scaleX) - (rX / scaleX) % 1) % 2;
-  //If even, add scaleX * 0.5;
-  r = Math.abs(r - 1);
-
-  // let offX = (((rX / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
-  let offX = scaleX * 0.5;
-  let offY = scaleY * 0.1;
-
-  //scaleX, scaleY, offsetX, offsetY
-  let gridScale = {x:scaleX, y:scaleY, z:offX, w:offY};
-  // console.log(gridScale);
-  store.dispatch(ACT.cursorGrid(gridScale));
-}
-
 export function initDraw() {
   let canvasContainer = document.querySelector('#canvasContainer');
 
@@ -98,7 +77,7 @@ export function initDraw() {
   ctx = textCanvas.getContext('2d');
 
   canvas = document.querySelector('#c');
-  //alpha: false, antialias:false
+
   gl = canvas.getContext( 'webgl2', { premultipliedAlpha: false } );
 
   twgl.setDefaults({attribPrefix: "a_"});
@@ -106,10 +85,10 @@ export function initDraw() {
   twgl.resizeCanvasToDisplaySize(ctx.canvas);
 
   //set the document resolution
-  store.dispatch(ACT.statusRes({x:canvas.width, y:canvas.height}));
+  store.dispatch(ACT.statusRes({x:canvas.clientWidth, y:canvas.clientHeight}));
 
   store.dispatch(ACT.cursorGridScale(64));
-  setGrid(state.cursor.scale);
+  store.dispatch(ACT.cursorGrid(64));
   
   view = {
     minX: (0.0 - dPt[0]) * (64 / dPt[2]),
@@ -130,9 +109,7 @@ export function initDraw() {
 
   canvasContainer.onwheel = scrollPan;
 
-  //new edit layer is full screen layer that allows for user to input data
-
-  //full screen texture matrix
+  // this ends up being an identity matrix
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
   texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
 
@@ -146,27 +123,24 @@ export function initDraw() {
   let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, gridUniforms);
   store.dispatch(ACT.layerPush(gridLayer));
 
+  // demo shader
   let demoUniforms = {
     // u_matrix: matrix,
     u_textureMatrix: twgl.m4.copy(texMatrix),
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
+    u_dPt: dPt,
     u_eTex: {},
   }
 
-  // grid layer
   let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.demoFrag, demoUniforms);
-  // demoLayer.set
-  demoLayer.bbox = new PRIM.bbox([{x:0.1250, y:0.1250}, {x:0.3125, y:0.3125}], 0.0);
-  
+  demoLayer.bbox = new PRIM.bbox([{x:0.1250, y:0.1250}, {x:0.3125, y:0.3125}], "demo"); 
   updateMatrices(demoLayer);
+  store.dispatch(ACT.layerPush(demoLayer));
 
-  // edit layer
+  // full screen edit layer
   let plineLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit);
-
   store.dispatch(ACT.layerPush(plineLayer));
 
-  //this is excellent
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -174,7 +148,6 @@ export function initDraw() {
   // gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
 
   requestAnimationFrame(render);
-//------------------------------------------------------------------------------
 }
 
 // addImage function
@@ -328,16 +301,17 @@ function draw() {
   gl.clearColor(1, 1, 1, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+  // bringing objects in and out of the render list causes 
+  // the framerate to drop
+  // without this renders 100 plines @ 50 points each fine
   // spatial indexing / hashing for rendering
-  let bboxSearch = bboxTree.search(view).map(b => b.id);
-
-  // it may be that bringing objects in and out of the render list causes the framerate to drop
-  // seems to have no trouble rendering 100 plines @ 50 points each
-  let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
-                                              state.scene.editItems[state.scene.editItem].id === l.prim || 
-                                              l.primType === "grid");
+  // let bboxSearch = bboxTree.search(view).map(b => b.id);
+  // let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
+                                              // state.scene.editItems[state.scene.editItem].id === l.prim || 
+                                              // l.primType === "grid");
+  
   // console.log(inView);
-  twgl.drawObjectList(gl, inView);
+  twgl.drawObjectList(gl, state.render.layers);
 
   // save raster image
   if(state.status.raster){
@@ -348,15 +322,11 @@ function draw() {
   }
 }
 
-function render(time) {
-
+function render() {
   update();
   draw();
-
   requestAnimationFrame(render);
 }
-
-let mouseDragStart = new PRIM.vec(0, 0);
 
 // var scale = 64;
 function scrollPan(e){

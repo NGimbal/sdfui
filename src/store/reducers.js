@@ -6,6 +6,7 @@ import * as ACT from './actions.js';
 import * as twgl from 'twgl.js';
 
 import { ptTree } from '../renderer/draw.js';
+import { scale } from 'chroma-js';
 
 var knn = require('rbush-knn');
 
@@ -230,12 +231,18 @@ function cursor(_state=initialState, action) {
         snapPt: !state.snapPt
       });
     case ACT.CURSOR_GRIDSCALE:
+
       return Object.assign({}, state,{
         scale: action.int
       });
     case ACT.CURSOR_GRID:
       return Object.assign({}, state,{
-        grid: action.vec4
+        grid: {
+          x:2.0/action.scale, 
+          y:2.0/action.scale,
+          z:action.scale,
+          w:(2.0/action.scale) * 0.1
+        }
       });
     default:
       return state;

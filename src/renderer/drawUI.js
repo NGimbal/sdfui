@@ -123,8 +123,12 @@ export class DrawUI{
       for (let id of SDFUI.state.scene.selected){
         let layer = SDFUI.state.render.layers.find(layer => layer.prim === id);
         
-        let trans = PRIM.subVec(SDFUI.mPt, SDFUI.state.ui.dragOrigin);
-        console.log(SDFUI.resolution);
+        let trans = PRIM.subVec(SDFUI.state.ui.dragOrigin, SDFUI.mPt);
+        
+        //not quite sure what this factor should be
+        //also need to apply translation to edit Prim
+        //for selection evaluation
+        //all this begs the question re: whether coordinates of prims could / should be totally normalized?
         layer.translate = twgl.v3.create(trans.x * 80, trans.y  * 80, 0);
 
         // console.log("hi");

@@ -162,11 +162,11 @@ export function cursorSet(vec2){
 
 
 //establishes grid offset
-export function cursorGrid(vec4){
+export function cursorGrid(scale){
   return{
     type: cursor,
     subtype: CURSOR_GRID,
-    vec4
+    scale
   }
 }
 

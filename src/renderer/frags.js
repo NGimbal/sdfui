@@ -58,7 +58,7 @@ uniform vec3 u_dPt;
 out vec4 outColor;
  
 void main() {
-  vec2 uv = vec2(v_texcoord);
+  vec2 uv = v_texcoord;
   // uv.x *= u_resolution.x / u_resolution.y;
 
   outColor = texture(u_img, uv);
@@ -70,13 +70,13 @@ precision mediump float;
 in vec2 v_texcoord;
 
 uniform sampler2D u_eTex;
+uniform vec3 u_dPt;
 
 out vec4 outColor;
 
 void main() {
-  outColor = vec4(0.5, 0.5, 0.5, 0.25);
-  vec2 uv = vec2(v_texcoord);
-
+  vec2 uv = v_texcoord;
+  outColor = vec4(uv.x, uv.y, 0.0, 1.0);
 }`;
 //---------------------------------------------
 export const gridFrag =
@@ -98,9 +98,9 @@ float gridMjr(float x) { return abs(fract(x*0.5+0.5)-0.5) * 2.; }
 
 void main() {
   outColor = vec4(1.0);
-  vec2 uv = vec2(v_texcoord);
+  vec2 uv = v_texcoord;
   uv.x *= u_resolution.x / u_resolution.y;
-  vec2 q = vec2(v_texcoord);
+  vec2 q = v_texcoord;
   uv -= u_dPt.xy;
   uv *= u_dPt.z;
 
@@ -203,7 +203,7 @@ vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
 
 void main(){
   outColor = vec4(1.0);
-  vec2 uv = vec2(v_texcoord);
+  vec2 uv = v_texcoord;
   uv.x *= u_resolution.x / u_resolution.y;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
@@ -358,7 +358,7 @@ vec4 sceneDist(vec2 uv) {
 void main(){
   outColor = vec4(u_idCol, 0.125);
 
-  vec2 uv = vec2(v_texcoord);
+  vec2 uv = v_texcoord;
   uv.x *= u_resolution.x / u_resolution.y;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
@@ -482,7 +482,7 @@ float AO(vec2 p, float dist, float radius, float intensity){
 
 void main(){
   outColor = vec4(1.0);
-  vec2 uv = vec2(v_texcoord);
+  vec2 uv = v_texcoord;
   uv.x *= u_resolution.x / u_resolution.y;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
@@ -665,7 +665,7 @@ vec4 sceneDist(vec2 uv) {
 
 void main(){
   outColor = vec4(u_idCol, 0.25);
-  vec2 uv = vec2(v_texcoord);
+  vec2 uv = v_texcoord;
   uv.x *= u_resolution.x / u_resolution.y;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
@@ -739,7 +739,7 @@ float AO(vec2 p, float dist, float radius, float intensity){
 
 void main(){
   outColor = vec4(1.0);
-  vec2 uv = vec2(v_texcoord);
+  vec2 uv = v_texcoord;
   uv.x *= u_resolution.x / u_resolution.y;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
@@ -818,7 +818,7 @@ vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
 
 void main(){
   outColor = vec4(u_idCol, 0.125);
-  vec2 uv = vec2(v_texcoord);
+  vec2 uv = v_texcoord;
   uv.x *= u_resolution.x / u_resolution.y;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
@@ -891,7 +891,7 @@ float AO(vec2 p, float dist, float radius, float intensity){
 
 void main(){
   outColor = vec4(1.0);
-  vec2 uv = vec2(v_texcoord);
+  vec2 uv = v_texcoord;
   uv.x *= u_resolution.x / u_resolution.y;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
@@ -984,7 +984,7 @@ vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
 
 void main(){
   outColor = vec4(u_idCol, 0.125);
-  vec2 uv = vec2(v_texcoord);
+  vec2 uv = v_texcoord;
   uv.x *= u_resolution.x / u_resolution.y;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
