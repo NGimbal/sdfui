@@ -62,8 +62,8 @@ function listener(){
 };
 
 //subscribe to store changes - run listener to set relevant variables
-// store.subscribe(() => console.log(listener()));
-store.subscribe(() => listener());
+store.subscribe(() => console.log(listener()));
+// store.subscribe(() => listener());
 
 export function initDraw() {
   let canvasContainer = document.querySelector('#canvasContainer');
@@ -120,15 +120,14 @@ export function initDraw() {
 
   // demo shader
   // let demoUniforms = {
-  //   // u_matrix: matrix,
   //   u_textureMatrix: twgl.m4.copy(texMatrix),
   //   u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
   //   u_dPt: dPt,
   //   u_eTex: {},
   // }
 
-  // let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.demoFrag, demoUniforms);
-  // demoLayer.bbox = new PRIM.bbox([{x:0.7250, y:0.7250}, {x:1.3125, y:1.3125}], "demo"); 
+  // let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.raymarchFrag, demoUniforms);
+  // demoLayer.bbox = new PRIM.bbox([{x:0., y:0.}, {x:1.0, y:1.0}], "demo"); 
   // updateMatrices(demoLayer);
   // store.dispatch(ACT.layerPush(demoLayer));
 
@@ -241,7 +240,9 @@ function update() {
     
     //keep layer uniforms aligned with drawObject
     let drawObject = state.scene.editItems.find(a => a.id === layer.prim);
-    
+
+    if(layer.primType === "demo") console.log(layer.uniforms);
+
     // edit item array and layer array may become out of sync temporarily
     // as edit items are added and removed
     if(!drawObject) return;
@@ -282,6 +283,7 @@ function update() {
     if(typeof layer.uniforms.u_cTex === 'number'){
       layer.uniforms.u_cTex = layer.uniforms.u_eTex.cTexel;
     }
+
 
     twgl.setUniforms(layer.programInfo, layer.uniforms);
   });

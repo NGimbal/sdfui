@@ -64,16 +64,12 @@ const layersInit = {
 // }
 
 const sceneInit = {
-  //curr edit Item - an index in editItems
-  editItem:0,
-  //all points in scene - eventually move to a Automerge.Table?
-  pts:[],
-  //points in scene to be removed - eventually move to a Automerge.Table?
-  rmPts:[],
-  //all items in scene
-  editItems:[new PRIM.prim("polyline", [], {...PRIM.propsDefault})],
+  editItem:0,//id of item points are being added to
+  pts:[], //all points in scene
+  rmPts:[],   //points staged to be removed
+  editItems:[new PRIM.prim("polyline", [], {...PRIM.propsDefault})], //all items in scene
   hover:{},
-  selected:[],
+  selected:[], //all items who's properties can be edited by ui
 }
 
 // const sceneDoc = Automerge.from(sceneInit);

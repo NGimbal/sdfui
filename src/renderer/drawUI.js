@@ -115,10 +115,7 @@ export class DrawUI{
       }
     }
 
-    // I don't know where the right place for this is... 
-    // but that shouldn't stop me
-    // I do want it to be in this function because it's called
-    // in the render loop...
+    // I don't know where the right place for this is... yet
     if(SDFUI.state.ui.mode === "select" && SDFUI.state.ui.dragging){
       for (let id of SDFUI.state.scene.selected){
         let layer = SDFUI.state.render.layers.find(layer => layer.prim === id);
@@ -130,6 +127,8 @@ export class DrawUI{
         //need to apply translation to edit Prim
         //for selection evaluation
         layer.translate = twgl.v3.subtract(mouse, origin);
+
+        //this needs to modified by dPt
         let res = twgl.v3.create(SDFUI.resolution.x, SDFUI.resolution.y)
         layer.translate = twgl.v3.multiply(layer.translate, res);
       }
@@ -474,8 +473,8 @@ export function stressTest(){
   console.log("stress test");
   for(let i = 0; i < 100; i++){
     let n = 50;
-    let lociX = Math.random() * 10;
-    let lociY = Math.random() * 10;
+    let lociX = Math.random() * 6;
+    let lociY = Math.random() * 6;
     let stroke = chroma.random().hex();
   
     SDFUI.store.dispatch(ACT.editStroke(stroke, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id));
