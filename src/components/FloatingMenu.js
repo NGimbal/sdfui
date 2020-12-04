@@ -34,28 +34,31 @@ function FloatingMenu() {
   function primitiveChange(e){
     primSel = e.toLowerCase();
     console.log(primSel);
-    let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
+    
+    let currItem = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
+    let type = currItem.type;
 
     // this is nice
     if(type != primSel){
       let nextPrim = {};
       let newLayer = {};
-
-      let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-      let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
+      
+      let currLayer = SDFUI.state.render.layers.find(l => l.prim === currItem.id);
       
       if(currItem && currItem.pts.length > 1){
         bakeLayer(currLayer);
-        currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+        currItem = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
         
         SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
       } else {
 
         SDFUI.store.dispatch(ACT.layerPop(currLayer.id));
-        SDFUI.store.dispatch(ACT.sceneNewEditItem(primSel));
+        SDFUI.store.dispatch(ACT.sceneRmvItem(currItem.prim));
+        SDFUI.store.dispatch(ACT.scenePushEditItem(primSel));
+        // SDFUI.store.dispatch(ACT.sceneNewEditItem(primSel));
       }
 
-      nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+      nextPrim = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
       newLayer = createEditLayer(nextPrim);
 
       SDFUI.store.dispatch(ACT.layerPush(newLayer));
@@ -117,11 +120,11 @@ function FloatingMenu() {
           <PopoverMenu content={[
                             // <hr style={dividerStyle}/>,
                             <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Color</h6>,
-                            <input type="color" style={{margin:"auto", width:"100%"}} value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.stroke} oninput={strokeColorChange}/>,
+                            <input type="color" style={{margin:"auto", width:"100%"}} value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.stroke } oninput={strokeColorChange}/>,
                             
                             <hr style={dividerStyle}/>,
                             <h6 class={Classes.Muted} style={inputLabelStyle}>Fill Color</h6>,
-                            <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.fill}/>,
+                            <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.fill}/>,
                             // <hr style={dividerStyle}/>
                           ]}
                         trigger={m(Button, { iconLeft: Icons.DROPLET })}
@@ -130,11 +133,11 @@ function FloatingMenu() {
 
             <PopoverMenu content={[
                         <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Weight</h6>,
-                        <input type="range" oninput={strokeWeightChange} min="0" max="100" value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.weight * 10000}/>,
+                        <input type="range" oninput={strokeWeightChange} min="0" max="100" value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.weight * 10000}/>,
                         
                         <hr style={dividerStyle}/>,
                         <h6 class={Classes.Muted} style={inputLabelStyle}>Opacity</h6>,
-                        <input type="range" oninput={fillOpacityChange} min="0" max="100" value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.opacity * 100}/>,
+                        <input type="range" oninput={fillOpacityChange} min="0" max="100" value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.opacity * 100}/>,
                       
                         ]}
                         trigger={m(Button, { iconLeft: Icons.PEN_TOOL })}

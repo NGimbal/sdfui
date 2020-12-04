@@ -227,19 +227,18 @@ function drawUp(e){
     if(!modState) continue;
   }
 
-  let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
+  let currItem  = SDFUI.state.scene.editItems.find(item => item.id === SDFUI.state.scene.editItem);
+  let currLayer = SDFUI.state.render.layers.find(l => l.prim === currItem.id);
+
   // I feel like the following line should also go in a reducer
-  let pt = currLayer.uniforms.u_eTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
+  let pt = currLayer.uniforms.u_eTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItem);
 
   SDFUI.store.dispatch(ACT.sceneAddPt(pt));
-
-  let item = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
   
-  if ( (item.type == "circle" || item.type == "rectangle") && item.pts.length == 2){
+  if ( (currItem.type == "circle" || currItem.type == "rectangle") && currItem.pts.length == 2){
     bakeLayer(currLayer);
-    SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
-    let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-    let newLayer = createEditLayer(nextPrim);
+    SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
+    let newLayer = createEditLayer(currItem);
     SDFUI.store.dispatch(ACT.layerPush(newLayer));
   }
   return;
@@ -302,22 +301,24 @@ function escDrawClck(){
 function endDrawUpdate(){
   if(!this.toggle) return null;
 
-  if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) {
+  let currItem = SDFUI.state.scene.editItems.find(item => item.id === SDFUI.state.scene.editItem);
+
+  if(currItem.pts.length < 1) {
     SDFUI.store.dispatch(ACT.uiMode("select"));
     this.toggle = false;
     return;
   }
- 
-  let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
   
+  // is this right?
+  let layer = SDFUI.state.render.layers.find(l => l.prim === currItem.id);
+
   bakeLayer(layer);
-  
-  let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-  
+    
   SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
 
+  let newItem = SDFUI.state.scene.editItems.find(item => item.id === SDFUI.state.scene.editItem);
   //next item
-  let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
+  let newLayer = createEditLayer(newItem);
 
   SDFUI.store.dispatch(ACT.layerPush(newLayer));
 
@@ -328,12 +329,13 @@ function endDrawUpdate(){
 function escDrawUpdate(){
   if(!this.toggle) return null;
   
-  let index = SDFUI.state.scene.editItem;
-  let item = SDFUI.state.scene.editItems[index];
-  let layer = SDFUI.state.render.layers.find(l => l.prim === item.id);
+  let id = SDFUI.state.scene.editItem;
+  let item = SDFUI.state.scene.editItems.find(i => i.id === id);
+  let layer = SDFUI.state.render.layers.find(l => l.prim === id);
   
-  SDFUI.store.dispatch(ACT.sceneNewEditItem(layer.primType))
-  SDFUI.store.dispatch(ACT.layerPush(createEditLayer(SDFUI.state.scene.editItems[index])));
+  SDFUI.store.dispatch(ACT.sceneRmvItem(id))
+  SDFUI.store.dispatch(ACT.scenePushEditItem(layer.primType))
+  SDFUI.store.dispatch(ACT.layerPush(createEditLayer(item)));
 
   let del = deleteItem(index);
   
@@ -351,12 +353,12 @@ function escDrawUpdate(){
 // this function needs examination
 export function deleteItem(index){
   //which of these conditions are even possible?
-  if(index >= SDFUI.state.scene.editItems.length ||
-    !SDFUI.state.scene.editItems[index] || 
-    SDFUI.state.scene.editItems[index].pts.length < 1) {
+  // if(index >= SDFUI.state.scene.editItems.length ||
+  //   !SDFUI.state.scene.editItems[index] || 
+  //   SDFUI.state.scene.editItems[index].pts.length < 1) {
 
-    return false;
-  }
+  //   return false;
+  // }
 
   let item = SDFUI.state.scene.editItems[index];
   let layer = SDFUI.state.render.layers.find(l => l.prim === item.id);
@@ -477,7 +479,7 @@ export function stressTest(){
     let lociY = Math.random() * 6;
     let stroke = chroma.random().hex();
   
-    SDFUI.store.dispatch(ACT.editStroke(stroke, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id));
+    SDFUI.store.dispatch(ACT.editStroke(stroke, SDFUI.state.scene.editItem));
   
     for(let j = 0; j < n; j++){
       let x = Math.random() + lociX;
@@ -485,18 +487,21 @@ export function stressTest(){
       let randPt = new PRIM.vec(x, y)
       let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
       // I feel like the following line should also go in a reducer
-      let pt = currLayer.uniforms.u_eTex.addPoint(randPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
+      let pt = currLayer.uniforms.u_eTex.addPoint(randPt, SDFUI.state.scene.editItem);
       SDFUI.store.dispatch(ACT.sceneAddPt(pt));
     }
   
     let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
     bakeLayer(layer);
     
-    let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+    // let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+    let currItem = SDFUI.state.scene.editItems.find(SDFUI.state.scene.editItem);
+
     SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
   
     //next item
-    let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
+    let newLayer = createEditLayer();
+
     SDFUI.store.dispatch(ACT.layerPush(newLayer));
   }
 }

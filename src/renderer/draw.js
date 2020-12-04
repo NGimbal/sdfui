@@ -132,7 +132,8 @@ export function initDraw() {
   // store.dispatch(ACT.layerPush(demoLayer));
 
   // full screen edit layer
-  let plineLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit);
+  let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
+  let plineLayer = new Layer(currItem, SF.simpleVert, SF.pLineEdit);
   store.dispatch(ACT.layerPush(plineLayer));
 
   gl.enable(gl.BLEND);
@@ -409,13 +410,13 @@ function sceneDist(){
   let bboxSearch = bboxTree.search(mouse).map(b => b.id);
 
   let inMouse = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
-                                              state.scene.editItems[state.scene.editItem].id === l.prim || 
+                                              state.scene.editItem === l.prim || 
                                               l.primType === "grid");
 
   for (let layer of inMouse){
     if(!layer.prim) continue;
     let prim = state.scene.editItems.find(p => p.id === layer.prim);
-    if (prim.id == state.scene.editItems[state.scene.editItem].id) continue;
+    if (prim.id == state.scene.editItem) continue;
     // also should have a "broad phase" check here on bounding box
     // this is where some spatial hashing could go
     let currDist = PRIM.distPrim(mPt, prim);

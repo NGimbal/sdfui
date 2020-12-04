@@ -30,7 +30,6 @@ const uiInit = {
   //where is the view moving
   // targets:[] someday could have multiple tagets for prezi like effect
   target: twgl.v3.create(0,0,64),
-  //this is going away
   // properties: {...PRIM.propsDefault},
   mode: "draw"
 }
@@ -63,13 +62,15 @@ const layersInit = {
 //  layer.update();
 // }
 
+let firstPrim = new PRIM.prim("polyline", [], {...PRIM.propsDefault});
+
 const sceneInit = {
-  editItem:0,//id of item points are being added to
+  editItem:firstPrim.id.slice(),//id of item points are being added to
   pts:[], //all points in scene
   rmPts:[],   //points staged to be removed
-  editItems:[new PRIM.prim("polyline", [], {...PRIM.propsDefault})], //all items in scene
+  editItems:[firstPrim], //all items in scene
   hover:{},
-  selected:[], //all items who's properties can be edited by ui
+  selected:[firstPrim.id.slice()], //all items who's properties can be edited by ui
 }
 
 // const sceneDoc = Automerge.from(sceneInit);
@@ -144,7 +145,8 @@ function cursor(_state=initialState, action) {
     case ACT.CURSOR_SET:
       let pt = {x:action.vec2.x, y:action.vec2.y};
       let pts = _state.scene.pts;
-      let editPts = _state.scene.editItems[_state.scene.editItem].pts;
+      // let editPts = _state.scene.editItems[_state.scene.editItem].pts;
+      let editPts = _state.scene.editItems.find(item => item.id === _state.scene.editItem).pts;
 
       if(state.snapPt){
         let ptNear = knn(ptTree, pt.x, pt.y, 1,null,0.01);
@@ -281,10 +283,11 @@ function scene(_state=initialState, action) {
         editItem: action.editItem
       });
     case ACT.SCENE_ADDPT:
-      let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItems[state.editItem].id , action.pt.id, true);
+      // let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItems[state.editItem].id , action.pt.id, true);
+      let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItem, action.pt.id, true);
       return Object.assign({}, state,{
-        editItems: state.editItems.map((item, index) => {
-          if(index !== state.editItem) return item;
+        editItems: state.editItems.map(item => {
+          if(item.id !== state.editItem) return item;
           return Object.assign({}, item, {
             pts: [...item.pts, pt.id]
           })
@@ -297,8 +300,9 @@ function scene(_state=initialState, action) {
       let editPtIndex = parent.pts.findIndex(i => i === action.pt.id);
       
       return Object.assign({}, state,{
-        editItems: state.editItems.map((item, index) => {
-          if(index !== state.editItem) return item;
+        editItems: state.editItems.map(item => {
+          // if(index !== state.editItem) return item;
+          if(item.id !== state.editItem) return item;
           return Object.assign({}, item, {
             pts: removeItem(item.pts, editPtIndex)
           })
@@ -307,33 +311,21 @@ function scene(_state=initialState, action) {
         rmPts: [...state.rmPts, action.pt.id.slice()]
       });
     case ACT.SCENE_FINRMVPT:
-      //remove point from rmPts array
-      //this also may be on a per user basis, kd tree needs to be updated by all users
-      // ptIndex = state.rmPts.findIndex(i => i === action.id);
+      //remove point from rmPts array this may be on a per user basis
       return Object.assign({}, state,{
         rmPts: state.rmPts.filter(id => id !== action.id)
       });
-    case ACT.SCENE_PUSHEDITITEM: //takes prim type
+    case ACT.SCENE_PUSHEDITITEM: //takes prim type, appends to edit items and sel array
+      let newItem = new PRIM.prim(action.primType, [], {...state.editItems.find(a => a.id === state.editItem).properties});
       return Object.assign({}, state,{
-        editItem: state.editItem + 1,
-        editItems: insertItem(state.editItems, 
-          { index: state.editItem + 1, 
-            item: new PRIM.prim(action.primType, [], {...state.editItems[state.editItem].properties})
-          })
-      });
-    case ACT.SCENE_NEWEDITITEM: //takes prim type
-      return Object.assign({}, state,{
-        editItems: updateItem(state.editItems, 
-          { index: state.editItem, 
-            item: new PRIM.prim(action.primType, [], {...state.editItems[state.editItem].properties})
-          })
+        editItems: appendItem(state.editItems, {...newItem}),
+        selected: appendItem(state.selected, newItem.id.slice()),
+        editItem: newItem.id.slice(),
       });
     case ACT.SCENE_RMVITEM:
       let index = state.editItems.findIndex(i => i.id === action.id);
-      console.log("remove at index: " + index);
       return Object.assign({}, state,{
         editItems: removeItem(state.editItems, index),
-        editItem: state.editItem - 1,
       });
     case ACT.EDIT_WEIGHT:
       return Object.assign({}, state,{
@@ -399,7 +391,6 @@ function scene(_state=initialState, action) {
           })
         }),
       });
-    // 
     case ACT.EDIT_HOVERSET:
       return Object.assign({}, state,{
         hover: action.id
@@ -467,6 +458,10 @@ function insertItem(array, action) {
   let newArray = array.slice()
   newArray.splice(action.index, 0, action.item)
   return newArray
+}
+
+function appendItem(array, item) {
+  return [...array, item];
 }
 
 // remove array[action.index]

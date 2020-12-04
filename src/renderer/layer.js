@@ -190,7 +190,8 @@ function getUniforms(type){
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
   texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
   
-  let properties = {...state.scene.editItems[state.scene.editItem].properties}
+  let currItem = state.scene.editItems.find(item => item.id === state.scene.editItem);
+  let properties = {...currItem.properties}
   switch(type){
     case'polyline':
       return {

@@ -4,9 +4,9 @@
 //actions named with reducer_property
 //action functions named with reducerProperty()
 //goal is clarity for future debugging easy
-// import * as PRIM from './primitives.js';
 
 //ACTION TYPE CONSTANTS
+
 //main types
 export const status = 'status';
 export const scene = 'scene';
@@ -52,16 +52,12 @@ export const LAYER_UPDATE        = "LAYER_UPDATE"; //update a layer, should be a
  
 //SCENE 
 export const SCENE_SETEDITITEM   = 'SCENE_SETEDITITEM' //sets edit item
-export const SCENE_UNSETEDITITEM = 'SCENE_UNSETEDITITEM' //resets edit item
 export const SCENE_ADDPT         = 'SCENE_ADDPT'; //add point to scene
 export const SCENE_RMVPT         = 'SCENE_RMVPT'; //stages pt for removal
 export const SCENE_FINRMVPT      = 'SCENE_FINRMVPT'; //finishes removing pt from state
-export const SCENE_EDITUPDATE    = 'SCENE_EDITUPDATE'; //marks the edit item for update
-export const SCENE_NEWEDITITEM   = 'SCENE_NEWEDITITEM';
 export const SCENE_PUSHEDITITEM  = 'SCENE_PUSHEDITITEM';
-export const SCENE_EDITPROPS     = 'SCENE_EDITPROPS'; //needs to fire when properties are changed
-export const SCENE_ITEMUPDATE    = 'SCENE_ITEMUPDATE'; //marks prim for update
 export const SCENE_RMVITEM       = 'SCENE_RMVITEM'; //remove item w/ id - must also remove points
+
 export const EDIT_HOVERSET       = 'EDIT_HOVERSET'; // set current hover item
 export const EDIT_HOVERCLR       = 'EDIT_HOVERCLR'; // set current hover item
 export const EDIT_SELECTINS      = 'EDIT_SELECTINS'; //add selected item
@@ -360,15 +356,6 @@ export function layerPop(layerID){
   }
 }
 
-//updates a layer from the draw stack
-// export function layerUpdate(layerID){
-//   return{
-//     type: render,
-//     subtype: LAYER_UPDATE,
-//     layerID
-//   }
-// }
-
 export function setEditItem(editItem){
   return {
     type: scene,
@@ -405,16 +392,7 @@ export function sceneFinRmvPt(id){
   };
 }
 
-//marks edit item for update
-// export function sceneEditUpdate(toggle){
-//   return {
-//     type: scene,
-//     subtype: SCENE_EDITUPDATE,
-//     toggle
-//   };
-// }
-
-//pushes new item onto scene graph - prim is type
+//pushes new item onto scene - prim is type
 export function scenePushEditItem(primType){
   return {
     type: scene,
@@ -423,14 +401,6 @@ export function scenePushEditItem(primType){
   };
 }
 
-//pushes new item onto scene graph - prim type
-export function sceneNewEditItem(primType){
-  return {
-    type: scene,
-    subtype: SCENE_NEWEDITITEM,
-    primType
-  };
-}
 
 //removes item, must also remove points
 export function sceneRmvItem(id){
@@ -440,21 +410,3 @@ export function sceneRmvItem(id){
     id
   };
 }
-
-//fires when drawing properties are changed
-// export function sceneEditProps(){
-//   return {
-//     type: scene,
-//     subtype: SCENE_EDITPROPS,
-//   };
-// }
-
-//toggles update status of item
-// export function sceneItemUpdate(index, toggle){
-//   return {
-//     type: scene,
-//     subtype: SCENE_ITEMUPDATE,
-//     index,
-//     toggle
-//   };
-// }
