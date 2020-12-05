@@ -235,12 +235,16 @@ function drawUp(e){
 
   SDFUI.store.dispatch(ACT.sceneAddPt(pt));
   
-  if ( (currItem.type == "circle" || currItem.type == "rectangle") && currItem.pts.length == 2){
+  // this condition isn't great but seems to work
+  if ( (currItem.type == "circle" || currItem.type == "rectangle") && currItem.pts.length >= 1 ){
     bakeLayer(currLayer);
     SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
-    let newLayer = createEditLayer(currItem);
+    let newItem = SDFUI.state.scene.editItems.find(i=> i.id === SDFUI.state.scene.editItem);
+    // is this pattern reliable?
+    let newLayer = createEditLayer(newItem);
     SDFUI.store.dispatch(ACT.layerPush(newLayer));
   }
+
   return;
 }
 
@@ -330,14 +334,14 @@ function escDrawUpdate(){
   if(!this.toggle) return null;
   
   let id = SDFUI.state.scene.editItem;
-  let item = SDFUI.state.scene.editItems.find(i => i.id === id);
+  let currItem = SDFUI.state.scene.editItems.find(i => i.id === id);
   let layer = SDFUI.state.render.layers.find(l => l.prim === id);
   
-  SDFUI.store.dispatch(ACT.sceneRmvItem(id))
   SDFUI.store.dispatch(ACT.scenePushEditItem(layer.primType))
-  SDFUI.store.dispatch(ACT.layerPush(createEditLayer(item)));
+  let newItem = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
+  SDFUI.store.dispatch(ACT.layerPush(createEditLayer(newItem)));
 
-  let del = deleteItem(index);
+  let del = deleteItem(currItem);
   
   if (!del) {
     // SDFUI.store.dispatch(ACT.uiMode("select"));
@@ -351,7 +355,7 @@ function escDrawUpdate(){
 
 // Deletes item in editItems at index
 // this function needs examination
-export function deleteItem(index){
+export function deleteItem(item){
   //which of these conditions are even possible?
   // if(index >= SDFUI.state.scene.editItems.length ||
   //   !SDFUI.state.scene.editItems[index] || 
@@ -360,7 +364,7 @@ export function deleteItem(index){
   //   return false;
   // }
 
-  let item = SDFUI.state.scene.editItems[index];
+  // let item = SDFUI.state.scene.editItems[index];
   let layer = SDFUI.state.render.layers.find(l => l.prim === item.id);
 
   console.log("layer is : " + layer.id);

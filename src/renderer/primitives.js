@@ -370,7 +370,7 @@ function pLineDist(mPt, prim){
   let prev;
   for (let _p of prim.pts){
     let p = state.scene.pts.find(pt => pt.id == _p);
-
+    console.log(p);
     if(typeof prev === 'undefined'){
       prev = p;
       continue;
