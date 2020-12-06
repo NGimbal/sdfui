@@ -62,8 +62,9 @@ export const EDIT_HOVERSET       = 'EDIT_HOVERSET'; // set current hover item
 export const EDIT_HOVERCLR       = 'EDIT_HOVERCLR'; // set current hover item
 export const EDIT_SELECTINS      = 'EDIT_SELECTINS'; //add selected item
 export const EDIT_SELECTRMV      = 'EDIT_SELECTRMV'; //Remove selected item
-export const EDIT_SELECTCLR      = 'EDIT_SELECTCLR'; //Remove selected item
+export const EDIT_SELECTCLR      = 'EDIT_SELECTCLR'; //clears selection
 
+export const EDIT_TRANSLATE      = 'EDIT_TRANSLATE'; //translates edit object
 //ACTION CREATORS
 
 //establishes grid offset
@@ -326,6 +327,16 @@ export function editSelectClr(){
   return{
     type: scene,
     subtype: EDIT_SELECTCLR,
+  }
+}
+
+
+export function editTranslate(id, v3){
+  return{
+    type: scene,
+    subtype: EDIT_TRANSLATE,
+    id,
+    v3,
   }
 }
 

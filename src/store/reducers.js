@@ -414,6 +414,15 @@ function scene(_state=initialState, action) {
       return Object.assign({}, state,{
         selected: []
       });
+    case ACT.EDIT_TRANSLATE:
+      return Object.assign({}, state,{
+        editItems: state.editItems.map((item) => {
+          if(item.id !== action.id) return item;
+          return Object.assign({}, item, {
+            translate : twgl.v3.add(item.translate, twgl.v3.subtract(action.v3, item.translate))
+          })
+        }),
+      });
     default:
       return state;
   }

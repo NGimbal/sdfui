@@ -120,9 +120,15 @@ export function updateMatrices(layer){
 
   layer.matrix = twgl.m4.translate(layer.matrix, translation);
 
-  if(layer.translate){
-    layer.matrix = twgl.m4.translate(layer.matrix, layer.translate);
-  }
+  //translate
+  let prim = state.scene.editItems.find(item => item.id === layer.prim);
+
+  // if(prim.translate){
+    // needs to be modified by dpt
+    let factor = twgl.v3.create(resolution.x, resolution.y, 1.0)
+    let translate = twgl.v3.multiply(prim.translate, factor);
+    layer.matrix = twgl.m4.translate(layer.matrix, translate);
+  // }
 
   // scale our 1 unit quad - from 1 unit to texWidth, texHeight units
   layer.matrix = twgl.m4.scale(layer.matrix, twgl.v3.create(width, height, 1));

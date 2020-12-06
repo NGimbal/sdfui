@@ -174,6 +174,8 @@ export class prim{
 
     //scene merge
     this.merge = merge || "union";
+
+    this.translate = twgl.v3.create();
   }
 }
 
@@ -309,19 +311,30 @@ export function distPrim(_mPt, prim){
     mPt = _mPt;
   }
 
+  // console.log(prim.translate);
+
+  // if(prim.translate instanceof Float32Array){
+    // console.log("hi");
+    // console.log(mPt);
+    // console.log(prim.translate);
+    // twgl.v3.subtract(mPt, prim.translate, mPt);
+  // }
+  console.log(prim.translate);
+  let tPt = twgl.v3.subtract(mPt, prim.translate);
+
   let dist = 1000;
   switch (prim.type){
     case  "polyline":
-      dist = Math.min(dist, pLineDist(mPt, prim));
+      dist = Math.min(dist, pLineDist(tPt, prim));
       break;
     case "polygon":
-      dist = Math.min(dist, polygonDist(mPt, prim));
+      dist = Math.min(dist, polygonDist(tPt, prim));
       break;
     case "circle":
-      dist = Math.min(dist, circleDist(mPt, prim));
+      dist = Math.min(dist, circleDist(tPt, prim));
       break;
     case "rectangle":
-      dist = Math.min(dist, rectDist(mPt, prim));
+      dist = Math.min(dist, rectDist(tPt, prim));
       break;
     default:
       break;
@@ -370,7 +383,7 @@ function pLineDist(mPt, prim){
   let prev;
   for (let _p of prim.pts){
     let p = state.scene.pts.find(pt => pt.id == _p);
-    console.log(p);
+    // console.log(p);
     if(typeof prev === 'undefined'){
       prev = p;
       continue;
