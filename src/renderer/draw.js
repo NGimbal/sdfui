@@ -53,17 +53,17 @@ function listener(){
 
   for(let pId of state.scene.rmPts){
     //normal tree search function doesnt work
-    ptTree.remove(pId, (a, pId) => {
-      return a.id === pId;
+    ptTree.remove(pId, (a, b) => {
+      return a.id === b;
     });
     store.dispatch(ACT.sceneFinRmvPt(pId));
   }
   return state;
-};
+}; 
 
 //subscribe to store changes - run listener to set relevant variables
-store.subscribe(() => console.log(listener()));
-// store.subscribe(() => listener());
+// store.subscribe(() => console.log(listener()));
+store.subscribe(() => listener());
 
 export function initDraw() {
   let canvasContainer = document.querySelector('#canvasContainer');
@@ -200,7 +200,7 @@ function update() {
   ui.update();
 
   let selDist = sceneDist();
-
+  // console.log(selDist);
   if(selDist.d < 0.01 && state.ui.mode === "select" && selDist.sel){
     document.getElementById("canvasContainer").style.cursor = "grab";
     store.dispatch(ACT.editHoverSet(selDist.sel.id))

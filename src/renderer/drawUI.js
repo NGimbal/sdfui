@@ -3,7 +3,7 @@ import * as twgl from 'twgl.js';
 
 import * as ACT from '../store/actions.js';
 
-import {gl, store, state, resolution, mPt, dPt} from './draw.js';
+import {gl, store, state, resolution, mPt, dPt, bboxTree} from './draw.js';
 import {bakeLayer, createEditLayer} from './layer.js';
 
 import * as PRIM from './primitives'
@@ -118,14 +118,15 @@ export class DrawUI{
     // I don't know where the right place for this is... yet
     if(state.ui.mode === "select" && state.ui.dragging){
       for (let id of state.scene.selected){
+        if(id === state.scene.editItem) continue;
         // let layer =  state.render.layers.find(layer => layer.prim === id);
-        let currItem = state.scene.editItems.find(item => item.id === id);
+        // let currItem = state.scene.editItems.find(item => item.id === id);
 
 
         let mouse = twgl.v3.create(mPt.x, mPt.y, 1.0);
-        let origin = twgl.v3.create(state.ui.dragOrigin.x, state.ui.dragOrigin.y, 1.0);
+        // let origin = twgl.v3.create(state.ui.dragOrigin.x, state.ui.dragOrigin.y, 1.0);
 
-        let translate = twgl.v3.subtract(mouse, origin);
+        let translate = twgl.v3.subtract(mouse, state.ui.dragOrigin);
 
         store.dispatch(ACT.editTranslate(id, translate));
         // let diff = twgl.v3.subtract(translate, currItem.translate);
@@ -334,14 +335,14 @@ function escDrawUpdate(){
   if(!this.toggle) return null;
   
   let id = state.scene.editItem;
-  let currItem = state.scene.editItems.find(i => i.id === id);
+  // let currItem = state.scene.editItems.find(i => i.id === id);
   let layer = state.render.layers.find(l => l.prim === id);
   
   store.dispatch(ACT.scenePushEditItem(layer.primType))
   let newItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
   store.dispatch(ACT.layerPush(createEditLayer(newItem)));
 
-  let del = deleteItem(currItem);
+  let del = deleteItem(id);
   
   if (!del) {
     // store.dispatch(ACT.uiMode("select"));
@@ -354,32 +355,25 @@ function escDrawUpdate(){
 }
 
 // Deletes item in editItems at index
-// this function needs examination
-export function deleteItem(item){
-  //which of these conditions are even possible?
-  // if(index >= state.scene.editItems.length ||
-  //   !state.scene.editItems[index] || 
-  //   state.scene.editItems[index].pts.length < 1) {
+export function deleteItem(id){
 
-  //   return false;
-  // }
+  let layer = state.render.layers.find(l => l.prim === id);
+  let lId = layer.id;
 
-  // let item = state.scene.editItems[index];
-  let layer = state.render.layers.find(l => l.prim === item.id);
-
-  console.log("layer is : " + layer.id);
+  bboxTree.remove(lId, (a, b) => {
+    return a.id === b;
+  });
 
   store.dispatch(ACT.layerPop(layer.id));
 
-  // questions re: why denormalzing scene this way. 
-  // premature optimization?
-  // might also be cool for multiple objects to reference same points
+  let item = state.scene.editItems.find(i => i.id === id);
+
   for (let p of item.pts){
     let point = state.scene.pts.find(pt => pt.id === p)
     store.dispatch(ACT.sceneRmvPt(point));
   }
 
-  store.dispatch(ACT.sceneRmvItem(item.id))
+  store.dispatch(ACT.sceneRmvItem(id))
   return true;
 } 
 

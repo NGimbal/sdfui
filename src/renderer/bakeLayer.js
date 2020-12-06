@@ -30,6 +30,17 @@ export function bake(layer){
 //POLYLINE-------------------------------------------------------
 //takes prim and datashader and bakes as a polyline
 function polyLine(prim, layer){
+  //transform points to be centered at origin
+  // layer.bbox.min + 1/2 with , height = 0 
+  // maybe this should be built into bbox
+  // let origin = twgl.v3.create(layer.bbox.minX + 0.5 * layer.bbox.width, 
+  //                             layer.bbox.minY + 0.5 * layer.bbox.height);
+  // prim.pts = prim.pts.map(p => {
+  //   console.log(p);
+
+  // })
+
+
   let shader = LAYER.getFragStub(prim.type, false);
   let parameters = layer.uniforms.u_eTex;
 
@@ -92,8 +103,10 @@ function polyLineFunc(prim, shader, parameters){
   // let count = 0;
 
   //is this unreliable?
-  let cTexel = 0;
-  for (let _p of prim.pts){
+  // this is a stupid loop should just be 0 to cTexel
+  // let cTexel = 0;
+  // for (let _p of prim.pts){
+    for(let cTexel = 0; cTexel < prim.pts.length; cTexel++){
 
     if(cTexel == 0){
       indexX = (cTexel % dataSize) / dataSize + texelOffset;
@@ -104,7 +117,7 @@ function polyLineFunc(prim, shader, parameters){
       posString += '\n\tfloat accumD = 100.0;';
       posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');';
       posString += '\n\tvec2 oldPos = texture(u_eTex, index).xy;';
-      cTexel++;
+      // cTexel++;
       continue;
     }else{
       indexX = (cTexel % dataSize) / dataSize + texelOffset;
@@ -116,7 +129,7 @@ function polyLineFunc(prim, shader, parameters){
       posString += '\n\taccumD = min(accumD, d);';
       posString += '\n\toldPos = pos;';
 
-      cTexel++;
+      // cTexel++;
     }
   }
   

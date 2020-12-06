@@ -23,9 +23,9 @@ function LayerTree() {
 
   function trashObject(e){
     // console.log(this)
-    let index = SDFUI.state.scene.editItems.findIndex(i => i.id === this);
-    console.log( "delete " + this + " at " + index);
-    deleteItem(index);
+    // let index = SDFUI.state.scene.editItems.findIndex(i => i.id === this);
+    console.log( "delete " + this);
+    deleteItem(this);
     // this doesn't work yet - will need more time to figure out I think >.<
     // SDFUI.store.dispatch(ACT.sceneRmvItem(this));
   }

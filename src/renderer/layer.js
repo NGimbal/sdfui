@@ -68,6 +68,7 @@ export class Layer {
     
     //bbox is set on bake - should this be part of prim?
     this.bbox = null;
+    this.translate = twgl.v3.create();
 
     //creates a full screen layer
     this.matrix = twgl.m4.ortho(0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
@@ -92,19 +93,31 @@ export class Layer {
   }
 }
 
-export function setBoundingBox(layer){
-  
-  if(layer.primType == 'circle'){
-    layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id, 0.05, 'circle');
-  } else {
-    layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id);
-  }
-
-  updateMatrices(layer);
-}
-
 //updates position and texture clipping matrices for layer
 export function updateMatrices(layer){
+  let prim = state.scene.editItems.find(item => item.id === layer.prim);
+  //can also add a check to see if we're still dragging?
+  // console.log(state.ui.dragging);
+  // the problem here is that the transformation becomes embedded in the bbox
+  // then when I go to translate I'm translating the layer clipping twice
+  // would be better to separate bbox clipping and translation permanently
+  // so bbox origin is at 0,0
+  // for rectangles and circles and shit would be good if that was center
+  // for polylines... I mean why not do center as well
+  // issue is this is going to change the code quite significantly... fuck
+  // if( !state.ui.dragging && twgl.v3.distanceSq(layer.translate, prim.translate) > 0){
+  //   console.log("hi what");
+  //   layer.translate = prim.translate;
+  //   console.log(prim.translate);
+  //   console.log(state.ui.dragOrigin);
+  //   bboxTree.remove(layer.id, (a, b) => {
+  //     return a.id === b;
+  //   });
+
+  //   layer.bbox.update(prim.translate);
+
+  //   bboxTree.insert(layer.bbox);
+  // }  
   // texture clipping per:
   // https://webgl2fundamentals.org/webgl/lessons/webgl-2d-drawimage.html
   let minX = ((layer.bbox.min.x * (64. / dPt[2]) + dPt[0]) * resolution.x) * (resolution.y/resolution.x);
@@ -121,14 +134,10 @@ export function updateMatrices(layer){
   layer.matrix = twgl.m4.translate(layer.matrix, translation);
 
   //translate
-  let prim = state.scene.editItems.find(item => item.id === layer.prim);
+  let factor = twgl.v3.create(resolution.x, resolution.y, 1.0)
+  let translate = twgl.v3.multiply(prim.translate, factor);
 
-  // if(prim.translate){
-    // needs to be modified by dpt
-    let factor = twgl.v3.create(resolution.x, resolution.y, 1.0)
-    let translate = twgl.v3.multiply(prim.translate, factor);
-    layer.matrix = twgl.m4.translate(layer.matrix, translate);
-  // }
+  layer.matrix = twgl.m4.translate(layer.matrix, translate);
 
   // scale our 1 unit quad - from 1 unit to texWidth, texHeight units
   layer.matrix = twgl.m4.scale(layer.matrix, twgl.v3.create(width, height, 1));
@@ -144,8 +153,9 @@ export function updateMatrices(layer){
 //bakes layer
 export function bakeLayer(layer){
   //set bounding box
-  setBoundingBox(layer);
-  // console.log(layer.bbox);
+  layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id, 0.05, layer.primType);
+  updateMatrices(layer);
+
   bboxTree.insert(layer.bbox);
   // console.log(bboxTree);
   let fs = BAKE.bake(layer);

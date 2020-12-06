@@ -144,6 +144,20 @@ export class bbox{
     this.height = this.maxY - this.minY;
 
   }
+
+  // updates Bbox by 
+  update(v3){
+    console.log(this);
+
+    this.maxX += v3[0];
+    this.minX += v3[0];
+    this.maxY += v3[1];
+    this.minY += v3[1];
+    
+    this.min = new vec(this.minX, this.minY);
+    this.max = new vec(this.maxX, this.maxY);
+    console.log(this);
+  }
 }
 
 export var propsDefault = {
@@ -312,14 +326,6 @@ export function distPrim(_mPt, prim){
   }
 
   // console.log(prim.translate);
-
-  // if(prim.translate instanceof Float32Array){
-    // console.log("hi");
-    // console.log(mPt);
-    // console.log(prim.translate);
-    // twgl.v3.subtract(mPt, prim.translate, mPt);
-  // }
-  console.log(prim.translate);
   let tPt = twgl.v3.subtract(mPt, prim.translate);
 
   let dist = 1000;

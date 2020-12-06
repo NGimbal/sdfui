@@ -24,7 +24,7 @@ const uiInit = {
   grid: false, //show background grid
   dragging: false,
   dragStart: false,
-  dragOrigin: new PRIM.vec(0, 0),
+  dragOrigin: twgl.v3.create(),
   //are we moving towards a target
   targeting: false,
   //where is the view moving
@@ -131,7 +131,7 @@ function ui(_state=initialState, action){
     case ACT.UI_DRAGSTART:
       return Object.assign({}, state,{
         dragStart: action.toggle,
-        dragOrigin: {...action.pt},
+        dragOrigin: twgl.v3.create(action.pt.x, action.pt.y, 1.0),
       });
     default:
       return state;
