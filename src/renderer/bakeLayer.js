@@ -28,7 +28,7 @@ export function bake(layer){
 }
 
 //POLYLINE-------------------------------------------------------
-//takes prim and datashader and bakes as a polyline
+//takes prim and layer and bakes as a polyline
 function polyLine(prim, layer){
   //transform points to be centered at origin
   // layer.bbox.min + 1/2 with , height = 0 
@@ -55,9 +55,6 @@ function polyLine(prim, layer){
 
 //prim is the shape, dataShader is the fragShader + parameters tex
 function polyLineFunc(prim, shader, parameters){
-  // let shader = dataShader.shader;
-  // let parameters = dataShader.parameters;
-
   //insert new function
   let insString = "//$INSERT FUNCTION$------";
   let insIndex = shader.indexOf(insString);
@@ -96,18 +93,7 @@ function polyLineFunc(prim, shader, parameters){
   let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
   let dataSize = parameters.dataSize;
 
-  // let rgbStroke = prim.properties.stroke;
-  // let colorStroke = 'vec3(' + rgbStroke[0].toFixed(4) + ',' + rgbStroke[1].toFixed(4) + ',' + rgbStroke[2].toFixed(4) +')';
-  // let weight = prim.properties.weight.toFixed(6);
-
-  // let count = 0;
-
-  //is this unreliable?
-  // this is a stupid loop should just be 0 to cTexel
-  // let cTexel = 0;
-  // for (let _p of prim.pts){
-    for(let cTexel = 0; cTexel < prim.pts.length; cTexel++){
-
+  for(let cTexel = 0; cTexel < prim.pts.length; cTexel++){
     if(cTexel == 0){
       indexX = (cTexel % dataSize) / dataSize + texelOffset;
       indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
@@ -117,7 +103,6 @@ function polyLineFunc(prim, shader, parameters){
       posString += '\n\tfloat accumD = 100.0;';
       posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');';
       posString += '\n\tvec2 oldPos = texture(u_eTex, index).xy;';
-      // cTexel++;
       continue;
     }else{
       indexX = (cTexel % dataSize) / dataSize + texelOffset;
@@ -128,19 +113,16 @@ function polyLineFunc(prim, shader, parameters){
       posString += '\n\td = drawLine(tUv, oldPos, pos, u_weight, 0.0);';
       posString += '\n\taccumD = min(accumD, d);';
       posString += '\n\toldPos = pos;';
-
-      // cTexel++;
     }
   }
   
-  // posString += '\n\taccumD = line(accumD, u_weight);\n';
   posString += '\n\tfinalColor = mix(finalColor, u_stroke, line(accumD, u_weight));';
   posString += '\n\treturn vec4(finalColor, accumD);';
   posString += '\n}\n';
   posString += '//$END-' + prim.id.substr(0,7) + '\n';
 
-  // prim.fragShader = posString;
   startShader += posString;
+
   let fragShader = startShader + endShader;
 
   return fragShader;

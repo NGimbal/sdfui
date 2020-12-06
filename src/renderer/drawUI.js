@@ -3,7 +3,7 @@ import * as twgl from 'twgl.js';
 
 import * as ACT from '../store/actions.js';
 
-import {gl, store, state, resolution, mPt, dPt, bboxTree} from './draw.js';
+import {gl, store, state, resolution, mPt, dPt, bboxTree, layers} from './draw.js';
 import {bakeLayer, createEditLayer} from './layer.js';
 
 import * as PRIM from './primitives'
@@ -119,7 +119,7 @@ export class DrawUI{
     if(state.ui.mode === "select" && state.ui.dragging){
       for (let id of state.scene.selected){
         if(id === state.scene.editItem) continue;
-        // let layer =  state.render.layers.find(layer => layer.prim === id);
+        // let layer =  layers.find(layer => layer.prim === id);
         // let currItem = state.scene.editItems.find(item => item.id === id);
 
 
@@ -229,7 +229,7 @@ function drawUp(e){
   }
 
   let currItem  = state.scene.editItems.find(item => item.id === state.scene.editItem);
-  let currLayer = state.render.layers.find(l => l.prim === currItem.id);
+  let currLayer = layers.find(l => l.prim === currItem.id);
 
   // I feel like the following line should also go in a reducer
   let pt = currLayer.uniforms.u_eTex.addPoint(mPt, state.scene.editItem);
@@ -243,7 +243,8 @@ function drawUp(e){
     let newItem = state.scene.editItems.find(i=> i.id === state.scene.editItem);
     // is this pattern reliable?
     let newLayer = createEditLayer(newItem);
-    store.dispatch(ACT.layerPush(newLayer));
+    // store.dispatch(ACT.layerPush(newLayer));
+    layers.push(newLayer);
   }
 
   return;
@@ -315,7 +316,7 @@ function endDrawUpdate(){
   }
   
   // is this right?
-  let layer = state.render.layers.find(l => l.prim === currItem.id);
+  let layer = layers.find(l => l.prim === currItem.id);
 
   bakeLayer(layer);
     
@@ -325,7 +326,8 @@ function endDrawUpdate(){
   //next item
   let newLayer = createEditLayer(newItem);
 
-  store.dispatch(ACT.layerPush(newLayer));
+  // store.dispatch(ACT.layerPush(newLayer));
+  layers.push(newLayer);
 
   this.toggle = false;
   return;
@@ -336,11 +338,12 @@ function escDrawUpdate(){
   
   let id = state.scene.editItem;
   // let currItem = state.scene.editItems.find(i => i.id === id);
-  let layer = state.render.layers.find(l => l.prim === id);
+  let layer = layers.find(l => l.prim === id);
   
   store.dispatch(ACT.scenePushEditItem(layer.primType))
   let newItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
-  store.dispatch(ACT.layerPush(createEditLayer(newItem)));
+  // store.dispatch(ACT.layerPush(createEditLayer(newItem)));
+  layers.push(createEditLayer(newItem));
 
   let del = deleteItem(id);
   
@@ -357,14 +360,16 @@ function escDrawUpdate(){
 // Deletes item in editItems at index
 export function deleteItem(id){
 
-  let layer = state.render.layers.find(l => l.prim === id);
+  let layer = layers.find(l => l.prim === id);
   let lId = layer.id;
 
   bboxTree.remove(lId, (a, b) => {
     return a.id === b;
   });
 
-  store.dispatch(ACT.layerPop(layer.id));
+  // store.dispatch(ACT.layerPop(layer.id));
+  // let index = layers.findIndex(l => l.id === layer.id);
+  layers = layers.filter(l => l.id === layer.id);
 
   let item = state.scene.editItems.find(i => i.id === id);
 
@@ -483,13 +488,13 @@ export function stressTest(){
       let x = Math.random() + lociX;
       let y = Math.random() + lociY;
       let randPt = new PRIM.vec(x, y)
-      let currLayer = state.render.layers[state.render.layers.length - 1];
+      let currLayer = layers[layers.length - 1];
       // I feel like the following line should also go in a reducer
       let pt = currLayer.uniforms.u_eTex.addPoint(randPt, state.scene.editItem);
       store.dispatch(ACT.sceneAddPt(pt));
     }
   
-    let layer = state.render.layers[state.render.layers.length - 1];
+    let layer = layers[layers.length - 1];
     bakeLayer(layer);
     
     // let currItem = state.scene.editItems[state.scene.editItem];
@@ -500,6 +505,7 @@ export function stressTest(){
     //next item
     let newLayer = createEditLayer();
 
-    store.dispatch(ACT.layerPush(newLayer));
+    // store.dispatch(ACT.layerPush(newLayer));
+    layers.push(newLayer)
   }
 }

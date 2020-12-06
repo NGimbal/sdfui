@@ -30,20 +30,23 @@ export var dPt = new twgl.v3.create(0, 0, 64);
 export var ptTree = new RBush();
 export var bboxTree = new RBush();
 
+export var layers = [];
+
 var mouseDragStart = new PRIM.vec(0, 0);
 
-//Expose part of state
+// update local shit from state
+// layers, ptTree, bboxTree should all be updated here
 function listener(){
 
   state = store.getState();
   resolution = state.status.resolution;
   
-  //update mouse position variable
+  // update mouse position variable
   mPt = PRIM.vecSet(mPt, state.cursor.pos.x, state.cursor.pos.y);
   
-  //update kdTree of points
+  // update kdTree of points
   for(let p of state.scene.pts){
-    //will need to find and move, or find remove and add when update means moving points around
+    // will need to find and move, or find remove and add when update means moving points around
     if(p.update == true){
       ptTree.insert(p);
       //TODO: create a reducer that changes this parameter
@@ -52,13 +55,13 @@ function listener(){
   }
 
   for(let pId of state.scene.rmPts){
-    //normal tree search function doesnt work
+    // normal tree search function doesnt work
     ptTree.remove(pId, (a, b) => {
       return a.id === b;
     });
     store.dispatch(ACT.sceneFinRmvPt(pId));
   }
-  return state;
+  // return state;
 }; 
 
 //subscribe to store changes - run listener to set relevant variables
@@ -116,7 +119,8 @@ export function initDraw() {
 
   // grid layer
   let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, gridUniforms);
-  store.dispatch(ACT.layerPush(gridLayer));
+  // store.dispatch(ACT.layerPush(gridLayer));
+  layers.push(gridLayer);
 
   // demo shader
   // let demoUniforms = {
@@ -134,7 +138,8 @@ export function initDraw() {
   // full screen edit layer
   let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
   let plineLayer = new Layer(currItem, SF.simpleVert, SF.pLineEdit);
-  store.dispatch(ACT.layerPush(plineLayer));
+  // store.dispatch(ACT.layerPush(plineLayer));
+  layers.push(plineLayer);
 
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -192,7 +197,8 @@ export function addImage(_srcURL, dims, evPt) {
 
   updateMatrices(imgLayer);
 
-  store.dispatch(ACT.layerPushImage(imgLayer));
+  // store.dispatch(ACT.layerPushImage(imgLayer));
+  layers.push(imgLayer);
 }
 
 function update() {
@@ -221,7 +227,7 @@ function update() {
   //update uniforms - might want a needsUpdate on these at some point
   //also might want to switch this to loop over edit items
   //and only edit items in view
-  state.render.layers.forEach(function(layer) {
+  layers.forEach(function(layer) {
 
     if(layer.bbox){ updateMatrices(layer); }
 
@@ -309,7 +315,7 @@ function draw() {
                                               // l.primType === "grid");
   
   // console.log(inView);
-  twgl.drawObjectList(gl, state.render.layers);
+  twgl.drawObjectList(gl, layers);
 
   // save raster image
   if(state.status.raster){
@@ -409,11 +415,12 @@ function sceneDist(){
 
   let bboxSearch = bboxTree.search(mouse).map(b => b.id);
 
-  let inMouse = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
-                                              state.scene.editItem === l.prim || 
-                                              l.primType === "grid");
+  let inMouse = layers.filter(l => bboxSearch.includes(l.id) || 
+                                    state.scene.editItem === l.prim || 
+                                    l.primType === "grid");
 
   for (let layer of inMouse){
+    
     if(!layer.prim) continue;
     let prim = state.scene.editItems.find(p => p.id === layer.prim);
     if (prim.id == state.scene.editItem) continue;

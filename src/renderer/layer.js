@@ -105,11 +105,12 @@ export function updateMatrices(layer){
   // for rectangles and circles and shit would be good if that was center
   // for polylines... I mean why not do center as well
   // issue is this is going to change the code quite significantly... fuck
-  // if( !state.ui.dragging && twgl.v3.distanceSq(layer.translate, prim.translate) > 0){
-  //   console.log("hi what");
+  // if(twgl.v3.distanceSq(layer.translate, prim.translate) > 0){
+  //   // console.log("hi what");
   //   layer.translate = prim.translate;
-  //   console.log(prim.translate);
-  //   console.log(state.ui.dragOrigin);
+  //   // console.log(prim.translate);
+  //   // console.log(state.ui.dragOrigin);
+
   //   bboxTree.remove(layer.id, (a, b) => {
   //     return a.id === b;
   //   });
@@ -136,7 +137,6 @@ export function updateMatrices(layer){
   //translate
   let factor = twgl.v3.create(resolution.x, resolution.y, 1.0)
   let translate = twgl.v3.multiply(prim.translate, factor);
-
   layer.matrix = twgl.m4.translate(layer.matrix, translate);
 
   // scale our 1 unit quad - from 1 unit to texWidth, texHeight units

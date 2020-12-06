@@ -341,22 +341,22 @@ export function editTranslate(id, v3){
 }
 
 //pushes a new layer onto the draw stack
-export function layerPush(layer){
-  return{
-    type: render,
-    subtype: LAYER_PUSH,
-    layer
-  }
-}
+// export function layerPush(layer){
+//   return{
+//     type: render,
+//     subtype: LAYER_PUSH,
+//     layer
+//   }
+// }
 
 //pushes a new Image onto the draw stack
-export function layerPushImage(layer){
-  return{
-    type: render,
-    subtype: LAYER_PUSHIMAGE,
-    layer
-  }
-}
+// export function layerPushImage(layer){
+//   return{
+//     type: render,
+//     subtype: LAYER_PUSHIMAGE,
+//     layer
+//   }
+// }
 
 //pops a new layer from the draw stack
 export function layerPop(layerID){

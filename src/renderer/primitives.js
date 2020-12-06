@@ -40,10 +40,12 @@ export class DataShader{
 //simple point, color vector
 export class vec{
   constructor(x, y, z, w, pId, id, update){
+    this.v3 = twgl.v3.create(x, y, 0.0);
+
     this.x = x || 0;
     this.y = y || 0;
-    this.z = z || 0;
-    this.w = w || 0;
+    this.z = z || 0.0;
+    this.w = w || 0.0;
 
     //this is to conform to rbush data structure req
     this.minX = x;
@@ -325,7 +327,6 @@ export function distPrim(_mPt, prim){
     mPt = _mPt;
   }
 
-  // console.log(prim.translate);
   let tPt = twgl.v3.subtract(mPt, prim.translate);
 
   let dist = 1000;

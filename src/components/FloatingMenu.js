@@ -61,7 +61,8 @@ function FloatingMenu() {
       nextPrim = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
       newLayer = createEditLayer(nextPrim);
 
-      SDFUI.store.dispatch(ACT.layerPush(newLayer));
+      // SDFUI.store.dispatch(ACT.layerPush(newLayer));
+      SDFUI.layers.push(newLayer);
     }
     m.redraw();
   }

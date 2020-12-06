@@ -46,9 +46,9 @@ const cursorInit = {
   scale: 48,
 }
 
-const layersInit = {
-  layers: [],
-}
+// const layersInit = {
+//   layers: [],
+// }
 
 // will need some kind of update counter
 // to know when a collaborator should update a prim
@@ -79,7 +79,7 @@ const initialState={
   status: statusInit,
   ui: uiInit,
   cursor: cursorInit,
-  render: layersInit,
+  // render: layersInit,
   //automerge object
   scene: sceneInit,
 }
