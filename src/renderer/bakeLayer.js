@@ -4,6 +4,7 @@
 // import * as PRIM from './primitives.js';
 import * as SDFUI from './draw.js';
 import * as LAYER from './layer.js';
+import * as twgl from 'twgl.js';
 
 //could also get frag stub here
 export function bake(layer){
@@ -46,7 +47,7 @@ function polyLine(prim, layer){
 
   //every layer gets its own parameters texture
   shader = polyLineFunc(prim, shader, parameters);
-  shader = polyLineCall(prim, shader);
+  shader = polyLineCall(prim, shader, layer.bbox);
   
   //need to recompile layer program
   //probably after returning the compiled shader
@@ -129,7 +130,7 @@ function polyLineFunc(prim, shader, parameters){
 }
 
 //creates function call for prim specific function
-function polyLineCall(prim, shader){
+function polyLineCall(prim, shader, bbox){
 
   let insString = "//$INSERT CALL$------";
   let insIndex = shader.indexOf(insString);
@@ -141,8 +142,11 @@ function polyLineCall(prim, shader){
   //create function
   let posString = '\n';
 
+  let norm = twgl.v3.subtract(twgl.v3.create(), bbox.min.v3);
+
+  let p = norm[0] + ',' + norm[1];
   // p here vec2(0.0,0.0) is a translation for polygon
-  posString += '\t colDist = ' + "pline" + prim.id.substr(0,7) + '(uv, vec2(0.0,0.0));\n';
+  posString += '\t colDist = ' + "pline" + prim.id.substr(0,7) + '(uv, vec2(' + p + '));\n';
   startShader += posString;
 
   let fragShader = startShader + endShader;

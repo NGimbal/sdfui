@@ -55,13 +55,14 @@ function listener(){
   }
 
   for(let pId of state.scene.rmPts){
-    // normal tree search function doesnt work
+    // so a = pId, b are the points we're mapping over
     ptTree.remove(pId, (a, b) => {
-      return a.id === b;
+      return a === b.id;
     });
+    // console.log(ptTree.all());
     store.dispatch(ACT.sceneFinRmvPt(pId));
   }
-  // return state;
+  return state;
 }; 
 
 //subscribe to store changes - run listener to set relevant variables
@@ -210,7 +211,7 @@ function update() {
   if(selDist.d < 0.01 && state.ui.mode === "select" && selDist.sel){
     document.getElementById("canvasContainer").style.cursor = "grab";
     store.dispatch(ACT.editHoverSet(selDist.sel.id))
-  } else {
+  } else if (state.scene.hover !== "") {
     document.getElementById("canvasContainer").style.cursor = "auto"
     store.dispatch(ACT.editHoverClr())
   }
@@ -305,9 +306,7 @@ function draw() {
   gl.clearColor(1, 1, 1, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  // bringing objects in and out of the render list causes 
-  // the framerate to drop
-  // without this renders 100 plines @ 50 points each fine
+  // bringing objects in and out of the render list causes the framerate to drop
   // spatial indexing / hashing for rendering
   // let bboxSearch = bboxTree.search(view).map(b => b.id);
   // let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
@@ -393,9 +392,6 @@ function updateCtx(selDist){
   ctx.fillText("Cursor: " + mPtString, pixelPt.x + 10, pixelPt.y);
   
   if(typeof selPrim !== "undefined" && dist < 0){
-  // if(typeof selPrim !== "undefined"){
-
-    // console.log(selPrim.properties.weight);
     ctx.fillStyle = selPrim.idColHex;
     ctx.fillText("Sel Item: " + dist, pixelPt.x + 10, pixelPt.y + 12);
   }
@@ -414,20 +410,15 @@ function sceneDist(){
   }
 
   let bboxSearch = bboxTree.search(mouse).map(b => b.id);
+  // console.log(mouse);
+  // console.log(bboxSearch);
+  let inMouse = state.scene.editItems.filter(i => bboxSearch.includes(i.id))
+  if(inMouse.length > 0) console.log(inMouse);
+  for (let prim of inMouse){
+    // let prim = state.scene.editItems.find(p => p.id === layer.prim);
+    if (prim.id === state.scene.editItem) continue;
 
-  let inMouse = layers.filter(l => bboxSearch.includes(l.id) || 
-                                    state.scene.editItem === l.prim || 
-                                    l.primType === "grid");
-
-  for (let layer of inMouse){
-    
-    if(!layer.prim) continue;
-    let prim = state.scene.editItems.find(p => p.id === layer.prim);
-    if (prim.id == state.scene.editItem) continue;
-    // also should have a "broad phase" check here on bounding box
-    // this is where some spatial hashing could go
     let currDist = PRIM.distPrim(mPt, prim);
-    // console.log(prim);
 
     if (currDist < dist){
       selPrim = prim;
@@ -435,6 +426,10 @@ function sceneDist(){
     }
   }
   return {d:dist, sel:selPrim};
+}
+
+export function deleteLayer(id){
+  layers = layers.filter(l => l.id !== id);
 }
 
 const saveBlob = (function() {

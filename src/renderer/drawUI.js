@@ -3,7 +3,7 @@ import * as twgl from 'twgl.js';
 
 import * as ACT from '../store/actions.js';
 
-import {gl, store, state, resolution, mPt, dPt, bboxTree, layers} from './draw.js';
+import {gl, store, state, resolution, mPt, dPt, bboxTree, layers, deleteLayer} from './draw.js';
 import {bakeLayer, createEditLayer} from './layer.js';
 
 import * as PRIM from './primitives'
@@ -119,20 +119,14 @@ export class DrawUI{
     if(state.ui.mode === "select" && state.ui.dragging){
       for (let id of state.scene.selected){
         if(id === state.scene.editItem) continue;
-        // let layer =  layers.find(layer => layer.prim === id);
-        // let currItem = state.scene.editItems.find(item => item.id === id);
-
 
         let mouse = twgl.v3.create(mPt.x, mPt.y, 1.0);
-        // let origin = twgl.v3.create(state.ui.dragOrigin.x, state.ui.dragOrigin.y, 1.0);
 
         let translate = twgl.v3.subtract(mouse, state.ui.dragOrigin);
-
+        console.log(translate);
+        // let prim = state.scene.editItems.find(item => item.id === id);
+        // console.log(prim);
         store.dispatch(ACT.editTranslate(id, translate));
-        // let diff = twgl.v3.subtract(translate, currItem.translate);
-        // console.log(diff);
-        // twgl.v3.add(currItem.translate, diff, currItem.translate);
-
       }
     }
 
@@ -231,7 +225,7 @@ function drawUp(e){
   let currItem  = state.scene.editItems.find(item => item.id === state.scene.editItem);
   let currLayer = layers.find(l => l.prim === currItem.id);
 
-  // I feel like the following line should also go in a reducer
+  // 
   let pt = currLayer.uniforms.u_eTex.addPoint(mPt, state.scene.editItem);
 
   store.dispatch(ACT.sceneAddPt(pt));
@@ -239,11 +233,15 @@ function drawUp(e){
   // this condition isn't great but seems to work
   if ( (currItem.type == "circle" || currItem.type == "rectangle") && currItem.pts.length >= 1 ){
     bakeLayer(currLayer);
+    
+    let bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, currItem.id, 0.05, currIten.type);
+    store.dispatch(ACT.editBbox(currItem.id, bbox));
+    bboxTree.insert(bbox);
+    
+    // better pattern might be make new item, pass whole new item, keep reference for new layer
     store.dispatch(ACT.scenePushEditItem(currItem.type));
     let newItem = state.scene.editItems.find(i=> i.id === state.scene.editItem);
-    // is this pattern reliable?
     let newLayer = createEditLayer(newItem);
-    // store.dispatch(ACT.layerPush(newLayer));
     layers.push(newLayer);
   }
 
@@ -265,6 +263,16 @@ function selUp(e){
   if(state.ui.dragging){
     store.dispatch(ACT.uiDragStart(false, mPt));
     store.dispatch(ACT.uiDragging(false));
+
+    // drag finished reinsert in bboxTree
+    console.log("drag end")
+    for (let id of state.scene.selected){
+      if(id === state.scene.editItem) continue;
+      let prim = state.scene.editItems.find(i => i.id === id);
+      console.log(prim.bbox);
+      bboxTree.insert(prim.bbox);
+    }
+    console.log(bboxTree.all());
   } else if (state.ui.dragStart){
     store.dispatch(ACT.uiDragStart(false, mPt));
   } else if (state.scene.hover !== "" && 
@@ -276,20 +284,32 @@ function selUp(e){
 }
 
 function selDwn(e){
-  // dispatch set curr item
   if(state.scene.hover !== ""){
+    store.dispatch(ACT.uiDragStart(true, mPt));
     if (!state.scene.selected.includes(state.scene.hover)){
-      // console.log("select");
       store.dispatch(ACT.editSelectIns(state.scene.hover));
-      store.dispatch(ACT.uiDragStart(true, mPt));
     }
   }
 }
 
 function selMv(){
   if(state.ui.dragStart && !state.ui.dragging){
-    // console.log("dragging");
     store.dispatch(ACT.uiDragging(true));
+    
+    // drag start remove from bbox tree
+    console.log("drag start")
+    for (let id of state.scene.selected){
+      if(id === state.scene.editItem) continue;
+      let prim = state.scene.editItems.find(i => i.id === id);
+      console.log(prim.bbox);
+      // bboxTree.remove(id, (a,b) => {
+      //   a.id === b;
+      // })
+      bboxTree.remove(id, (a, b) => {
+        return a === b.id;
+      });
+    }
+    console.log(bboxTree.all());
   }
 }
 
@@ -315,18 +335,22 @@ function endDrawUpdate(){
     return;
   }
   
-  // is this right?
   let layer = layers.find(l => l.prim === currItem.id);
 
   bakeLayer(layer);
-    
+
+  // TODO: create a reducer for this
+  let bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, currItem.id, 0.05, currItem.type);
+  store.dispatch(ACT.editBbox(currItem.id, bbox));
+  bboxTree.insert(bbox);
+  // console.log(bboxTree.all());
+
   store.dispatch(ACT.scenePushEditItem(currItem.type));
 
   let newItem = state.scene.editItems.find(item => item.id === state.scene.editItem);
   //next item
   let newLayer = createEditLayer(newItem);
 
-  // store.dispatch(ACT.layerPush(newLayer));
   layers.push(newLayer);
 
   this.toggle = false;
@@ -363,13 +387,18 @@ export function deleteItem(id){
   let layer = layers.find(l => l.prim === id);
   let lId = layer.id;
 
+  // bboxTree.remove(lId, (a, b) => {
+  //   return a.id === b;
+  // });
   bboxTree.remove(lId, (a, b) => {
-    return a.id === b;
+    return a === b.id;
   });
 
+  deleteLayer(lId);
+  // console.log(layers);
   // store.dispatch(ACT.layerPop(layer.id));
   // let index = layers.findIndex(l => l.id === layer.id);
-  layers = layers.filter(l => l.id === layer.id);
+  // layers = layers.filter(l => l.id !== lId);
 
   let item = state.scene.editItems.find(i => i.id === id);
 
@@ -496,9 +525,11 @@ export function stressTest(){
   
     let layer = layers[layers.length - 1];
     bakeLayer(layer);
-    
-    // let currItem = state.scene.editItems[state.scene.editItem];
-    let currItem = state.scene.editItems.find(state.scene.editItem);
+
+    let currItem = state.scene.editItems.find(state.scene.editItem);    
+    let bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, currItem.id, 0.05, currItem.type);
+    store.dispatch(ACT.editBbox(currItem.id, bbox));
+    bboxTree.insert(bbox);
 
     store.dispatch(ACT.scenePushEditItem(currItem.type));
   

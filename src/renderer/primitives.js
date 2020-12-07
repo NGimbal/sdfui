@@ -148,18 +148,38 @@ export class bbox{
   }
 
   // updates Bbox by 
-  update(v3){
-    console.log(this);
+  // update(v3){
+  //   // console.log(this);
 
-    this.maxX += v3[0];
-    this.minX += v3[0];
-    this.maxY += v3[1];
-    this.minY += v3[1];
+  //   this.maxX += v3[0];
+  //   this.minX += v3[0];
+  //   this.maxY += v3[1];
+  //   this.minY += v3[1];
     
-    this.min = new vec(this.minX, this.minY);
-    this.max = new vec(this.maxX, this.maxY);
-    console.log(this);
-  }
+  //   this.min = new vec(this.minX, this.minY);
+  //   this.max = new vec(this.maxX, this.maxY);
+  //   // console.log(this);
+  // }
+
+  // static translate(_bbox, v3){
+  //   console.log(_bbox);
+
+  //   let bbox = {...bbox};
+    
+  //   console.log(bbox);
+  //   console.log(v3)
+
+  //   bbox.maxX += v3[0];
+  //   bbox.minX += v3[0];
+    
+  //   bbox.maxY += v3[1];
+  //   bbox.minY += v3[1];
+
+  //   bbox.min = new vec(bbox.minX, bbox.minY);
+  //   bbox.max = new vec(bbox.maxX, bbox.maxY);
+
+  //   return bbox;
+  // }
 }
 
 export var propsDefault = {
@@ -192,6 +212,8 @@ export class prim{
     this.merge = merge || "union";
 
     this.translate = twgl.v3.create();
+
+    // this.bbox = null;
   }
 }
 

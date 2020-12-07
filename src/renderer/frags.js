@@ -472,20 +472,14 @@ void main(){
   dSh = (1. - smoothstep(0., 0.15, sqrt(dSh)))*.25;
   dSh *= u_sel;
   
-  if ( dist + dSh < 0.01){
-    discard;
-  }
+  // if ( dist + dSh < 0.01){
+  //   discard;
+  // }
 
   // outColor = vec4(dSh);
-  outColor = vec4(col * vec3(max(dSh, dist)), (dist + dSh) * u_opacity);
-  // #else
-
-  //   if ( dist < 0.0000000000000001){
-  //     discard;
-  //   }
-
-  //   outColor = vec4(col, dist * u_opacity);
-  // #endif
+  // outColor = vec4(col * vec3(max(dSh, dist)), (dist + dSh) * u_opacity);
+  col = mix(u_idCol, col, max(dSh, dist));
+  outColor = vec4(col, max(dist, 0.25));
 }`;
 //---------------------------------------------
 export const polygonEdit =

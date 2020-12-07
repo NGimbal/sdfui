@@ -43,19 +43,16 @@ function FloatingMenu() {
       let nextPrim = {};
       let newLayer = {};
       
-      let currLayer = SDFUI.state.render.layers.find(l => l.prim === currItem.id);
+      let currLayer = SDFUI.layers.find(l => l.prim === currItem.id);
       
       if(currItem && currItem.pts.length > 1){
         bakeLayer(currLayer);
         currItem = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
-        
         SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
       } else {
-
-        SDFUI.store.dispatch(ACT.layerPop(currLayer.id));
+        SDFUI.deleteLayer(currLayer.id);
         SDFUI.store.dispatch(ACT.sceneRmvItem(currItem.prim));
         SDFUI.store.dispatch(ACT.scenePushEditItem(primSel));
-        // SDFUI.store.dispatch(ACT.sceneNewEditItem(primSel));
       }
 
       nextPrim = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);

@@ -65,6 +65,7 @@ export const EDIT_SELECTRMV      = 'EDIT_SELECTRMV'; //Remove selected item
 export const EDIT_SELECTCLR      = 'EDIT_SELECTCLR'; //clears selection
 
 export const EDIT_TRANSLATE      = 'EDIT_TRANSLATE'; //translates edit object
+export const EDIT_BBOX           = 'EDIT_BBOX'; //sets the bbox of a prim
 //ACTION CREATORS
 
 //establishes grid offset
@@ -330,6 +331,14 @@ export function editSelectClr(){
   }
 }
 
+export function editBbox(id, bbox){
+  return{
+    type: scene,
+    subtype: EDIT_BBOX,
+    id,
+    bbox
+  }
+}
 
 export function editTranslate(id, v3){
   return{
@@ -339,6 +348,7 @@ export function editTranslate(id, v3){
     v3,
   }
 }
+
 
 //pushes a new layer onto the draw stack
 // export function layerPush(layer){
@@ -359,13 +369,13 @@ export function editTranslate(id, v3){
 // }
 
 //pops a new layer from the draw stack
-export function layerPop(layerID){
-  return{
-    type: render,
-    subtype: LAYER_POP,
-    layerID
-  }
-}
+// export function layerPop(layerID){
+//   return{
+//     type: render,
+//     subtype: LAYER_POP,
+//     layerID
+//   }
+// }
 
 export function setEditItem(editItem){
   return {

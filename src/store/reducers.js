@@ -276,7 +276,6 @@ function render(_state=initialState, action) {
 //state related to the scene
 function scene(_state=initialState, action) {
   let state = _state.scene;
-  let ptIndex = -1;
   switch(action.subtype){
     case ACT.SCENE_SETEDITITEM:
       return Object.assign({}, state,{
@@ -295,7 +294,6 @@ function scene(_state=initialState, action) {
         pts:[...state.pts, pt]
       });
     case ACT.SCENE_RMVPT:
-      ptIndex = state.pts.findIndex(i => i.id === action.pt.id);
       let parent = state.editItems.find(i => i.id === action.pt.parentId);
       let editPtIndex = parent.pts.findIndex(i => i === action.pt.id);
       
@@ -415,11 +413,34 @@ function scene(_state=initialState, action) {
         selected: []
       });
     case ACT.EDIT_TRANSLATE:
+      
+      return Object.assign({}, state,{
+        editItems: state.editItems.map((item) => {
+          if(item.id !== action.id) return item;
+          let translate = twgl.v3.subtract(action.v3, item.translate);
+          return Object.assign({}, item, {
+            translate: twgl.v3.add(item.translate, translate),
+            bbox: Object.assign({}, item.bbox, {
+              maxX : item.bbox.maxX + translate[0],
+              minX : item.bbox.minX + translate[0],
+              
+              maxY : item.bbox.maxY + translate[1],
+              minY : item.bbox.minY + translate[1],
+
+              min : new PRIM.vec(item.bbox.minX + translate[0], 
+                                 item.bbox.minY + translate[1]),
+              max : new PRIM.vec(item.bbox.maxX + translate[0],
+                                 item.bbox.maxY + translate[1])
+            })
+          })
+        }),
+      });
+    case ACT.EDIT_BBOX:
       return Object.assign({}, state,{
         editItems: state.editItems.map((item) => {
           if(item.id !== action.id) return item;
           return Object.assign({}, item, {
-            translate : twgl.v3.add(item.translate, twgl.v3.subtract(action.v3, item.translate))
+            bbox: {...action.bbox} //should the new bbox be made here?
           })
         }),
       });
@@ -429,11 +450,12 @@ function scene(_state=initialState, action) {
 };
 
 export const reducer = function(state = initialState, action){
+  // console.log(action);
   if (!state) {
     console.error('Reducer got null state. Should be initialized');
     return initialState;
   }
-  // console.log(action);
+
   switch (action.type) {
     case ACT.status:
       return Object.assign({}, state,{

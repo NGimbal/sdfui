@@ -96,50 +96,33 @@ export class Layer {
 //updates position and texture clipping matrices for layer
 export function updateMatrices(layer){
   let prim = state.scene.editItems.find(item => item.id === layer.prim);
-  //can also add a check to see if we're still dragging?
-  // console.log(state.ui.dragging);
-  // the problem here is that the transformation becomes embedded in the bbox
-  // then when I go to translate I'm translating the layer clipping twice
-  // would be better to separate bbox clipping and translation permanently
-  // so bbox origin is at 0,0
-  // for rectangles and circles and shit would be good if that was center
-  // for polylines... I mean why not do center as well
-  // issue is this is going to change the code quite significantly... fuck
-  // if(twgl.v3.distanceSq(layer.translate, prim.translate) > 0){
-  //   // console.log("hi what");
-  //   layer.translate = prim.translate;
-  //   // console.log(prim.translate);
-  //   // console.log(state.ui.dragOrigin);
-
-  //   bboxTree.remove(layer.id, (a, b) => {
-  //     return a.id === b;
-  //   });
-
-  //   layer.bbox.update(prim.translate);
-
-  //   bboxTree.insert(layer.bbox);
-  // }  
+  
   // texture clipping per:
   // https://webgl2fundamentals.org/webgl/lessons/webgl-2d-drawimage.html
-  let minX = ((layer.bbox.min.x * (64. / dPt[2]) + dPt[0]) * resolution.x) * (resolution.y/resolution.x);
-  let minY = ((layer.bbox.min.y * (64. / dPt[2]) + dPt[1]) * resolution.y);
+  let minX = (dPt[0] * resolution.x) * (resolution.y/resolution.x);
+  let minY = dPt[1] * resolution.y;
+  let wOrigin = twgl.v3.create(minX, minY);
+
+  let fX = ((64. / dPt[2]) * resolution.x) * (resolution.y/resolution.x);
+  let fY = ((64. / dPt[2]) * resolution.y);
+  let fact = twgl.v3.create(fX, fY);
   
-  let width = ((layer.bbox.width * (64. / dPt[2])) * resolution.x) * (resolution.y/resolution.x);
-  let height = (layer.bbox.height * (64. / dPt[2])) * resolution.y;
-  
-  //matrix transformation, transformation can be baked into layer
+  // this is the initial translation - should get moved to prim?
+  let lOrigin = twgl.v3.subtract(layer.bbox.min.v3, twgl.v3.create());
+  twgl.v3.multiply(lOrigin, fact, lOrigin);
+
   layer.matrix = twgl.m4.ortho(0, gl.canvas.clientWidth, gl.canvas.clientHeight, 0, -1, 1);
-
-  let translation = twgl.v3.create(minX, minY, 0);
-
-  layer.matrix = twgl.m4.translate(layer.matrix, translation);
+  twgl.m4.translate(layer.matrix, wOrigin, layer.matrix);
 
   //translate
-  let factor = twgl.v3.create(resolution.x, resolution.y, 1.0)
-  let translate = twgl.v3.multiply(prim.translate, factor);
-  layer.matrix = twgl.m4.translate(layer.matrix, translate);
+  let translate = twgl.v3.multiply(prim.translate, fact);
+  twgl.v3.add(lOrigin, translate, translate);
+  twgl.m4.translate(layer.matrix, translate, layer.matrix);
 
   // scale our 1 unit quad - from 1 unit to texWidth, texHeight units
+  let width = ((layer.bbox.width * (64. / dPt[2])) * resolution.x) * (resolution.y/resolution.x);
+  let height = (layer.bbox.height * (64. / dPt[2])) * resolution.y;
+
   layer.matrix = twgl.m4.scale(layer.matrix, twgl.v3.create(width, height, 1));
 
   layer.uniforms.u_matrix = layer.matrix;
@@ -152,18 +135,17 @@ export function updateMatrices(layer){
 
 //bakes layer
 export function bakeLayer(layer){
-  //set bounding box
+  // let prim = state.scene.editItems.find(item => item.id === layer.prim);
+
+  // set bounding box
   layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id, 0.05, layer.primType);
   updateMatrices(layer);
 
-  bboxTree.insert(layer.bbox);
-  // console.log(bboxTree);
   let fs = BAKE.bake(layer);
   layer.frag = fs;
-
   layer.programInfo = twgl.createProgramInfo(gl, [layer.vert, fs]);
   
-  // This line is important- otherwise you get lots of errors 
+  // This line is important
   gl.useProgram(layer.programInfo.program);
   twgl.setUniforms(layer.programInfo, layer.uniforms);
 }
