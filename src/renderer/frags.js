@@ -477,9 +477,9 @@ void main(){
   // }
 
   // outColor = vec4(dSh);
-  // outColor = vec4(col * vec3(max(dSh, dist)), (dist + dSh) * u_opacity);
-  col = mix(u_idCol, col, max(dSh, dist));
-  outColor = vec4(col, max(dist, 0.25));
+  outColor = vec4(col * vec3(max(dSh, dist)), (dist + dSh) * u_opacity);
+  // col = mix(u_idCol, col, max(dSh, dist));
+  // outColor = vec4(col, max(dist, 0.25));
 }`;
 //---------------------------------------------
 export const polygonEdit =

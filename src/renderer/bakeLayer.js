@@ -31,17 +31,6 @@ export function bake(layer){
 //POLYLINE-------------------------------------------------------
 //takes prim and layer and bakes as a polyline
 function polyLine(prim, layer){
-  //transform points to be centered at origin
-  // layer.bbox.min + 1/2 with , height = 0 
-  // maybe this should be built into bbox
-  // let origin = twgl.v3.create(layer.bbox.minX + 0.5 * layer.bbox.width, 
-  //                             layer.bbox.minY + 0.5 * layer.bbox.height);
-  // prim.pts = prim.pts.map(p => {
-  //   console.log(p);
-
-  // })
-
-
   let shader = LAYER.getFragStub(prim.type, false);
   let parameters = layer.uniforms.u_eTex;
 
@@ -163,7 +152,7 @@ function polygon(prim, layer){
   let parameters = layer.uniforms.u_eTex;
 
   shader = polygonFunc(prim, shader, parameters);
-  shader = polygonCall(prim, shader);
+  shader = polygonCall(prim, shader, layer.bbox);
 
   //need to recompile layer program after returning the compiled shader
   return shader;
@@ -284,7 +273,7 @@ function polygonFunc(prim, shader, parameters){
 }
 
 //creates function calls that draws prim as a polygon
-function polygonCall(prim, shader){
+function polygonCall(prim, shader, bbox){
 
   let insString = "//$INSERT CALL$------";
   let insIndex = shader.indexOf(insString);
@@ -296,9 +285,13 @@ function polygonCall(prim, shader){
   //create function
   let posString = '\n';
 
+  let norm = twgl.v3.subtract(twgl.v3.create(), bbox.min.v3);
+  let p = norm[0] + ',' + norm[1];
+  console.log(bbox);
+  console.log(p);
   // p here vec2(0.0,0.0) is a translation for polygon
   // eventually this will be a reference to another data texture
-  posString += '\t colDist = ' + "pgon" + prim.id.substr(0,7) +' (uv, vec2(0.0,0.0));\n';
+  posString += '\t colDist = ' + "pgon" + prim.id.substr(0,7) +' (uv, vec2(' + p + '));\n';
   startShader += posString;
 
   let fragShader = startShader + endShader;

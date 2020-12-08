@@ -39,19 +39,31 @@ var mouseDragStart = new PRIM.vec(0, 0);
 function listener(){
 
   state = store.getState();
+  console.log(state);
   resolution = state.status.resolution;
   
   // update mouse position variable
   mPt = PRIM.vecSet(mPt, state.cursor.pos.x, state.cursor.pos.y);
   
   // update kdTree of points
-  for(let p of state.scene.pts){
-    // will need to find and move, or find remove and add when update means moving points around
-    if(p.update == true){
-      ptTree.insert(p);
-      //TODO: create a reducer that changes this parameter
-      p.update = false;
-    }
+  // for(let p of state.scene.pts){
+  //   // will need to find and move, or find remove and add when update means moving points around
+  //   if(p.update == true){
+  //     ptTree.insert(p);
+  //     //TODO: create a reducer that changes this parameter
+  //     p.update = false;
+  //   }
+  // }
+
+  let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
+  if(currItem) {
+    for(let p of currItem.pts){
+      if(p.update == true){
+        ptTree.insert(p);
+        //TODO: create a reducer that changes this parameter
+        p.update = false;
+      }
+    }  
   }
 
   for(let pId of state.scene.rmPts){
@@ -65,9 +77,11 @@ function listener(){
   return state;
 }; 
 
+
+
 //subscribe to store changes - run listener to set relevant variables
-// store.subscribe(() => console.log(listener()));
-store.subscribe(() => listener());
+store.subscribe(() => console.log(listener()));
+// store.subscribe(() => listener());
 
 export function initDraw() {
   let canvasContainer = document.querySelector('#canvasContainer');

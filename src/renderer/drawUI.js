@@ -234,14 +234,19 @@ function drawUp(e){
   if ( (currItem.type == "circle" || currItem.type == "rectangle") && currItem.pts.length >= 1 ){
     bakeLayer(currLayer);
     
-    let bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, currItem.id, 0.05, currIten.type);
+    // let bbox = new PRIM.bbox(currLayer.uniforms.u_eTex.pts, currItem.id, 0.05, currItem.type);
+    let bbox = new PRIM.bbox(currItem.pts, currItem.id, 0.05, currItem.type);
+
     store.dispatch(ACT.editBbox(currItem.id, bbox));
     bboxTree.insert(bbox);
     
     // better pattern might be make new item, pass whole new item, keep reference for new layer
-    store.dispatch(ACT.scenePushEditItem(currItem.type));
-    let newItem = state.scene.editItems.find(i=> i.id === state.scene.editItem);
-    let newLayer = createEditLayer(newItem);
+    // let props = {...state.editItems.find(a => a.id === state.editItem).properties};
+    let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
+    
+    store.dispatch(ACT.scenePushEditItem(newPrim));
+    // let newItem = state.scene.editItems.find(i=> i.id === state.scene.editItem);
+    let newLayer = createEditLayer(newPrim);
     layers.push(newLayer);
   }
 
@@ -340,16 +345,19 @@ function endDrawUpdate(){
   bakeLayer(layer);
 
   // TODO: create a reducer for this
-  let bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, currItem.id, 0.05, currItem.type);
+  let bbox = new PRIM.bbox(currItem.pts, currItem.id, 0.05, currItem.type);
   store.dispatch(ACT.editBbox(currItem.id, bbox));
   bboxTree.insert(bbox);
   // console.log(bboxTree.all());
 
-  store.dispatch(ACT.scenePushEditItem(currItem.type));
+  // let props = {...state.editItems.find(a => a.id === state.editItem).properties};
+  let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
+  
+  store.dispatch(ACT.scenePushEditItem(newPrim));
 
-  let newItem = state.scene.editItems.find(item => item.id === state.scene.editItem);
+  // let newItem = state.scene.editItems.find(item => item.id === state.scene.editItem);
   //next item
-  let newLayer = createEditLayer(newItem);
+  let newLayer = createEditLayer(newPrim);
 
   layers.push(newLayer);
 
@@ -364,10 +372,13 @@ function escDrawUpdate(){
   // let currItem = state.scene.editItems.find(i => i.id === id);
   let layer = layers.find(l => l.prim === id);
   
-  store.dispatch(ACT.scenePushEditItem(layer.primType))
-  let newItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
+  let props = {...state.editItems.find(a => a.id === state.editItem).properties};
+  let newPrim = new PRIM.prim(currItem.type, [], props);
+  
+  store.dispatch(ACT.scenePushEditItem(newPrim));
+  // let newItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
   // store.dispatch(ACT.layerPush(createEditLayer(newItem)));
-  layers.push(createEditLayer(newItem));
+  layers.push(createEditLayer(newPrim));
 
   let del = deleteItem(id);
   
@@ -387,26 +398,21 @@ export function deleteItem(id){
   let layer = layers.find(l => l.prim === id);
   let lId = layer.id;
 
-  // bboxTree.remove(lId, (a, b) => {
-  //   return a.id === b;
-  // });
+
   bboxTree.remove(lId, (a, b) => {
     return a === b.id;
   });
 
   deleteLayer(lId);
-  // console.log(layers);
-  // store.dispatch(ACT.layerPop(layer.id));
-  // let index = layers.findIndex(l => l.id === layer.id);
-  // layers = layers.filter(l => l.id !== lId);
 
-  let item = state.scene.editItems.find(i => i.id === id);
+  // let item = state.scene.editItems.find(i => i.id === id);
 
-  for (let p of item.pts){
-    let point = state.scene.pts.find(pt => pt.id === p)
-    store.dispatch(ACT.sceneRmvPt(point));
-  }
+  // for (let p of item.pts){
+  //   let point = state.scene.pts.find(pt => pt.id === p)
+  //   store.dispatch(ACT.sceneRmvPt(point));
+  // }
 
+  //rmvItem now removes all pts as well
   store.dispatch(ACT.sceneRmvItem(id))
   return true;
 } 
@@ -531,7 +537,10 @@ export function stressTest(){
     store.dispatch(ACT.editBbox(currItem.id, bbox));
     bboxTree.insert(bbox);
 
-    store.dispatch(ACT.scenePushEditItem(currItem.type));
+    // let props = {...state.editItems.find(a => a.id === state.editItem).properties};
+    let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
+    
+    store.dispatch(ACT.scenePushEditItem(newPrim));
   
     //next item
     let newLayer = createEditLayer();

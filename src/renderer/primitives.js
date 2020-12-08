@@ -54,7 +54,7 @@ export class vec{
     this.maxY = y;
 
     //parentId
-    this.parentId = pId || "";
+    this.parent = pId || "";
 
     this.id = id || uuid();
     this.update = update || false;
@@ -126,12 +126,29 @@ export class bbox{
         this.maxY = points[points.length-1].y + offset;
 
         break;
+      case('polygon'):
+        points.sort((a,b) => (a.x < b.x) ? -1 : 1);
+        this.minX = points[0].x - offset;
+        this.maxX = points[points.length-1].x + offset;
+
+        points.sort((a,b) => (a.y < b.y) ? -1 : 1);
+        this.minY = points[0].y - offset;
+        this.maxY = points[points.length-1].y + offset;
+
+        break;
       case('circle'):
         let radius = distVec(points[0], points[1]);
         this.minX = points[0].x - radius - offset;
         this.maxX = points[0].x + radius + offset;
         this.minY = points[0].y - radius - offset;
         this.maxY = points[0].y + radius + offset;
+        break;
+      case('rectangle'):
+        // let radius = distVec(points[0], points[1]);
+        this.minX = points[0].x - offset;
+        this.maxX = points[1].x + offset;
+        this.minY = points[0].y - offset;
+        this.maxY = points[1].y + offset;
         break;
       case('img'):
         this.minX = points[0].x;
@@ -403,15 +420,12 @@ function rectDist(mPt, prim){
 
 //returns distance to a poly line
 function pLineDist(mPt, prim){
-  if (prim.type != "polyline"){
-    // console.log("pLineDist() called on primitive of " + prim.type + " type.");
-    // console.log(prim);
-    return 1000;
-  }
+  if (prim.type != "polyline"){ return 1000; }
+
   let dist = 1000;
   let prev;
-  for (let _p of prim.pts){
-    let p = state.scene.pts.find(pt => pt.id == _p);
+  for (let p of prim.pts){
+    // let p = state.scene.pts.find(pt => pt.id == _p);
     // console.log(p);
     if(typeof prev === 'undefined'){
       prev = p;
@@ -433,19 +447,21 @@ function polygonDist(mPt, prim){
     return 1000;
   }
   // let dist = 1000;
-  let _prev = state.scene.pts.find(pt => pt.id == prim.pts[prim.pts.length - 1]);
-  let prev = twgl.v3.create(_prev.x, _prev.y, 0);
+  // let _prev = state.scene.pts.find(pt => pt.id == prim.pts[prim.pts.length - 1]);
+  let prev = twgl.v3.copy(prim.pts[prim.pts.length - 1].v3);
+  // let prev = twgl.v3.create(_prev.x, _prev.y, 0);
   
-  let _first = state.scene.pts.find(pt => pt.id == prim.pts[0]);
-  let first = twgl.v3.create(_first.x, _first.y, 0);
+  // let _first = state.scene.pts.find(pt => pt.id == prim.pts[0]);
+  // let first = twgl.v3.create(_first.x, _first.y, 0);
+  let first = twgl.v3.copy(prim.pts[0].v3);
   first = twgl.v3.subtract(mPt, first);
 
   let dist = twgl.v3.dot(first,first);
   let s = 1;
 
   for (let _p of prim.pts){
-    let _pt = state.scene.pts.find(pt => pt.id == _p);
-    let p = twgl.v3.create(_pt.x, _pt.y, 0);
+    // let _pt = state.scene.pts.find(pt => pt.id == _p);
+    let p = twgl.v3.copy(_p.v3);
 
     let e = twgl.v3.subtract(prev, p);
     let w = twgl.v3.subtract(mPt, p);
@@ -475,11 +491,13 @@ function circleDist(mPt, prim){
     // console.log(prim);
     return 1000;
   }
-  let ptA = state.scene.pts.find(pt => pt.id == prim.pts[0]);
-  let ptB = state.scene.pts.find(pt => pt.id == prim.pts[1]);
+  // let ptA = state.scene.pts.find(pt => pt.id == prim.pts[0]);
+  // let ptB = state.scene.pts.find(pt => pt.id == prim.pts[1]);
+  let ptA = twgl.v3.copy(prim.pts[0].v3);
+  let ptB = twgl.v3.copy(prim.pts[1].v3);
 
-  ptA = twgl.v3.create(ptA.x, ptA.y, 0);
-  ptB = twgl.v3.create(ptB.x, ptB.y, 0);
+  // ptA = twgl.v3.create(ptA.x, ptA.y, 0);
+  // ptB = twgl.v3.create(ptB.x, ptB.y, 0);
   
   let radius = twgl.v3.distance(ptA, ptB);
   let uv = twgl.v3.subtract(mPt, ptA);

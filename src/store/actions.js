@@ -414,11 +414,11 @@ export function sceneFinRmvPt(id){
 }
 
 //pushes new item onto scene - prim is type
-export function scenePushEditItem(primType){
+export function scenePushEditItem(prim){
   return {
     type: scene,
     subtype: SCENE_PUSHEDITITEM,
-    primType
+    prim
   };
 }
 

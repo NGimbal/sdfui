@@ -66,7 +66,7 @@ let firstPrim = new PRIM.prim("polyline", [], {...PRIM.propsDefault});
 
 const sceneInit = {
   editItem:firstPrim.id.slice(),//id of item points are being added to
-  pts:[], //all points in scene
+  // pts:[], //all points in scene
   rmPts:[],   //points staged to be removed
   editItems:[firstPrim], //all items in scene
   hover:{},
@@ -144,7 +144,7 @@ function cursor(_state=initialState, action) {
   switch(action.subtype) {
     case ACT.CURSOR_SET:
       let pt = {x:action.vec2.x, y:action.vec2.y};
-      let pts = _state.scene.pts;
+      // let pts = _state.scene.pts;
       // let editPts = _state.scene.editItems[_state.scene.editItem].pts;
       let editPts = _state.scene.editItems.find(item => item.id === _state.scene.editItem).pts;
 
@@ -165,7 +165,7 @@ function cursor(_state=initialState, action) {
           pos: pt
         });
       } if(state.snapGlobal && editPts.length > 0) {
-          let prev = {...pts[pts.length - 1]};
+          let prev = {...editPts[editPts.length - 1]};
           let line = {...prev};
 
           line.x = line.x - pt.x;
@@ -184,8 +184,8 @@ function cursor(_state=initialState, action) {
             pos: pt
           });
       } if(state.snapRef && editPts.length > 1) {
-        let prev = {...pts[pts.length - 1]};
-        let prevPrev = {...pts[pts.length - 2]};
+        let prev = {...editPts[editPts.length - 1]};
+        let prevPrev = {...editPts[editPts.length - 2]};
         let line = {...prev};
         let linePrev = {...prevPrev};
 
@@ -288,24 +288,23 @@ function scene(_state=initialState, action) {
         editItems: state.editItems.map(item => {
           if(item.id !== state.editItem) return item;
           return Object.assign({}, item, {
-            pts: [...item.pts, pt.id]
+            pts: [...item.pts, pt]
           })
         }),
-        pts:[...state.pts, pt]
+        // pts:[...state.pts, pt]
       });
     case ACT.SCENE_RMVPT:
-      let parent = state.editItems.find(i => i.id === action.pt.parentId);
-      let editPtIndex = parent.pts.findIndex(i => i === action.pt.id);
-      
+      let parent = state.editItems.find(i => i.id === action.pt.parent);
+      // let editPtIndex = parent.pts.findIndex(pt => pt.id === action.pt.id);
       return Object.assign({}, state,{
         editItems: state.editItems.map(item => {
           // if(index !== state.editItem) return item;
-          if(item.id !== state.editItem) return item;
+          if(item.id !== parent.id) return item;
           return Object.assign({}, item, {
-            pts: removeItem(item.pts, editPtIndex)
+            pts: parent.pts.filter(pt => pt.id !== action.pt.id)
           })
         }),
-        pts: state.pts.filter(i => i !== action.pt.id),
+        // pts: state.pts.filter(i => i !== action.pt.id),
         rmPts: [...state.rmPts, action.pt.id.slice()]
       });
     case ACT.SCENE_FINRMVPT:
@@ -314,16 +313,20 @@ function scene(_state=initialState, action) {
         rmPts: state.rmPts.filter(id => id !== action.id)
       });
     case ACT.SCENE_PUSHEDITITEM: //takes prim type, appends to edit items and sel array
-      let newItem = new PRIM.prim(action.primType, [], {...state.editItems.find(a => a.id === state.editItem).properties});
+      console.log(action); 
       return Object.assign({}, state,{
-        editItems: appendItem(state.editItems, {...newItem}),
-        selected: appendItem(state.selected, newItem.id.slice()),
-        editItem: newItem.id.slice(),
+        editItems: [...state.editItems, action.prim],
+        selected: [...state.selected, action.prim.id.slice()],
+        editItem: action.prim.id.slice(),
       });
     case ACT.SCENE_RMVITEM:
-      let index = state.editItems.findIndex(i => i.id === action.id);
+      // let index = state.editItems.findIndex(i => i.id === action.id);
       return Object.assign({}, state,{
-        editItems: removeItem(state.editItems, index),
+        editItems: state.editItems.filter(i => i.id !== action.id),
+        // pts: state.pts.filter(pt => pt.parent !== action.id),
+        rmPts: [...state.rmPts, 
+          state.editItems.find(i => i.id === action.id).pts.map(pt => pt.id)],
+        selected: state.selected.filter(i => i !== action.id)
       });
     case ACT.EDIT_WEIGHT:
       return Object.assign({}, state,{
@@ -491,9 +494,9 @@ function insertItem(array, action) {
   return newArray
 }
 
-function appendItem(array, item) {
-  return [...array, item];
-}
+// function appendItem(array, item) {
+//   return [...array, item];
+// }
 
 // remove array[action.index]
 function removeItem(array, index) {

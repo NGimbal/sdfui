@@ -4,6 +4,7 @@ import { ControlGroup, Classes, Button, Icons, CustomSelect, PopoverMenu, MenuIt
 import * as SDFUI from '../renderer/draw'
 import * as ACT from '../store/actions'
 import {bakeLayer, createEditLayer} from '../renderer/layer';
+import * as PRIM from '../renderer/primitives'
 
 import chroma from 'chroma-js';
 
@@ -40,23 +41,25 @@ function FloatingMenu() {
 
     // this is nice
     if(type != primSel){
-      let nextPrim = {};
+      // let nextPrim = {};
       let newLayer = {};
       
       let currLayer = SDFUI.layers.find(l => l.prim === currItem.id);
-      
+      // currItem = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
+      // let props = {...SDFUI.state.editItems.find(a => a.id === SDFUI.state.editItem).properties};
+      let newPrim = new PRIM.prim(primSel, [], {...currItem.properties});
+
       if(currItem && currItem.pts.length > 1){
         bakeLayer(currLayer);
-        currItem = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
-        SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
+        SDFUI.store.dispatch(ACT.scenePushEditItem(newPrim));
       } else {
         SDFUI.deleteLayer(currLayer.id);
-        SDFUI.store.dispatch(ACT.sceneRmvItem(currItem.prim));
-        SDFUI.store.dispatch(ACT.scenePushEditItem(primSel));
+        SDFUI.store.dispatch(ACT.sceneRmvItem(currItem.id));
+        SDFUI.store.dispatch(ACT.scenePushEditItem(newPrim));
       }
 
-      nextPrim = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
-      newLayer = createEditLayer(nextPrim);
+      // nextPrim = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
+      newLayer = createEditLayer(newPrim);
 
       // SDFUI.store.dispatch(ACT.layerPush(newLayer));
       SDFUI.layers.push(newLayer);
