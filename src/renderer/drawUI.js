@@ -223,7 +223,7 @@ function drawUp(e){
   }
 
   let currItem  = state.scene.editItems.find(item => item.id === state.scene.editItem);
-  let currLayer = layers.find(l => l.prim === currItem.id);
+  let currLayer = layers.find(l => l.id === currItem.id);
 
   // 
   let pt = currLayer.uniforms.u_eTex.addPoint(mPt, state.scene.editItem);
@@ -241,7 +241,6 @@ function drawUp(e){
     bboxTree.insert(bbox);
     
     // better pattern might be make new item, pass whole new item, keep reference for new layer
-    // let props = {...state.editItems.find(a => a.id === state.editItem).properties};
     let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
     
     store.dispatch(ACT.scenePushEditItem(newPrim));
@@ -340,7 +339,7 @@ function endDrawUpdate(){
     return;
   }
   
-  let layer = layers.find(l => l.prim === currItem.id);
+  let layer = layers.find(l => l.id === currItem.id);
 
   bakeLayer(layer);
 
@@ -350,7 +349,6 @@ function endDrawUpdate(){
   bboxTree.insert(bbox);
   // console.log(bboxTree.all());
 
-  // let props = {...state.editItems.find(a => a.id === state.editItem).properties};
   let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
   
   store.dispatch(ACT.scenePushEditItem(newPrim));
@@ -369,10 +367,10 @@ function escDrawUpdate(){
   if(!this.toggle) return null;
   
   let id = state.scene.editItem;
-  // let currItem = state.scene.editItems.find(i => i.id === id);
-  let layer = layers.find(l => l.prim === id);
+  let currItem = state.scene.editItems.find(i => i.id === id);
+  // let layer = layers.find(l => l.id === id);
   
-  let props = {...state.editItems.find(a => a.id === state.editItem).properties};
+  let props = {...currItem.properties};
   let newPrim = new PRIM.prim(currItem.type, [], props);
   
   store.dispatch(ACT.scenePushEditItem(newPrim));
@@ -395,7 +393,7 @@ function escDrawUpdate(){
 // Deletes item in editItems at index
 export function deleteItem(id){
 
-  let layer = layers.find(l => l.prim === id);
+  let layer = layers.find(l => l.id === id);
   let lId = layer.id;
 
 
@@ -405,13 +403,6 @@ export function deleteItem(id){
 
   deleteLayer(lId);
 
-  // let item = state.scene.editItems.find(i => i.id === id);
-
-  // for (let p of item.pts){
-  //   let point = state.scene.pts.find(pt => pt.id === p)
-  //   store.dispatch(ACT.sceneRmvPt(point));
-  // }
-
   //rmvItem now removes all pts as well
   store.dispatch(ACT.sceneRmvItem(id))
   return true;
@@ -419,16 +410,10 @@ export function deleteItem(id){
 
 //modes are collections of UIModifiers
 class UIMode{
-  //bool, [], functions
-  // constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
+
   constructor(name, modifiers, _events, _options){
     this.name = name;
-    // this.toggle = toggle;
     this.modifiers = modifiers;
-    // this.enter = enter.bind(this);
-    // this.exit = exit.bind(this);
-    // this.update = update.bind(this);
-
     this.toggle = true;
 
     //these should basically all be defined for every mode
@@ -524,7 +509,7 @@ export function stressTest(){
       let y = Math.random() + lociY;
       let randPt = new PRIM.vec(x, y)
       let currLayer = layers[layers.length - 1];
-      // I feel like the following line should also go in a reducer
+
       let pt = currLayer.uniforms.u_eTex.addPoint(randPt, state.scene.editItem);
       store.dispatch(ACT.sceneAddPt(pt));
     }
@@ -537,7 +522,6 @@ export function stressTest(){
     store.dispatch(ACT.editBbox(currItem.id, bbox));
     bboxTree.insert(bbox);
 
-    // let props = {...state.editItems.find(a => a.id === state.editItem).properties};
     let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
     
     store.dispatch(ACT.scenePushEditItem(newPrim));
@@ -545,7 +529,6 @@ export function stressTest(){
     //next item
     let newLayer = createEditLayer();
 
-    // store.dispatch(ACT.layerPush(newLayer));
     layers.push(newLayer)
   }
 }

@@ -11,19 +11,19 @@ export function bake(layer){
   let prim = {};
   switch(layer.primType){
     case'polyline':
-      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return polyLine(prim, layer);
     case'polygon':
-      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return polygon(prim, layer);
     case'circle':
-      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return circleCall(prim, layer);
     case'rectangle':
-      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return rectangleCall(prim, layer);
     default:
-      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return polyLine(prim, layer);
   }
 }

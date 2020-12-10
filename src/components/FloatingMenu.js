@@ -44,7 +44,7 @@ function FloatingMenu() {
       // let nextPrim = {};
       let newLayer = {};
       
-      let currLayer = SDFUI.layers.find(l => l.prim === currItem.id);
+      let currLayer = SDFUI.layers.find(l => l.id === currItem.id);
       // currItem = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
       // let props = {...SDFUI.state.editItems.find(a => a.id === SDFUI.state.editItem).properties};
       let newPrim = new PRIM.prim(primSel, [], {...currItem.properties});
