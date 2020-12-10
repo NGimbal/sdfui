@@ -291,7 +291,7 @@ function selDwn(e){
   if(state.scene.hover !== ""){
     store.dispatch(ACT.uiDragStart(true, mPt));
     if (!state.scene.selected.includes(state.scene.hover)){
-      store.dispatch(ACT.editSelectIns(state.scene.hover));
+      store.dispatch(ACT.editSelectApnd(state.scene.hover));
     }
   }
 }

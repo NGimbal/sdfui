@@ -177,7 +177,7 @@ export var propsDefault = {
 }
 
 export class prim{
-  constructor(type, pts, _props, id, pId, merge){
+  constructor(type, pts, _props, id, _bbox){
     this.type = type;
     //list of point ids
     this.pts = pts || [];
@@ -186,19 +186,16 @@ export class prim{
     this.update = false;
         
     this.id = id ||  uuid();
-    // parent id
-    // this.pId = pId || "";
 
     let idCol = chroma.random();
     this.idCol = twgl.v3.create(idCol.gl()[0], idCol.gl()[1], idCol.gl()[2]);
     this.idColHex = idCol.hex();
 
-    // scene merge
-    // this.merge = merge || "union";
-
     this.translate = twgl.v3.create();
 
-    // this.bbox = null;
+    if(typeof _bbox !== "object") console.log(_bbox);
+
+    this.bbox = _bbox || null;
   }
 }
 
@@ -274,22 +271,23 @@ export class PolyPoint{
     return newPolyPoint;
   }
 
-  //adds point to polyPoint
-  //point x, y, z, w are stored as HalfFloat16
-  //https://github.com/petamoriken/float16
+  // adds point to polyPoint
+  // point x, y, z, w are stored as HalfFloat16
+  // https://github.com/petamoriken/float16
   addPoint(_pt, pId){
     let x = _pt.x;
     let y = _pt.y;
-    let z = _pt.z || 1.0;
-    let w = _pt.w || 1.0;
+    let z = _pt.z || 0.0;
+    let w = _pt.w || 0.0;
 
     let pt = new vec(x, y, z, w, pId);
 
     this.cTexel++;
 
     let index = this.cTexel * 4;
-    //use view.setFloat16() to set the digits in the DataView
-    //then use view.getUint16 to retrieve and write to data Texture
+
+    // use view.setFloat16() to set the digits in the DataView
+    // then use view.getUint16 to retrieve and write to data Texture
     let buffer = new ArrayBuffer(64);
     let view = new DataView(buffer);
 
@@ -304,7 +302,6 @@ export class PolyPoint{
     view.setFloat16(32, z, endD);
     view.setFloat16(48, w, endD);
 
-    //this seems to be working...
     this.data[index] = view.getUint16(0, endD);
     this.data[index + 1] = view.getUint16(16, endD);
     this.data[index + 2] = view.getUint16(32, endD);
@@ -334,8 +331,9 @@ export function distPrim(_mPt, prim){
     mPt = _mPt;
   }
 
-  let tPt = twgl.v3.subtract(mPt, prim.translate);
-
+  // let tPt = twgl.v3.subtract(mPt, prim.translate);
+  let tPt = mPt;
+  
   let dist = 1000;
   switch (prim.type){
     case  "polyline":

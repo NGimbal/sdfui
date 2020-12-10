@@ -33,6 +33,8 @@ export var layers = [];
 
 var mouseDragStart = new PRIM.vec(0, 0);
 
+var resize = false;
+
 // layers, ptTree, bboxTree should all be updated here
 function listener(){
 
@@ -91,95 +93,6 @@ function listener(){
   console.log(layers);
   return state;
 }; 
-
-function updateUniforms(prim, layer){
-
-  // layers.forEach(function(layer) {
-
-  // these are updated in draw
-  // if(layer.bbox){ updateMatrices(layer); }
-
-  gl.useProgram(layer.programInfo.program);
-
-  // if(resize){
-  //   layer.uniforms.u_resolution['0'] = gl.canvas.clientWidth;
-  //   layer.uniforms.u_resolution['1'] = gl.canvas.clientHeight;
-  // }
-  if(layer.uniforms.u_mPt){
-    layer.uniforms.u_mPt['0'] = mPt.x;
-    layer.uniforms.u_mPt['1'] = mPt.y;
-  }
-  if(layer.uniforms.u_dPt){
-    layer.uniforms.u_dPt = dPt;
-  }
-  
-  //keep layer uniforms aligned with drawObject
-  // let drawObject = state.scene.editItems.find(a => a.id === layer.id);
-
-  // if(layer.primType === "demo") console.log(layer.uniforms);
-
-  // edit item array and layer array may become out of sync temporarily
-  // as edit items are added and removed
-  if(!prim) return;
-
-  // could put check here to see if the layer uniforms need to be updated
-  // update on every render seems fine at the moment
-  
-  if(typeof layer.uniforms.u_stroke === 'object'){
-    layer.uniforms.u_stroke = chroma(prim.properties.stroke).gl().slice(0,3);
-  }
-  if(typeof layer.uniforms.u_fill === 'object'){
-    layer.uniforms.u_fill = chroma(prim.properties.fill).gl().slice(0,3);
-  }
-  if(typeof layer.uniforms.u_weight === 'number'){
-    layer.uniforms.u_weight = prim.properties.weight;
-  }
-  if(typeof layer.uniforms.u_weight === 'number'){
-    layer.uniforms.u_weight = prim.properties.weight;
-  }
-  if(typeof layer.uniforms.u_opacity  === 'number'){
-    layer.uniforms.u_opacity = prim.properties.opacity;
-  }
-  if(typeof layer.uniforms.u_radius  === 'number'){
-    layer.uniforms.u_radius = prim.properties.radius; 
-  }
-
-  if(typeof layer.uniforms.u_sel  === 'number'){
-    if(state.scene.selected.includes(prim.id)){
-      if (layer.uniforms.u_sel < 1.0) layer.uniforms.u_sel += 0.15;
-    } else if (state.scene.hover === prim.id) {
-      if (layer.uniforms.u_sel < 0.7) layer.uniforms.u_sel += 0.06;
-    } else {
-      if (layer.uniforms.u_sel > 0.0) layer.uniforms.u_sel -= 0.15;
-    }
-  }
-  
-  // weird but probably okay
-  if(typeof layer.uniforms.u_cTex === 'number'){
-    layer.uniforms.u_cTex = layer.uniforms.u_eTex.cTexel;
-  }
-
-  twgl.setUniforms(layer.programInfo, layer.uniforms);
-  // });
-}
-
-// so bake edit layer currently works by baking the current edit layer
-// this should be a different type of function that creates a layer 
-// whole cloth from a prim
-// does this make more sense than the bakeLayer paradigm?
-function bakePrim(prim){
-  // set bounding box
-  // layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id, 0.05, layer.primType);
-  // updateMatrices(layer);
-
-  // let fs = BAKE.bake(layer);
-  // layer.frag = fs;
-  // layer.programInfo = twgl.createProgramInfo(gl, [layer.vert, fs]);
-  
-  // // This line is important
-  // gl.useProgram(layer.programInfo.program);
-  // twgl.setUniforms(layer.programInfo, layer.uniforms);
-}
 
 
 //subscribe to store changes - run listener to set relevant variables
@@ -292,7 +205,8 @@ export function addImage(_srcURL, dims, evPt) {
     u_img: image,
   }
   
-  let imgLayer = new Layer({type:"img"}, SF.imgVert, SF.imgFrag, imgUniforms);
+  let imgPrim = new PRIM.prim("image", [], {}, PRIM.uuid(), bbox);
+  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, imgUniforms);
   
   // Will want to add some cool image processing stuff at some point...
   // Blending, edge detection, img -> sdf in some way :)
@@ -307,11 +221,14 @@ export function addImage(_srcURL, dims, evPt) {
   evPt.x = evPt.x * (dPt[2] / 64.);
   evPt.y = evPt.y * (dPt[2] / 64.);
 
-  imgLayer.bbox = new PRIM.bbox([{x: evPt.x, y: evPt.y},
+  let bbox = new PRIM.bbox([{x: evPt.x, y: evPt.y},
                                  {x: evPt.x + width, y: evPt.y + height}],imgLayer.id,
                                  0.0, '');
+  imgLayer.bbox = {...bbox};
+    
+  store.dispatch(ACT.scenePushEditItem(imgPrim, state.scene.editItem))
 
-  bboxTree.insert(imgLayer.bbox);
+  bboxTree.insert({...bbox});
 
   updateMatrices(imgLayer);
 
@@ -335,7 +252,7 @@ function update() {
 
   updateCtx(selDist);
 
-  let resize = twgl.resizeCanvasToDisplaySize(gl.canvas);
+  resize = twgl.resizeCanvasToDisplaySize(gl.canvas);
 
   if(resize){
     twgl.resizeCanvasToDisplaySize(ctx.canvas);
@@ -345,18 +262,87 @@ function update() {
   layers.forEach(function(layer){
     let prim = state.scene.editItems.find(a => a.id === layer.id);
     
+    // This is probably fine to do this at render...
     updateUniforms(prim, layer);
     
     if(layer.bbox){ updateMatrices(layer); }
-    
-    // TODO: move this to general uniform update loop (performance)
-    if(resize){
-      gl.useProgram(layer.programInfo.program);
-      layer.uniforms.u_resolution['0'] = gl.canvas.clientWidth;
-      layer.uniforms.u_resolution['1'] = gl.canvas.clientHeight;
-      twgl.setUniforms(layer.programInfo, layer.uniforms);
-    }
   })
+}
+
+function updateUniforms(prim, layer){
+
+  gl.useProgram(layer.programInfo.program);
+
+  if(resize){
+    layer.uniforms.u_resolution['0'] = gl.canvas.clientWidth;
+    layer.uniforms.u_resolution['1'] = gl.canvas.clientHeight;
+  }
+
+  if(layer.uniforms.u_mPt){
+    layer.uniforms.u_mPt['0'] = mPt.x;
+    layer.uniforms.u_mPt['1'] = mPt.y;
+  }
+  if(layer.uniforms.u_dPt){
+    layer.uniforms.u_dPt = dPt;
+  }
+  
+  // edit item array and layer array may become out of sync temporarily
+  // as edit items are added and removed
+  if(!prim) return;
+
+  if(typeof layer.uniforms.u_stroke === 'object'){
+    layer.uniforms.u_stroke = chroma(prim.properties.stroke).gl().slice(0,3);
+  }
+  if(typeof layer.uniforms.u_fill === 'object'){
+    layer.uniforms.u_fill = chroma(prim.properties.fill).gl().slice(0,3);
+  }
+  if(typeof layer.uniforms.u_weight === 'number'){
+    layer.uniforms.u_weight = prim.properties.weight;
+  }
+  if(typeof layer.uniforms.u_weight === 'number'){
+    layer.uniforms.u_weight = prim.properties.weight;
+  }
+  if(typeof layer.uniforms.u_opacity  === 'number'){
+    layer.uniforms.u_opacity = prim.properties.opacity;
+  }
+  if(typeof layer.uniforms.u_radius  === 'number'){
+    layer.uniforms.u_radius = prim.properties.radius; 
+  }
+
+  if(typeof layer.uniforms.u_sel  === 'number'){
+    if(state.scene.selected.includes(prim.id)){
+      if (layer.uniforms.u_sel < 1.0) layer.uniforms.u_sel += 0.15;
+    } else if (state.scene.hover === prim.id) {
+      if (layer.uniforms.u_sel < 0.7) layer.uniforms.u_sel += 0.06;
+    } else {
+      if (layer.uniforms.u_sel > 0.0) layer.uniforms.u_sel -= 0.15;
+    }
+  }
+  
+  // weird but probably okay
+  if(typeof layer.uniforms.u_cTex === 'number'){
+    layer.uniforms.u_cTex = layer.uniforms.u_eTex.cTexel;
+  }
+
+  twgl.setUniforms(layer.programInfo, layer.uniforms);
+}
+
+// so bake edit layer currently works by baking the current edit layer
+// this should be a different type of function that creates a layer 
+// whole cloth from a prim
+// does this make more sense than the bakeLayer paradigm?
+function bakePrim(prim){
+  // set bounding box
+  // layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id, 0.05, layer.primType);
+  // updateMatrices(layer);
+
+  // let fs = BAKE.bake(layer);
+  // layer.frag = fs;
+  // layer.programInfo = twgl.createProgramInfo(gl, [layer.vert, fs]);
+  
+  // // This line is important
+  // gl.useProgram(layer.programInfo.program);
+  // twgl.setUniforms(layer.programInfo, layer.uniforms);
 }
 
 function draw() {
@@ -385,6 +371,8 @@ function draw() {
     store.dispatch(ACT.statusRaster(false));
   }
 }
+
+
 
 function render() {
   update();

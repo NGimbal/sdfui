@@ -313,11 +313,11 @@ function scene(_state=initialState, action) {
         rmPts: state.rmPts.filter(id => id !== action.id)
       });
     case ACT.SCENE_PUSHEDITITEM: //takes prim type, appends to edit items and sel array
-      console.log(action); 
+      // console.log(action);
       return Object.assign({}, state,{
         editItems: [...state.editItems, action.prim],
         selected: [...state.selected, action.prim.id.slice()],
-        editItem: action.prim.id.slice(),
+        editItem: typeof action.edit === "string" ? action.edit.slice() : action.prim.id.slice(),
       });
     case ACT.SCENE_RMVITEM:
       // let index = state.editItems.findIndex(i => i.id === action.id);
@@ -401,7 +401,7 @@ function scene(_state=initialState, action) {
         hover: ""
       });
     // Selection array
-    case ACT.EDIT_SELECTINS:
+    case ACT.EDIT_SELECTAPND:
       return Object.assign({}, state,{
         selected: [...state.selected, action.sel]
       });
@@ -416,7 +416,6 @@ function scene(_state=initialState, action) {
         selected: []
       });
     case ACT.EDIT_TRANSLATE:
-      
       return Object.assign({}, state,{
         editItems: state.editItems.map((item) => {
           if(item.id !== action.id) return item;

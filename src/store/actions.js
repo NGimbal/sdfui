@@ -60,7 +60,7 @@ export const SCENE_RMVITEM       = 'SCENE_RMVITEM'; //remove item w/ id - must a
 
 export const EDIT_HOVERSET       = 'EDIT_HOVERSET'; // set current hover item
 export const EDIT_HOVERCLR       = 'EDIT_HOVERCLR'; // set current hover item
-export const EDIT_SELECTINS      = 'EDIT_SELECTINS'; //add selected item
+export const EDIT_SELECTAPND     = 'EDIT_SELECTAPND'; //add selected item
 export const EDIT_SELECTRMV      = 'EDIT_SELECTRMV'; //Remove selected item
 export const EDIT_SELECTCLR      = 'EDIT_SELECTCLR'; //clears selection
 
@@ -306,10 +306,10 @@ export function editHoverClr(){
 }
 // array of selected items
 // might want to have different types of selection?
-export function editSelectIns(sel){
+export function editSelectApnd(sel){
   return{
     type: scene,
-    subtype: EDIT_SELECTINS,
+    subtype: EDIT_SELECTAPND,
     sel,
   }
 }
@@ -414,11 +414,12 @@ export function sceneFinRmvPt(id){
 }
 
 //pushes new item onto scene - prim is type
-export function scenePushEditItem(prim){
+export function scenePushEditItem(prim, edit){
   return {
     type: scene,
     subtype: SCENE_PUSHEDITITEM,
-    prim
+    prim,
+    edit
   };
 }
 

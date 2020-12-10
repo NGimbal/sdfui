@@ -28,10 +28,6 @@ function FloatingMenu() {
   let primSel = "Circle";
   let primList = ["Polyline", "Polygon", "Circle", "Rectangle"];
 
-  // how does this work with the unified theory of selection?
-  // someday will be able to transform one type to the next...
-  // not today...
-  // should clear selection and revert to most recent
   function primitiveChange(e){
     primSel = e.toLowerCase();
     console.log(primSel);
@@ -45,8 +41,7 @@ function FloatingMenu() {
       let newLayer = {};
       
       let currLayer = SDFUI.layers.find(l => l.id === currItem.id);
-      // currItem = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
-      // let props = {...SDFUI.state.editItems.find(a => a.id === SDFUI.state.editItem).properties};
+
       let newPrim = new PRIM.prim(primSel, [], {...currItem.properties});
 
       if(currItem && currItem.pts.length > 1){
@@ -58,10 +53,8 @@ function FloatingMenu() {
         SDFUI.store.dispatch(ACT.scenePushEditItem(newPrim));
       }
 
-      // nextPrim = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
       newLayer = createEditLayer(newPrim);
 
-      // SDFUI.store.dispatch(ACT.layerPush(newLayer));
       SDFUI.layers.push(newLayer);
     }
     m.redraw();
