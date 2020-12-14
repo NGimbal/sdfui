@@ -275,6 +275,7 @@ function render(_state=initialState, action) {
 
 //state related to the scene
 function scene(_state=initialState, action) {
+  console.log(action);
   let state = _state.scene;
   switch(action.subtype){
     case ACT.SCENE_SETEDITITEM:
@@ -288,7 +289,7 @@ function scene(_state=initialState, action) {
         editItems: state.editItems.map(item => {
           if(item.id !== state.editItem) return item;
           return Object.assign({}, item, {
-            pts: appendItem(item.pts, pt)
+            pts: [...item.pts, pt]
           })
         }),
         // pts:[...state.pts, pt]

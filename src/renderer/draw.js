@@ -243,8 +243,10 @@ function update() {
   
   // Style mouse for hover - could also do tooltip at some point
   if(selDist.d < 0.01 && state.ui.mode === "select" && selDist.sel){
-    document.getElementById("canvasContainer").style.cursor = "grab";
-    store.dispatch(ACT.editHoverSet(selDist.sel.id))
+    if(state.scene.hover !== selDist.sel.id){
+      document.getElementById("canvasContainer").style.cursor = "grab";
+      store.dispatch(ACT.editHoverSet(selDist.sel.id))
+    }
   } else if (state.scene.hover !== "") {
     document.getElementById("canvasContainer").style.cursor = "auto"
     store.dispatch(ACT.editHoverClr())
@@ -462,7 +464,7 @@ function sceneDist(){
   
   let inMouse = state.scene.editItems.filter(i => bboxSearch.includes(i.id))
   
-  if(inMouse.length > 0) console.log(inMouse);
+  // if(inMouse.length > 0) console.log(inMouse);
   
   for (let prim of inMouse){
 

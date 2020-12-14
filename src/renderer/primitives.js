@@ -337,8 +337,8 @@ export function distPrim(_mPt, prim){
 
   // let mPt = twgl.v3.copy(_mPt.v3);
 
-  // let tPt = twgl.v3.subtract(mPt, prim.translate);
-  let tPt = mPt;
+  let tPt = twgl.v3.subtract(mPt, prim.translate);
+  // let tPt = mPt;
   
   let dist = 1000;
   switch (prim.type){
@@ -503,7 +503,7 @@ function lineDist(p, _a, _b, w){
   let dot = twgl.v3.dot(pa,ba) / twgl.v3.dot(ba,ba);
   let h =  clamp(dot, 0.0, 1.0);
   //don't know why w needs to be squared here
-  return twgl.v3.length(twgl.v3.subtract(pa, twgl.v3.mulScalar(ba, h))) - w * 5;
+  return twgl.v3.length(twgl.v3.subtract(pa, twgl.v3.mulScalar(ba, h))) - w;
 }
 
 function clamp (a, low, high){

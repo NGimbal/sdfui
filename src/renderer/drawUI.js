@@ -273,26 +273,27 @@ function selUp(e){
     for (let id of state.scene.selected){
       if(id === state.scene.editItem) continue;
       let prim = state.scene.editItems.find(i => i.id === id);
-      console.log(prim.bbox);
+      // console.log(prim.bbox);
       bboxTree.insert(prim.bbox);
     }
-    console.log(bboxTree.all());
+    // console.log(bboxTree.all());
   } else if (state.ui.dragStart){
     store.dispatch(ACT.uiDragStart(false, mPt));
-  } else if (state.scene.hover !== "" && 
-             state.scene.selected.includes(state.scene.hover)) {
-      // console.log("deselect");
+
+    if(state.scene.selected.includes(state.scene.hover)){
       store.dispatch(ACT.editSelectRmv(state.scene.hover));
-      store.dispatch(ACT.uiDragStart(false, mPt));
+    }else{
+      store.dispatch(ACT.editSelectApnd(state.scene.hover));
+    }
   }
 }
 
 function selDwn(e){
   if(state.scene.hover !== ""){
     store.dispatch(ACT.uiDragStart(true, mPt));
-    if (!state.scene.selected.includes(state.scene.hover)){
-      store.dispatch(ACT.editSelectApnd(state.scene.hover));
-    }
+    // if (!state.scene.selected.includes(state.scene.hover)){
+      // store.dispatch(ACT.editSelectApnd(state.scene.hover));
+    // }
   }
 }
 
@@ -305,7 +306,7 @@ function selMv(){
     for (let id of state.scene.selected){
       if(id === state.scene.editItem) continue;
       let prim = state.scene.editItems.find(i => i.id === id);
-      console.log(prim.bbox);
+      // console.log(prim.bbox);
       // bboxTree.remove(id, (a,b) => {
       //   a.id === b;
       // })
@@ -313,7 +314,7 @@ function selMv(){
         return a === b.id;
       });
     }
-    console.log(bboxTree.all());
+    // console.log(bboxTree.all());
   }
 }
 
