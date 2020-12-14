@@ -142,19 +142,19 @@ function ContextMenu() {
                                                                 alignSelf:"flex-end",
                                                                 marginBottom:"5px"}}/>
         <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Weight</h6>
-        <input type="range" oninput={strokeWeightChange} min="0" max="100" value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.weight * 10000}/>
+        <input type="range" oninput={strokeWeightChange} min="0" max="100" value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.weight * 10000}/>
         
         <hr style={dividerStyle}/>
         <h6 class={Classes.Muted} style={inputLabelStyle}>Opacity</h6>
-        <input type="range" oninput={fillOpacityChange} min="0" max="100" value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.opacity * 100}/>
+        <input type="range" oninput={fillOpacityChange} min="0" max="100" value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.opacity * 100}/>
         
         <hr style={dividerStyle}/>
         <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Color</h6>
-        <input type="color" style={{margin:"auto", width:"100%"}} value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.stroke} oninput={strokeColorChange}/>
+        <input type="color" style={{margin:"auto", width:"100%"}} value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.stroke} oninput={strokeColorChange}/>
         
         <hr style={dividerStyle}/>
         <h6 class={Classes.Muted} style={inputLabelStyle}>Fill Color</h6>
-        <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.fill}/>
+        <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.fill}/>
 
       </div>
     )

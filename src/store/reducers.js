@@ -6,6 +6,7 @@ import * as ACT from './actions.js';
 import * as twgl from 'twgl.js';
 
 import { ptTree } from '../renderer/draw.js';
+import { scale } from 'chroma-js';
 
 var knn = require('rbush-knn');
 
@@ -19,17 +20,16 @@ const statusInit = {
 }
 
 const uiInit = {
-  drawing: true,
   pause: false, //pause shader
   grid: false, //show background grid
-  points: false, //show points
-  drag: false,
+  dragging: false,
+  dragStart: false,
+  dragOrigin: twgl.v3.create(),
   //are we moving towards a target
   targeting: false,
   //where is the view moving
   // targets:[] someday could have multiple tagets for prezi like effect
   target: twgl.v3.create(0,0,64),
-  //this is going away
   // properties: {...PRIM.propsDefault},
   mode: "draw"
 }
@@ -46,9 +46,9 @@ const cursorInit = {
   scale: 48,
 }
 
-const layersInit = {
-  layers: [],
-}
+// const layersInit = {
+//   layers: [],
+// }
 
 // will need some kind of update counter
 // to know when a collaborator should update a prim
@@ -62,17 +62,15 @@ const layersInit = {
 //  layer.update();
 // }
 
+let firstPrim = new PRIM.prim("polyline", [], {...PRIM.propsDefault});
+
 const sceneInit = {
-  //curr edit Item - an index in editItems
-  editItem:0,
-  //all points in scene - eventually move to a Automerge.Table?
-  pts:[],
-  //points in scene to be removed - eventually move to a Automerge.Table?
-  rmPts:[],
-  //all items in scene
-  editItems:[new PRIM.prim("polyline", [], {...PRIM.propsDefault})],
+  editItem:firstPrim.id.slice(),//id of item points are being added to
+  // pts:[], //all points in scene
+  rmPts:[],   //points staged to be removed
+  editItems:[firstPrim], //all items in scene
   hover:{},
-  selected:[],
+  selected:[firstPrim.id.slice()], //all items who's properties can be edited by ui
 }
 
 // const sceneDoc = Automerge.from(sceneInit);
@@ -81,7 +79,7 @@ const initialState={
   status: statusInit,
   ui: uiInit,
   cursor: cursorInit,
-  render: layersInit,
+  // render: layersInit,
   //automerge object
   scene: sceneInit,
 }
@@ -118,10 +116,6 @@ function ui(_state=initialState, action){
     //   return Object.assign({}, state,{
     //     grid: !state.grid
     //   });
-    case ACT.UI_POINTS:
-      return Object.assign({}, state,{
-        points: !state.points
-      });
     case ACT.UI_TARGETHOME:
       return Object.assign({}, state,{
         targeting : action.toggle,
@@ -129,6 +123,15 @@ function ui(_state=initialState, action){
     case ACT.UI_MODE:
       return Object.assign({}, state,{
         mode: action.mode
+      });
+    case ACT.UI_DRAGGING:
+      return Object.assign({}, state,{
+        dragging: action.toggle
+      });
+    case ACT.UI_DRAGSTART:
+      return Object.assign({}, state,{
+        dragStart: action.toggle,
+        dragOrigin: twgl.v3.create(action.pt.x, action.pt.y, 1.0),
       });
     default:
       return state;
@@ -141,8 +144,9 @@ function cursor(_state=initialState, action) {
   switch(action.subtype) {
     case ACT.CURSOR_SET:
       let pt = {x:action.vec2.x, y:action.vec2.y};
-      let pts = _state.scene.pts;
-      let editPts = _state.scene.editItems[_state.scene.editItem].pts;
+      // let pts = _state.scene.pts;
+      // let editPts = _state.scene.editItems[_state.scene.editItem].pts;
+      let editPts = _state.scene.editItems.find(item => item.id === _state.scene.editItem).pts;
 
       if(state.snapPt){
         let ptNear = knn(ptTree, pt.x, pt.y, 1,null,0.01);
@@ -161,7 +165,7 @@ function cursor(_state=initialState, action) {
           pos: pt
         });
       } if(state.snapGlobal && editPts.length > 0) {
-          let prev = {...pts[pts.length - 1]};
+          let prev = {...editPts[editPts.length - 1]};
           let line = {...prev};
 
           line.x = line.x - pt.x;
@@ -180,8 +184,8 @@ function cursor(_state=initialState, action) {
             pos: pt
           });
       } if(state.snapRef && editPts.length > 1) {
-        let prev = {...pts[pts.length - 1]};
-        let prevPrev = {...pts[pts.length - 2]};
+        let prev = {...editPts[editPts.length - 1]};
+        let prevPrev = {...editPts[editPts.length - 2]};
         let line = {...prev};
         let linePrev = {...prevPrev};
 
@@ -225,12 +229,18 @@ function cursor(_state=initialState, action) {
         snapPt: !state.snapPt
       });
     case ACT.CURSOR_GRIDSCALE:
+
       return Object.assign({}, state,{
         scale: action.int
       });
     case ACT.CURSOR_GRID:
       return Object.assign({}, state,{
-        grid: action.vec4
+        grid: {
+          x:2.0/action.scale, 
+          y:2.0/action.scale,
+          z:action.scale,
+          w:(2.0/action.scale) * 0.1
+        }
       });
     default:
       return state;
@@ -265,67 +275,59 @@ function render(_state=initialState, action) {
 
 //state related to the scene
 function scene(_state=initialState, action) {
+  console.log(action);
   let state = _state.scene;
-  let ptIndex = -1;
   switch(action.subtype){
     case ACT.SCENE_SETEDITITEM:
       return Object.assign({}, state,{
         editItem: action.editItem
       });
     case ACT.SCENE_ADDPT:
-      let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItems[state.editItem].id , action.pt.id, true);
+      // let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItems[state.editItem].id , action.pt.id, true);
+      let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItem, action.pt.id, true);
       return Object.assign({}, state,{
-        editItems: state.editItems.map((item, index) => {
-          if(index !== state.editItem) return item;
+        editItems: state.editItems.map(item => {
+          if(item.id !== state.editItem) return item;
           return Object.assign({}, item, {
-            pts: [...item.pts, pt.id]
+            pts: [...item.pts, pt]
           })
         }),
-        pts:[...state.pts, pt]
+        // pts:[...state.pts, pt]
       });
     case ACT.SCENE_RMVPT:
-      ptIndex = state.pts.findIndex(i => i.id === action.pt.id);
-      let parent = state.editItems.find(i => i.id === action.pt.parentId);
-      let editPtIndex = parent.pts.findIndex(i => i === action.pt.id);
-      
+      let parent = state.editItems.find(i => i.id === action.pt.parent);
+      // let editPtIndex = parent.pts.findIndex(pt => pt.id === action.pt.id);
       return Object.assign({}, state,{
-        editItems: state.editItems.map((item, index) => {
-          if(index !== state.editItem) return item;
+        editItems: state.editItems.map(item => {
+          // if(index !== state.editItem) return item;
+          if(item.id !== parent.id) return item;
           return Object.assign({}, item, {
-            pts: removeItem(item.pts, editPtIndex)
+            pts: parent.pts.filter(pt => pt.id !== action.pt.id)
           })
         }),
-        pts: state.pts.filter(i => i !== action.pt.id),
+        // pts: state.pts.filter(i => i !== action.pt.id),
         rmPts: [...state.rmPts, action.pt.id.slice()]
       });
     case ACT.SCENE_FINRMVPT:
-      //remove point from rmPts array
-      //this also may be on a per user basis, kd tree needs to be updated by all users
-      // ptIndex = state.rmPts.findIndex(i => i === action.id);
+      //remove point from rmPts array this may be on a per user basis
       return Object.assign({}, state,{
         rmPts: state.rmPts.filter(id => id !== action.id)
       });
-    case ACT.SCENE_PUSHEDITITEM: //takes prim type
+    case ACT.SCENE_PUSHEDITITEM: //takes prim type, appends to edit items and sel array
+      // console.log(action);
       return Object.assign({}, state,{
-        editItem: state.editItem + 1,
-        editItems: insertItem(state.editItems, 
-          { index: state.editItem + 1, 
-            item: new PRIM.prim(action.primType, [], {...state.editItems[state.editItem].properties})
-          })
-      });
-    case ACT.SCENE_NEWEDITITEM: //takes prim type
-      return Object.assign({}, state,{
-        editItems: updateItem(state.editItems, 
-          { index: state.editItem, 
-            item: new PRIM.prim(action.primType, [], {...state.editItems[state.editItem].properties})
-          })
+        editItems: [...state.editItems, action.prim],
+        selected: [...state.selected, action.prim.id.slice()],
+        editItem: typeof action.edit === "string" ? action.edit.slice() : action.prim.id.slice(),
       });
     case ACT.SCENE_RMVITEM:
-      let index = state.editItems.findIndex(i => i.id === action.id);
-      console.log("remove at index: " + index);
+      // let index = state.editItems.findIndex(i => i.id === action.id);
       return Object.assign({}, state,{
-        editItems: removeItem(state.editItems, index),
-        editItem: state.editItem - 1,
+        editItems: state.editItems.filter(i => i.id !== action.id),
+        // pts: state.pts.filter(pt => pt.parent !== action.id),
+        rmPts: [...state.rmPts, 
+          state.editItems.find(i => i.id === action.id).pts.map(pt => pt.id)],
+        selected: state.selected.filter(i => i !== action.id)
       });
     case ACT.EDIT_WEIGHT:
       return Object.assign({}, state,{
@@ -391,7 +393,6 @@ function scene(_state=initialState, action) {
           })
         }),
       });
-    // 
     case ACT.EDIT_HOVERSET:
       return Object.assign({}, state,{
         hover: action.id
@@ -401,7 +402,7 @@ function scene(_state=initialState, action) {
         hover: ""
       });
     // Selection array
-    case ACT.EDIT_SELECTINS:
+    case ACT.EDIT_SELECTAPND:
       return Object.assign({}, state,{
         selected: [...state.selected, action.sel]
       });
@@ -410,17 +411,54 @@ function scene(_state=initialState, action) {
       return Object.assign({}, state,{
         selected: state.selected.filter(item => item !== action.sel)
       });
+    // Selection array
+    case ACT.EDIT_SELECTCLR:
+      return Object.assign({}, state,{
+        selected: []
+      });
+    case ACT.EDIT_TRANSLATE:
+      return Object.assign({}, state,{
+        editItems: state.editItems.map((item) => {
+          if(item.id !== action.id) return item;
+          let translate = twgl.v3.subtract(action.v3, item.translate);
+          return Object.assign({}, item, {
+            translate: twgl.v3.add(item.translate, translate),
+            bbox: Object.assign({}, item.bbox, {
+              maxX : item.bbox.maxX + translate[0],
+              minX : item.bbox.minX + translate[0],
+              
+              maxY : item.bbox.maxY + translate[1],
+              minY : item.bbox.minY + translate[1],
+
+              min : new PRIM.vec(item.bbox.minX + translate[0], 
+                                 item.bbox.minY + translate[1]),
+              max : new PRIM.vec(item.bbox.maxX + translate[0],
+                                 item.bbox.maxY + translate[1])
+            })
+          })
+        }),
+      });
+    case ACT.EDIT_BBOX:
+      return Object.assign({}, state,{
+        editItems: state.editItems.map((item) => {
+          if(item.id !== action.id) return item;
+          return Object.assign({}, item, {
+            bbox: {...action.bbox} //should the new bbox be made here?
+          })
+        }),
+      });
     default:
       return state;
   }
 };
 
 export const reducer = function(state = initialState, action){
+  // console.log(action);
   if (!state) {
     console.error('Reducer got null state. Should be initialized');
     return initialState;
   }
-  // console.log(action);
+
   switch (action.type) {
     case ACT.status:
       return Object.assign({}, state,{
@@ -455,6 +493,16 @@ function insertItem(array, action) {
   newArray.splice(action.index, 0, action.item)
   return newArray
 }
+
+function appendItem(array, item) {
+  let newArray = array.slice()
+  newArray.splice(array.length, 0, item)
+  return newArray
+}
+
+// function appendItem(array, item) {
+//   return [...array, item];
+// }
 
 // remove array[action.index]
 function removeItem(array, index) {

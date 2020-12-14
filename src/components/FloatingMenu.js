@@ -4,6 +4,7 @@ import { ControlGroup, Classes, Button, Icons, CustomSelect, PopoverMenu, MenuIt
 import * as SDFUI from '../renderer/draw'
 import * as ACT from '../store/actions'
 import {bakeLayer, createEditLayer} from '../renderer/layer';
+import * as PRIM from '../renderer/primitives'
 
 import chroma from 'chroma-js';
 
@@ -27,38 +28,34 @@ function FloatingMenu() {
   let primSel = "Circle";
   let primList = ["Polyline", "Polygon", "Circle", "Rectangle"];
 
-  // how does this work with the unified theory of selection?
-  // someday will be able to transform one type to the next...
-  // not today...
-  // should clear selection and revert to most recent
   function primitiveChange(e){
     primSel = e.toLowerCase();
     console.log(primSel);
-    let type = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].type;
+    
+    let currItem = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
+    let type = currItem.type;
 
     // this is nice
     if(type != primSel){
-      let nextPrim = {};
+      // let nextPrim = {};
       let newLayer = {};
-
-      let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-      let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
       
+      let currLayer = SDFUI.layers.find(l => l.id === currItem.id);
+
+      let newPrim = new PRIM.prim(primSel, [], {...currItem.properties});
+
       if(currItem && currItem.pts.length > 1){
         bakeLayer(currLayer);
-        currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-        
-        SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
+        SDFUI.store.dispatch(ACT.scenePushEditItem(newPrim));
       } else {
-
-        SDFUI.store.dispatch(ACT.layerPop(currLayer.id));
-        SDFUI.store.dispatch(ACT.sceneNewEditItem(primSel));
+        SDFUI.deleteLayer(currLayer.id);
+        SDFUI.store.dispatch(ACT.sceneRmvItem(currItem.id));
+        SDFUI.store.dispatch(ACT.scenePushEditItem(newPrim));
       }
 
-      nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-      newLayer = createEditLayer(nextPrim);
+      newLayer = createEditLayer(newPrim);
 
-      SDFUI.store.dispatch(ACT.layerPush(newLayer));
+      SDFUI.layers.push(newLayer);
     }
     m.redraw();
   }
@@ -117,11 +114,11 @@ function FloatingMenu() {
           <PopoverMenu content={[
                             // <hr style={dividerStyle}/>,
                             <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Color</h6>,
-                            <input type="color" style={{margin:"auto", width:"100%"}} value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.stroke} oninput={strokeColorChange}/>,
+                            <input type="color" style={{margin:"auto", width:"100%"}} value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.stroke } oninput={strokeColorChange}/>,
                             
                             <hr style={dividerStyle}/>,
                             <h6 class={Classes.Muted} style={inputLabelStyle}>Fill Color</h6>,
-                            <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.fill}/>,
+                            <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.fill}/>,
                             // <hr style={dividerStyle}/>
                           ]}
                         trigger={m(Button, { iconLeft: Icons.DROPLET })}
@@ -130,11 +127,11 @@ function FloatingMenu() {
 
             <PopoverMenu content={[
                         <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Weight</h6>,
-                        <input type="range" oninput={strokeWeightChange} min="0" max="100" value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.weight * 10000}/>,
+                        <input type="range" oninput={strokeWeightChange} min="0" max="100" value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.weight * 10000}/>,
                         
                         <hr style={dividerStyle}/>,
                         <h6 class={Classes.Muted} style={inputLabelStyle}>Opacity</h6>,
-                        <input type="range" oninput={fillOpacityChange} min="0" max="100" value={SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].properties.opacity * 100}/>,
+                        <input type="range" oninput={fillOpacityChange} min="0" max="100" value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.opacity * 100}/>,
                       
                         ]}
                         trigger={m(Button, { iconLeft: Icons.PEN_TOOL })}

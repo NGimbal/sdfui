@@ -5,11 +5,6 @@ import * as twgl from 'twgl.js';
 import {createStore} from 'redux';
 import * as RBush from 'rbush';
 
-// import firebaseConfig from './firebaseConfig.js';
-// import * as firebase from 'firebase/app';
-// import 'firebase/firestore';
-// import "firebase/auth";
-
 import * as ACT from '../store/actions.js';
 import { reducer } from '../store/reducers.js';
 
@@ -21,7 +16,6 @@ import {Layer, updateMatrices} from './layer.js';
 var canvas, ctx, ui;
 var view;
 
-//twgl
 export var gl;
 
 export const store = createStore(reducer);
@@ -35,61 +29,75 @@ export var dPt = new twgl.v3.create(0, 0, 64);
 export var ptTree = new RBush();
 export var bboxTree = new RBush();
 
-// firebase.initializeApp(firebaseConfig);
-// export var db = firebase.firestore();
+export var layers = [];
 
-//Expose part of state
+var mouseDragStart = new PRIM.vec(0, 0);
+
+var resize = false;
+
+// layers, ptTree, bboxTree should all be updated here
 function listener(){
 
   state = store.getState();
+
   resolution = state.status.resolution;
   
-  //update mouse position variable
+  // update mouse position variable
   mPt = PRIM.vecSet(mPt, state.cursor.pos.x, state.cursor.pos.y);
+
+  // update kdTree
+  let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
   
-  //update kdTree of points
-  for(let p of state.scene.pts){
-    //will need to find and move, or find remove and add when update means moving points around
-    if(p.update == true){
-      ptTree.insert(p);
-      //TODO: create a reducer that changes this parameter
-      p.update = false;
-    }
+  if(currItem) {
+    for(let p of currItem.pts){
+      if(p.update == true){
+        ptTree.insert(p);
+        //TODO: create a reducer that changes this parameter
+        p.update = false;
+      }
+    }  
   }
+
+  // remove pts for kd tree if need be
   for(let pId of state.scene.rmPts){
-    //normal tree search function doesnt work
-    ptTree.remove(pId, (a, pId) => {
-      return a.id === pId;
+    // so a = pId, b are the points we're mapping over
+    ptTree.remove(pId, (a, b) => {
+      return a === b.id;
     });
     store.dispatch(ACT.sceneFinRmvPt(pId));
   }
+
+  // update bboxTree
+  // update layers[]
+  let stack = [];
+
+  // prim.update means we need to update uniforms
+  // prim.bake means we need to bake the layer
+  for (let item of state.scene.editItems){
+    // items.push(item.id);
+    // if(!item.update) continue;
+    // if(item.bake) { bake layer }
+    let layer = layers.find(l => l.id === item.id);
+    stack.push(layer);
+    if(!layer && state.scene.editItem !== item.id){
+      // layer = bakePrim(item);
+      // stack.push(layer);
+    } else if(layer) {
+      // console.log(layer);
+      // updateUniforms(item, layer);
+    }
+  }
+
+  // get rid of layers if we've deleted the item
+  // layers.filter(l => items.includes(l.id));
+  // console.log(layers);
   return state;
-};
+}; 
+
 
 //subscribe to store changes - run listener to set relevant variables
 store.subscribe(() => console.log(listener()));
 // store.subscribe(() => listener());
-
-function setGrid(scale){
-  let rX = resolution.x / resolution.y; //resolution.x
-  // let rY = 1.0; resolution.y
-  let scaleX = 2.0 / scale;
-  let scaleY = 2.0 / scale;
-
-  //Is the remainder odd or even?
-  let r = ((rX / scaleX) - (rX / scaleX) % 1) % 2;
-  //If even, add scaleX * 0.5;
-  r = Math.abs(r - 1);
-
-  // let offX = (((rX / scaleX) % 1) * scaleX) * 0.5 + ((scaleX * 0.5) * r);
-  let offX = scaleX * 0.5;
-  let offY = scaleY * 0.1;
-
-  //scaleX, scaleY, offsetX, offsetY
-  let gridScale = {x:scaleX, y:scaleY, z:offX, w:offY};
-  // console.log(gridScale);
-  store.dispatch(ACT.cursorGrid(gridScale));
-}
 
 export function initDraw() {
   let canvasContainer = document.querySelector('#canvasContainer');
@@ -98,7 +106,7 @@ export function initDraw() {
   ctx = textCanvas.getContext('2d');
 
   canvas = document.querySelector('#c');
-  //alpha: false, antialias:false
+
   gl = canvas.getContext( 'webgl2', { premultipliedAlpha: false } );
 
   twgl.setDefaults({attribPrefix: "a_"});
@@ -106,10 +114,10 @@ export function initDraw() {
   twgl.resizeCanvasToDisplaySize(ctx.canvas);
 
   //set the document resolution
-  store.dispatch(ACT.statusRes({x:canvas.width, y:canvas.height}));
+  store.dispatch(ACT.statusRes({x:canvas.clientWidth, y:canvas.clientHeight}));
 
   store.dispatch(ACT.cursorGridScale(64));
-  setGrid(state.cursor.scale);
+  store.dispatch(ACT.cursorGrid(64));
   
   view = {
     minX: (0.0 - dPt[0]) * (64 / dPt[2]),
@@ -130,9 +138,7 @@ export function initDraw() {
 
   canvasContainer.onwheel = scrollPan;
 
-  //new edit layer is full screen layer that allows for user to input data
-
-  //full screen texture matrix
+  // this ends up being an identity matrix
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
   texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
 
@@ -144,29 +150,28 @@ export function initDraw() {
 
   // grid layer
   let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, gridUniforms);
-  store.dispatch(ACT.layerPush(gridLayer));
+  // store.dispatch(ACT.layerPush(gridLayer));
+  layers.push(gridLayer);
 
-  let demoUniforms = {
-    // u_matrix: matrix,
-    u_textureMatrix: twgl.m4.copy(texMatrix),
-    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
-    u_eTex: {},
-  }
+  // demo shader
+  // let demoUniforms = {
+  //   u_textureMatrix: twgl.m4.copy(texMatrix),
+  //   u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+  //   u_dPt: dPt,
+  //   u_eTex: {},
+  // }
 
-  // grid layer
-  let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.demoFrag, demoUniforms);
-  // demoLayer.set
-  demoLayer.bbox = new PRIM.bbox([{x:0.1250, y:0.1250}, {x:0.3125, y:0.3125}], 0.0);
-  
-  updateMatrices(demoLayer);
+  // let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.raymarchFrag, demoUniforms);
+  // demoLayer.bbox = new PRIM.bbox([{x:0., y:0.}, {x:1.0, y:1.0}], "demo"); 
+  // updateMatrices(demoLayer);
+  // store.dispatch(ACT.layerPush(demoLayer));
 
-  // edit layer
-  let plineLayer = new Layer(state.scene.editItems[state.scene.editItem], SF.simpleVert, SF.pLineEdit);
+  // full screen edit layer
+  let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
+  let plineLayer = new Layer(currItem, SF.simpleVert, SF.pLineEdit);
+  // store.dispatch(ACT.layerPush(plineLayer));
+  layers.push(plineLayer);
 
-  store.dispatch(ACT.layerPush(plineLayer));
-
-  //this is excellent
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -174,7 +179,6 @@ export function initDraw() {
   // gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
 
   requestAnimationFrame(render);
-//------------------------------------------------------------------------------
 }
 
 // addImage function
@@ -197,11 +201,12 @@ export function addImage(_srcURL, dims, evPt) {
     // u_matrix: matrix,
     u_textureMatrix: twgl.m4.copy(texMatrix),
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-    u_dPt: dPt,//twgl.v3.create(dPt.x, dPt.y, dPt.z),
+    u_dPt: dPt,
     u_img: image,
   }
   
-  let imgLayer = new Layer({type:"img"}, SF.imgVert, SF.imgFrag, imgUniforms);
+  let imgPrim = new PRIM.prim("image", [], {}, PRIM.uuid(), bbox);
+  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, imgUniforms);
   
   // Will want to add some cool image processing stuff at some point...
   // Blending, edge detection, img -> sdf in some way :)
@@ -215,16 +220,19 @@ export function addImage(_srcURL, dims, evPt) {
   evPt.y = (evPt.y/resolution.y)  - dPt[1];
   evPt.x = evPt.x * (dPt[2] / 64.);
   evPt.y = evPt.y * (dPt[2] / 64.);
-  // console.log(imgLayer);
-  imgLayer.bbox = new PRIM.bbox([{x: evPt.x, y: evPt.y},
+
+  let bbox = new PRIM.bbox([{x: evPt.x, y: evPt.y},
                                  {x: evPt.x + width, y: evPt.y + height}],imgLayer.id,
                                  0.0, '');
+  imgLayer.bbox = {...bbox};
+    
+  store.dispatch(ACT.scenePushEditItem(imgPrim, state.scene.editItem))
 
-  bboxTree.insert(imgLayer.bbox);
+  bboxTree.insert({...bbox});
 
   updateMatrices(imgLayer);
 
-  store.dispatch(ACT.layerPushImage(imgLayer));
+  layers.push(imgLayer);
 }
 
 function update() {
@@ -232,110 +240,130 @@ function update() {
   ui.update();
 
   let selDist = sceneDist();
-
+  
+  // Style mouse for hover - could also do tooltip at some point
   if(selDist.d < 0.01 && state.ui.mode === "select" && selDist.sel){
-    document.getElementById("canvasContainer").style.cursor = "grab";
-    // console.log(selDist.sel.id);
-    store.dispatch(ACT.editHoverSet(selDist.sel.id)) // add item to hover state
-  } else {
+    if(state.scene.hover !== selDist.sel.id){
+      document.getElementById("canvasContainer").style.cursor = "grab";
+      store.dispatch(ACT.editHoverSet(selDist.sel.id))
+    }
+  } else if (state.scene.hover !== "") {
     document.getElementById("canvasContainer").style.cursor = "auto"
-    // clear state.hover
     store.dispatch(ACT.editHoverClr())
   }
 
   updateCtx(selDist);
 
-  let resize = twgl.resizeCanvasToDisplaySize(gl.canvas);
+  resize = twgl.resizeCanvasToDisplaySize(gl.canvas);
 
   if(resize){
     twgl.resizeCanvasToDisplaySize(ctx.canvas);
-    store.dispatch(ACT.statusRes({x:gl.canvas.width, y:gl.canvas.height}));
+    store.dispatch(ACT.statusRes({x:gl.canvas.clientWidth, y:gl.canvas.clientHeight}));
   }
-  //update uniforms - might want a needsUpdate on these at some point
-  //also might want to switch this to loop over edit items
-  //and only edit items in view
-  state.render.layers.forEach(function(layer) {
 
+  layers.forEach(function(layer){
+    let prim = state.scene.editItems.find(a => a.id === layer.id);
+    
+    // This is probably fine to do this at render...
+    updateUniforms(prim, layer);
+    
     if(layer.bbox){ updateMatrices(layer); }
+  })
+}
 
-    gl.useProgram(layer.programInfo.program);
-    if(resize){
-      layer.uniforms.u_resolution['0'] = gl.canvas.width;
-      layer.uniforms.u_resolution['1'] = gl.canvas.height;
-    }
-    if(layer.uniforms.u_mPt){
-      layer.uniforms.u_mPt['0'] = mPt.x;
-      layer.uniforms.u_mPt['1'] = mPt.y;
-    }
-    if(layer.uniforms.u_dPt){
-      layer.uniforms.u_dPt = dPt;
-    }
-    
-    //keep layer uniforms aligned with drawObject
-    let drawObject = state.scene.editItems.find(a => a.id === layer.prim);
-    
-    // edit item array and layer array may become out of sync temporarily
-    // as edit items are added and removed
-    if(!drawObject) return;
+function updateUniforms(prim, layer){
 
-    // could put check here to see if the layer uniforms need to be updated
-    // update on every render seems fine at the moment
-    
-    if(typeof layer.uniforms.u_stroke === 'object'){
-      layer.uniforms.u_stroke = chroma(drawObject.properties.stroke).gl().slice(0,3);
-    }
-    if(typeof layer.uniforms.u_fill === 'object'){
-      layer.uniforms.u_fill = chroma(drawObject.properties.fill).gl().slice(0,3);
-    }
-    if(typeof layer.uniforms.u_weight === 'number'){
-      layer.uniforms.u_weight = drawObject.properties.weight;
-    }
-    if(typeof layer.uniforms.u_weight === 'number'){
-      layer.uniforms.u_weight = drawObject.properties.weight;
-    }
-    if(typeof layer.uniforms.u_opacity  === 'number'){
-      layer.uniforms.u_opacity = drawObject.properties.opacity;
-    }
-    if(typeof layer.uniforms.u_radius  === 'number'){
-      layer.uniforms.u_radius = drawObject.properties.radius;
-    }
+  gl.useProgram(layer.programInfo.program);
 
-    if(typeof layer.uniforms.u_sel  === 'number'){
-      if(state.scene.selected.includes(drawObject.id)){
-        if (layer.uniforms.u_sel < 1.0) layer.uniforms.u_sel += 0.15;
-      } else if (state.scene.hover === drawObject.id) {
-        if (layer.uniforms.u_sel < 0.7) layer.uniforms.u_sel += 0.08;
-      } else {
-        if (layer.uniforms.u_sel > 0.0) layer.uniforms.u_sel -= 0.15;
-      }
-    }
-    
-    // weird but probably okay
-    if(typeof layer.uniforms.u_cTex === 'number'){
-      layer.uniforms.u_cTex = layer.uniforms.u_eTex.cTexel;
-    }
+  if(resize){
+    layer.uniforms.u_resolution['0'] = gl.canvas.clientWidth;
+    layer.uniforms.u_resolution['1'] = gl.canvas.clientHeight;
+  }
 
-    twgl.setUniforms(layer.programInfo, layer.uniforms);
-  });
+  if(layer.uniforms.u_mPt){
+    layer.uniforms.u_mPt['0'] = mPt.x;
+    layer.uniforms.u_mPt['1'] = mPt.y;
+  }
+  if(layer.uniforms.u_dPt){
+    layer.uniforms.u_dPt = dPt;
+  }
+  
+  // edit item array and layer array may become out of sync temporarily
+  // as edit items are added and removed
+  if(!prim) return;
+
+  if(typeof layer.uniforms.u_stroke === 'object'){
+    layer.uniforms.u_stroke = chroma(prim.properties.stroke).gl().slice(0,3);
+  }
+  if(typeof layer.uniforms.u_fill === 'object'){
+    layer.uniforms.u_fill = chroma(prim.properties.fill).gl().slice(0,3);
+  }
+  if(typeof layer.uniforms.u_weight === 'number'){
+    layer.uniforms.u_weight = prim.properties.weight;
+  }
+  if(typeof layer.uniforms.u_weight === 'number'){
+    layer.uniforms.u_weight = prim.properties.weight;
+  }
+  if(typeof layer.uniforms.u_opacity  === 'number'){
+    layer.uniforms.u_opacity = prim.properties.opacity;
+  }
+  if(typeof layer.uniforms.u_radius  === 'number'){
+    layer.uniforms.u_radius = prim.properties.radius; 
+  }
+
+  if(typeof layer.uniforms.u_sel  === 'number'){
+    if(state.scene.selected.includes(prim.id)){
+      if (layer.uniforms.u_sel < 1.0) layer.uniforms.u_sel += 0.15;
+    } else if (state.scene.hover === prim.id) {
+      if (layer.uniforms.u_sel < 0.7) layer.uniforms.u_sel += 0.06;
+    } else {
+      if (layer.uniforms.u_sel > 0.0) layer.uniforms.u_sel -= 0.15;
+    }
+  }
+  
+  // weird but probably okay
+  if(typeof layer.uniforms.u_cTex === 'number'){
+    layer.uniforms.u_cTex = layer.uniforms.u_eTex.cTexel;
+  }
+
+  twgl.setUniforms(layer.programInfo, layer.uniforms);
+}
+
+// so bake edit layer currently works by baking the current edit layer
+// this should be a different type of function that creates a layer 
+// whole cloth from a prim
+// does this make more sense than the bakeLayer paradigm?
+function bakePrim(prim){
+  // set bounding box
+  // layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id, 0.05, layer.primType);
+  // updateMatrices(layer);
+
+  // let fs = BAKE.bake(layer);
+  // layer.frag = fs;
+  // layer.programInfo = twgl.createProgramInfo(gl, [layer.vert, fs]);
+  
+  // // This line is important
+  // gl.useProgram(layer.programInfo.program);
+  // twgl.setUniforms(layer.programInfo, layer.uniforms);
 }
 
 function draw() {
 
   // Tell WebGL how to convert from clip space to pixels
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+  gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
 
   // Clear the canvas
   gl.clearColor(1, 1, 1, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  //spatial indexing / hashing for rendering
-  let bboxSearch = bboxTree.search(view).map(b => b.id);
-
-  let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
-                                              state.scene.editItems[state.scene.editItem].id === l.prim || 
-                                              l.primType === "grid");
-  // console.log(inView);
-  twgl.drawObjectList(gl, inView);
+  // bringing objects in and out of the render list causes the framerate to drop
+  // spatial indexing / hashing for rendering
+  // let bboxSearch = bboxTree.search(view).map(b => b.id);
+  // let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
+  //                                              state.scene.editItems[state.scene.editItem].id === l.id || 
+  //                                              l.idType === "grid");
+  
+  twgl.drawObjectList(gl, layers);
 
   // save raster image
   if(state.status.raster){
@@ -346,15 +374,13 @@ function draw() {
   }
 }
 
-function render(time) {
 
+
+function render() {
   update();
   draw();
-
   requestAnimationFrame(render);
 }
-
-let mouseDragStart = new PRIM.vec(0, 0);
 
 // var scale = 64;
 function scrollPan(e){
@@ -417,9 +443,6 @@ function updateCtx(selDist){
   ctx.fillText("Cursor: " + mPtString, pixelPt.x + 10, pixelPt.y);
   
   if(typeof selPrim !== "undefined" && dist < 0){
-  // if(typeof selPrim !== "undefined"){
-
-    // console.log(selPrim.properties.weight);
     ctx.fillStyle = selPrim.idColHex;
     ctx.fillText("Sel Item: " + dist, pixelPt.x + 10, pixelPt.y + 12);
   }
@@ -438,19 +461,16 @@ function sceneDist(){
   }
 
   let bboxSearch = bboxTree.search(mouse).map(b => b.id);
+  
+  let inMouse = state.scene.editItems.filter(i => bboxSearch.includes(i.id))
+  
+  // if(inMouse.length > 0) console.log(inMouse);
+  
+  for (let prim of inMouse){
 
-  let inMouse = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
-                                              state.scene.editItems[state.scene.editItem].id === l.prim || 
-                                              l.primType === "grid");
+    if (prim.id === state.scene.editItem) continue;
 
-  for (let layer of inMouse){
-    if(!layer.prim) continue;
-    let prim = state.scene.editItems.find(p => p.id === layer.prim);
-    if (prim.id == state.scene.editItems[state.scene.editItem].id) continue;
-    // also should have a "broad phase" check here on bounding box
-    // this is where some spatial hashing could go
     let currDist = PRIM.distPrim(mPt, prim);
-    // console.log(prim);
 
     if (currDist < dist){
       selPrim = prim;
@@ -458,6 +478,10 @@ function sceneDist(){
     }
   }
   return {d:dist, sel:selPrim};
+}
+
+export function deleteLayer(id){
+  layers = layers.filter(l => l.id !== id);
 }
 
 const saveBlob = (function() {
@@ -487,7 +511,7 @@ export function modifyDefine(_shader, define, val){
   startShader += val + "\n";
   shader = startShader + endShader;
   
-  console.log(shader);
+  // console.log(shader);
   
   return shader;
 }

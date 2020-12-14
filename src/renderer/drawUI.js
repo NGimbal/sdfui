@@ -3,7 +3,7 @@ import * as twgl from 'twgl.js';
 
 import * as ACT from '../store/actions.js';
 
-import * as SDFUI from './draw.js';
+import {gl, store, state, resolution, mPt, dPt, bboxTree, layers, deleteLayer} from './draw.js';
 import {bakeLayer, createEditLayer} from './layer.js';
 
 import * as PRIM from './primitives'
@@ -69,7 +69,8 @@ export class DrawUI{
     let endDraw = new UIModifier("End Draw", "edit", "Enter", {clck:endDrawClck, update:endDrawUpdate},true);
     let escDraw = new UIModifier("Esc Draw", "edit", "Escape", {clck:escDrawClck, update:escDrawUpdate},true);
 
-    let endSel = new UIModifier("End Sel", "select", "Enter", {act:ACT.uiMode("draw")});
+    // hard cancel, clears selection
+    let endSel = new UIModifier("End Sel", "select", "Escape", {clck:endSelClck, update:endSelUpdate});
 
     //MODES
     let drawMods = [targetHome, screenshot, snapGlobal, snapRef, snapGrid, snapPt, endDraw, escDraw];
@@ -78,13 +79,14 @@ export class DrawUI{
 
     //if no drawing tools are selected, drawExit();
     let draw = new UIMode("draw", drawMods, {mv:drawMv, up:drawUp});
-    let select = new UIMode("select", selMods, {mv:selMv, up:selUp});
+    let select = new UIMode("select", selMods, {mv:selMv, up:selUp, dwn:selDwn});
 
     //would like this to be kept track of in the redux store
     this.modes = [draw, select];
     // console.log(this.modes);
     
     document.querySelector('#canvasContainer').addEventListener('mouseup', this.mouseUp.bind(this));
+    document.querySelector('#canvasContainer').addEventListener('mousedown', this.mouseDown.bind(this));
     document.querySelector('#canvasContainer').addEventListener('mousemove', this.mouseMove.bind(this));
 
     //cntrl+z
@@ -99,22 +101,36 @@ export class DrawUI{
   //global update to run functions that have been cued by a button press
   //most basic update pattern that will also be used in event handlers
   update(){
-    let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
+    let mode = this.modes.find(a => a.name == state.ui.mode)
 
     if(!mode)return;
 
     //I'm pretty sure that this should always be an option?
     //Might get more confusing if we want to define other targets?
-    if(SDFUI.state.ui.targeting){
-      if(twgl.v3.distanceSq(SDFUI.state.ui.target, SDFUI.dPt) > 0.00001){
-        twgl.v3.lerp(SDFUI.dPt, SDFUI.state.ui.target, 0.1, SDFUI.dPt);
+    if(state.ui.targeting){
+      if(twgl.v3.distanceSq(state.ui.target, dPt) > 0.00001){
+        twgl.v3.lerp(dPt, state.ui.target, 0.1, dPt);
       } else {
-        SDFUI.store.dispatch(ACT.uiTargetHome(false));
+        store.dispatch(ACT.uiTargetHome(false));
+      }
+    }
+
+    // I don't know where the right place for this is... yet
+    if(state.ui.mode === "select" && state.ui.dragging){
+      for (let id of state.scene.selected){
+        if(id === state.scene.editItem) continue;
+
+        let mouse = twgl.v3.create(mPt.x, mPt.y, 1.0);
+
+        let translate = twgl.v3.subtract(mouse, state.ui.dragOrigin);
+        console.log(translate);
+        // let prim = state.scene.editItems.find(item => item.id === id);
+        // console.log(prim);
+        store.dispatch(ACT.editTranslate(id, translate));
       }
     }
 
     for(let m of mode.modifiers){
-      
       //each update will deal with m.toggle on an individual basis
       if(m.update){
         m.update();
@@ -123,16 +139,24 @@ export class DrawUI{
   }
 
   mouseUp(e) {
-    let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
+    let mode = this.modes.find(a => a.name == state.ui.mode)
 
-    // if(!mode.up)return;
+    if(!mode.up)return;
 
     mode.up(e);
   }
 
+  mouseDown(e) {
+    let mode = this.modes.find(a => a.name == state.ui.mode)
+
+    if(!mode.dwn)return;
+
+    mode.dwn(e);
+  }
+
   mouseMove(e) {
-    let resolution = SDFUI.resolution;
-    let canvas = SDFUI.gl.canvas;
+    // record mouse position
+    let canvas = gl.canvas;
     let rect = canvas.getBoundingClientRect();
 
     let evPt = {
@@ -141,18 +165,23 @@ export class DrawUI{
     };
 
     // transforms window / js space to sdf / frag space
-    evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - SDFUI.dPt[0];
-    evPt.y = (evPt.y/resolution.y)  - SDFUI.dPt[1];
-    evPt.x = evPt.x * (SDFUI.dPt[2] / 64.);
-    evPt.y = evPt.y * (SDFUI.dPt[2] / 64.);
+    evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - dPt[0];
+    evPt.y = (evPt.y/resolution.y)  - dPt[1];
+    evPt.x = evPt.x * (dPt[2] / 64.);
+    evPt.y = evPt.y * (dPt[2] / 64.);
 
-    SDFUI.store.dispatch(ACT.cursorSet({x:evPt.x, y:evPt.y}));
+    store.dispatch(ACT.cursorSet({x:evPt.x, y:evPt.y}));
+
+    // get mode
+    let mode = this.modes.find(a => a.name == state.ui.mode)
+    if(!mode.up)return;
+
+    mode.mv(e);
   }
 
-  //cnrl Z
   keyUp(e){
     let key = e.key;
-    let mode = this.modes.find(a => a.name == SDFUI.state.ui.mode)
+    let mode = this.modes.find(a => a.name == state.ui.mode)
     
     for (let m of mode.modifiers){
       if(m.keyCut == key){
@@ -193,21 +222,33 @@ function drawUp(e){
     if(!modState) continue;
   }
 
-  let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
-  // I feel like the following line should also go in a reducer
-  let pt = currLayer.uniforms.u_eTex.addPoint(SDFUI.mPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
+  let currItem  = state.scene.editItems.find(item => item.id === state.scene.editItem);
+  let currLayer = layers.find(l => l.id === currItem.id);
 
-  SDFUI.store.dispatch(ACT.sceneAddPt(pt));
+  // 
+  let pt = currLayer.uniforms.u_eTex.addPoint(mPt, state.scene.editItem);
 
-  let item = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
+  store.dispatch(ACT.sceneAddPt(pt));
   
-  if ( (item.type == "circle" || item.type == "rectangle") && item.pts.length == 2){
+  // this condition isn't great but seems to work
+  if ( (currItem.type == "circle" || currItem.type == "rectangle") && currItem.pts.length >= 1 ){
     bakeLayer(currLayer);
-    SDFUI.store.dispatch(ACT.scenePushEditItem(item.type));
-    let nextPrim = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-    let newLayer = createEditLayer(nextPrim);
-    SDFUI.store.dispatch(ACT.layerPush(newLayer));
+    
+    // let bbox = new PRIM.bbox(currLayer.uniforms.u_eTex.pts, currItem.id, 0.05, currItem.type);
+    let bbox = new PRIM.bbox(currItem.pts, currItem.id, 0.05, currItem.type);
+
+    store.dispatch(ACT.editBbox(currItem.id, bbox));
+    bboxTree.insert(bbox);
+    
+    // better pattern might be make new item, pass whole new item, keep reference for new layer
+    let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
+    
+    store.dispatch(ACT.scenePushEditItem(newPrim));
+    // let newItem = state.scene.editItems.find(i=> i.id === state.scene.editItem);
+    let newLayer = createEditLayer(newPrim);
+    layers.push(newLayer);
   }
+
   return;
 }
 
@@ -217,20 +258,66 @@ function endSelClck(){
 
 function endSelUpdate(){
   if(!this.toggle) return null;
-  SDFUI.store.dispatch(ACT.uiMode("draw"));
+  store.dispatch(ACT.uiMode("draw"));
+  store.dispatch(ACT.editSelectClr());
   this.toggle = false;
 }
 
-function selMv(){
-  //eval sdf scene at mouse
-  //is there a hhover item thing?
-  //need to figure out how to add ui indication for 
-  //edit item
+function selUp(e){
+  if(state.ui.dragging){
+    store.dispatch(ACT.uiDragStart(false, mPt));
+    store.dispatch(ACT.uiDragging(false));
+
+    // drag finished reinsert in bboxTree
+    console.log("drag end")
+    for (let id of state.scene.selected){
+      if(id === state.scene.editItem) continue;
+      let prim = state.scene.editItems.find(i => i.id === id);
+      // console.log(prim.bbox);
+      bboxTree.insert(prim.bbox);
+    }
+    // console.log(bboxTree.all());
+  } else if (state.ui.dragStart){
+    store.dispatch(ACT.uiDragStart(false, mPt));
+
+    if(state.scene.selected.includes(state.scene.hover)){
+      store.dispatch(ACT.editSelectRmv(state.scene.hover));
+    }else{
+      store.dispatch(ACT.editSelectApnd(state.scene.hover));
+    }
+  }
 }
 
-function selUp(){
-  // dispatch set curr item
+function selDwn(e){
+  if(state.scene.hover !== ""){
+    store.dispatch(ACT.uiDragStart(true, mPt));
+    // if (!state.scene.selected.includes(state.scene.hover)){
+      // store.dispatch(ACT.editSelectApnd(state.scene.hover));
+    // }
+  }
 }
+
+function selMv(){
+  if(state.ui.dragStart && !state.ui.dragging){
+    store.dispatch(ACT.uiDragging(true));
+    
+    // drag start remove from bbox tree
+    console.log("drag start")
+    for (let id of state.scene.selected){
+      if(id === state.scene.editItem) continue;
+      let prim = state.scene.editItems.find(i => i.id === id);
+      // console.log(prim.bbox);
+      // bboxTree.remove(id, (a,b) => {
+      //   a.id === b;
+      // })
+      bboxTree.remove(id, (a, b) => {
+        return a === b.id;
+      });
+    }
+    // console.log(bboxTree.all());
+  }
+}
+
 //---SELECT----------------------------
 
 
@@ -245,24 +332,34 @@ function escDrawClck(){
 function endDrawUpdate(){
   if(!this.toggle) return null;
 
-  if(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].pts.length < 1) {
-    SDFUI.store.dispatch(ACT.uiMode("select"));
+  let currItem = state.scene.editItems.find(item => item.id === state.scene.editItem);
+
+  if(currItem.pts.length < 1) {
+    store.dispatch(ACT.uiMode("select"));
     this.toggle = false;
     return;
   }
- 
-  let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
   
+  let layer = layers.find(l => l.id === currItem.id);
+
   bakeLayer(layer);
-  
-  let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-  
-  SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
 
+  let bbox = new PRIM.bbox(currItem.pts, currItem.id, 0.05, currItem.type);
+  
+  store.dispatch(ACT.editBbox(currItem.id, bbox));
+
+  // I'd like this to get managed in the listener function
+  bboxTree.insert(bbox);
+
+  let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
+  
+  store.dispatch(ACT.scenePushEditItem(newPrim));
+
+  // let newItem = state.scene.editItems.find(item => item.id === state.scene.editItem);
   //next item
-  let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
+  let newLayer = createEditLayer(newPrim);
 
-  SDFUI.store.dispatch(ACT.layerPush(newLayer));
+  layers.push(newLayer);
 
   this.toggle = false;
   return;
@@ -271,17 +368,22 @@ function endDrawUpdate(){
 function escDrawUpdate(){
   if(!this.toggle) return null;
   
-  let index = SDFUI.state.scene.editItem;
-  let item = SDFUI.state.scene.editItems[index];
-  let layer = SDFUI.state.render.layers.find(l => l.prim === item.id);
+  let id = state.scene.editItem;
+  let currItem = state.scene.editItems.find(i => i.id === id);
+  // let layer = layers.find(l => l.id === id);
   
-  SDFUI.store.dispatch(ACT.sceneNewEditItem(layer.primType))
-  SDFUI.store.dispatch(ACT.layerPush(createEditLayer(SDFUI.state.scene.editItems[index])));
+  let props = {...currItem.properties};
+  let newPrim = new PRIM.prim(currItem.type, [], props);
+  
+  store.dispatch(ACT.scenePushEditItem(newPrim));
+  // let newItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
+  // store.dispatch(ACT.layerPush(createEditLayer(newItem)));
+  layers.push(createEditLayer(newPrim));
 
-  let del = deleteItem(index);
+  let del = deleteItem(id);
   
   if (!del) {
-    SDFUI.store.dispatch(ACT.uiMode("select"));
+    // store.dispatch(ACT.uiMode("select"));
     this.toggle = false;
     return;
   }
@@ -291,53 +393,29 @@ function escDrawUpdate(){
 }
 
 // Deletes item in editItems at index
-// this function needs examination
-export function deleteItem(index){
-  //which of these conditions are even possible?
-  if(index >= SDFUI.state.scene.editItems.length ||
-    !SDFUI.state.scene.editItems[index] || 
-    SDFUI.state.scene.editItems[index].pts.length < 1) {
+export function deleteItem(id){
 
-    return false;
-  }
+  let layer = layers.find(l => l.id === id);
+  let lId = layer.id;
 
-  let item = SDFUI.state.scene.editItems[index];
-  let layer = SDFUI.state.render.layers.find(l => l.prim === item.id);
 
-  console.log("layer is : " + layer.id);
+  bboxTree.remove(lId, (a, b) => {
+    return a === b.id;
+  });
 
-  SDFUI.store.dispatch(ACT.layerPop(layer.id));
+  deleteLayer(lId);
 
-  for (let p of item.pts){
-    //this feels so convoluted - why do I have this separate array?
-    //I think the original idea was w/ regards to "denormalization"
-    //and the way firebase works
-    //want to have access to those points as the list changes
-    //at the same time they really are pretty useless outside the context of
-    //might have been a case of premature optimization for a particular system
-    //it gives some performance boost for loading a large scene into an R tree
-    //but that is pretty premature when you have to go through this whole
-    //effing array every time you want to delete something
-    let point = SDFUI.state.scene.pts.find(pt => pt.id === p)
-    SDFUI.store.dispatch(ACT.sceneRmvPt(point));
-  }
-
-  SDFUI.store.dispatch(ACT.sceneRmvItem(item.id))
+  //rmvItem now removes all pts as well
+  store.dispatch(ACT.sceneRmvItem(id))
   return true;
 } 
 
 //modes are collections of UIModifiers
 class UIMode{
-  //bool, [], functions
-  // constructor(name, toggle, modifiers, enter, exit, mv, up, dwn){
+
   constructor(name, modifiers, _events, _options){
     this.name = name;
-    // this.toggle = toggle;
     this.modifiers = modifiers;
-    // this.enter = enter.bind(this);
-    // this.exit = exit.bind(this);
-    // this.update = update.bind(this);
-
     this.toggle = true;
 
     //these should basically all be defined for every mode
@@ -406,7 +484,7 @@ class UIModifier{
   }
 
   dispatch(){
-    SDFUI.store.dispatch(this.act);
+    store.dispatch(this.act);
     if(this.pulse){
       // HINT.pulseActive(this);
     }else{
@@ -420,33 +498,39 @@ class UIModifier{
 // needs prim and chroma
 export function stressTest(){
   console.log("stress test");
-  let n = 50;
-  let lociX = Math.random() * 4;
-  let lociY = Math.random() * 4;
-  let stroke = chroma.random().hex();
-
-  SDFUI.store.dispatch(ACT.editStroke(stroke, SDFUI.state.scene.editItem));
-
-  for(let j = 0; j < n; j++){
-    //need to debounce for pt id method still not working perfectly...
-    setTimeout(() => {
+  for(let i = 0; i < 100; i++){
+    let n = 50;
+    let lociX = Math.random() * 6;
+    let lociY = Math.random() * 6;
+    let stroke = chroma.random().hex();
+  
+    store.dispatch(ACT.editStroke(stroke, state.scene.editItem));
+  
+    for(let j = 0; j < n; j++){
       let x = Math.random() + lociX;
       let y = Math.random() + lociY;
       let randPt = new PRIM.vec(x, y)
-      let currLayer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
-      // I feel like the following line should also go in a reducer
-      let pt = currLayer.uniforms.u_eTex.addPoint(randPt, SDFUI.state.scene.editItems[SDFUI.state.scene.editItem].id);
-      SDFUI.store.dispatch(ACT.sceneAddPt(pt));
-    }, 200)
-  }
+      let currLayer = layers[layers.length - 1];
 
-  let layer = SDFUI.state.render.layers[SDFUI.state.render.layers.length - 1];
-  bakeLayer(layer);
+      let pt = currLayer.uniforms.u_eTex.addPoint(randPt, state.scene.editItem);
+      store.dispatch(ACT.sceneAddPt(pt));
+    }
   
-  let currItem = SDFUI.state.scene.editItems[SDFUI.state.scene.editItem];
-  SDFUI.store.dispatch(ACT.scenePushEditItem(currItem.type));
+    let layer = layers[layers.length - 1];
+    bakeLayer(layer);
 
-  //next item
-  let newLayer = createEditLayer(SDFUI.state.scene.editItems[SDFUI.state.scene.editItem]);
-  SDFUI.store.dispatch(ACT.layerPush(newLayer));
+    let currItem = state.scene.editItems.find(state.scene.editItem);    
+    let bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, currItem.id, 0.05, currItem.type);
+    store.dispatch(ACT.editBbox(currItem.id, bbox));
+    bboxTree.insert(bbox);
+
+    let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
+    
+    store.dispatch(ACT.scenePushEditItem(newPrim));
+  
+    //next item
+    let newLayer = createEditLayer();
+
+    layers.push(newLayer)
+  }
 }

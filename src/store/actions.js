@@ -4,9 +4,9 @@
 //actions named with reducer_property
 //action functions named with reducerProperty()
 //goal is clarity for future debugging easy
-// import * as PRIM from './primitives.js';
 
 //ACTION TYPE CONSTANTS
+
 //main types
 export const status = 'status';
 export const scene = 'scene';
@@ -22,9 +22,9 @@ export const STATUS_RASTER      = 'STATUS_RASTER'; //resolution
 
 //UI 
 export const UI_TARGETHOME       = 'UI_TARGETHOME'; //return to origin rendering
-export const UI_POINTS           = 'UI_POINTS'; //toggle show points
 export const UI_MODE             = 'UI_MODE'; //toggle show points
- 
+export const UI_DRAGGING         = 'UI_DRAGGING'; //dragging state
+export const UI_DRAGSTART        = 'UI_DRAGSTART'; //start drag state
 //CURSOR 
 export const CURSOR_SET          = 'CURSOR_SET';  //curr cursor position
 export const CURSOR_SNAPGRID     = 'CURSOR_SNAPGRID'; //snap to grid
@@ -52,21 +52,20 @@ export const LAYER_UPDATE        = "LAYER_UPDATE"; //update a layer, should be a
  
 //SCENE 
 export const SCENE_SETEDITITEM   = 'SCENE_SETEDITITEM' //sets edit item
-export const SCENE_UNSETEDITITEM = 'SCENE_UNSETEDITITEM' //resets edit item
 export const SCENE_ADDPT         = 'SCENE_ADDPT'; //add point to scene
 export const SCENE_RMVPT         = 'SCENE_RMVPT'; //stages pt for removal
 export const SCENE_FINRMVPT      = 'SCENE_FINRMVPT'; //finishes removing pt from state
-export const SCENE_EDITUPDATE    = 'SCENE_EDITUPDATE'; //marks the edit item for update
-export const SCENE_NEWEDITITEM   = 'SCENE_NEWEDITITEM';
 export const SCENE_PUSHEDITITEM  = 'SCENE_PUSHEDITITEM';
-export const SCENE_EDITPROPS     = 'SCENE_EDITPROPS'; //needs to fire when properties are changed
-export const SCENE_ITEMUPDATE    = 'SCENE_ITEMUPDATE'; //marks prim for update
 export const SCENE_RMVITEM       = 'SCENE_RMVITEM'; //remove item w/ id - must also remove points
+
 export const EDIT_HOVERSET       = 'EDIT_HOVERSET'; // set current hover item
 export const EDIT_HOVERCLR       = 'EDIT_HOVERCLR'; // set current hover item
-export const EDIT_SELECTINS      = 'EDIT_SELECTINS'; //add selected item
+export const EDIT_SELECTAPND     = 'EDIT_SELECTAPND'; //add selected item
 export const EDIT_SELECTRMV      = 'EDIT_SELECTRMV'; //Remove selected item
+export const EDIT_SELECTCLR      = 'EDIT_SELECTCLR'; //clears selection
 
+export const EDIT_TRANSLATE      = 'EDIT_TRANSLATE'; //translates edit object
+export const EDIT_BBOX           = 'EDIT_BBOX'; //sets the bbox of a prim
 //ACTION CREATORS
 
 //establishes grid offset
@@ -114,20 +113,28 @@ export function uiPause(toggle){
 //   }
 // }
 
-//toggles show points
-export function uiPoints(toggle){
-  return{
-    type: ui,
-    subtype: UI_POINTS,
-    toggle,
-  }
-}
-
 //
 export function uiTargetHome(toggle){
   return{
     type: ui,
     subtype: UI_TARGETHOME,
+    toggle,
+  }
+}
+
+export function uiDragStart(toggle, pt){
+  return{
+    type: ui,
+    subtype: UI_DRAGSTART,
+    toggle,
+    pt,
+  }
+}
+
+export function uiDragging(toggle){
+  return{
+    type: ui,
+    subtype: UI_DRAGGING,
     toggle,
   }
 }
@@ -153,11 +160,11 @@ export function cursorSet(vec2){
 
 
 //establishes grid offset
-export function cursorGrid(vec4){
+export function cursorGrid(scale){
   return{
     type: cursor,
     subtype: CURSOR_GRID,
-    vec4
+    scale
   }
 }
 
@@ -299,10 +306,10 @@ export function editHoverClr(){
 }
 // array of selected items
 // might want to have different types of selection?
-export function editSelectIns(sel){
+export function editSelectApnd(sel){
   return{
     type: scene,
-    subtype: EDIT_SELECTINS,
+    subtype: EDIT_SELECTAPND,
     sel,
   }
 }
@@ -317,38 +324,55 @@ export function editSelectRmv(sel){
   }
 }
 
+export function editSelectClr(){
+  return{
+    type: scene,
+    subtype: EDIT_SELECTCLR,
+  }
+}
+
+export function editBbox(id, bbox){
+  return{
+    type: scene,
+    subtype: EDIT_BBOX,
+    id,
+    bbox
+  }
+}
+
+export function editTranslate(id, v3){
+  return{
+    type: scene,
+    subtype: EDIT_TRANSLATE,
+    id,
+    v3,
+  }
+}
+
+
 //pushes a new layer onto the draw stack
-export function layerPush(layer){
-  return{
-    type: render,
-    subtype: LAYER_PUSH,
-    layer
-  }
-}
-
-//pushes a new Image onto the draw stack
-export function layerPushImage(layer){
-  return{
-    type: render,
-    subtype: LAYER_PUSHIMAGE,
-    layer
-  }
-}
-
-//pops a new layer from the draw stack
-export function layerPop(layerID){
-  return{
-    type: render,
-    subtype: LAYER_POP,
-    layerID
-  }
-}
-
-//updates a layer from the draw stack
-// export function layerUpdate(layerID){
+// export function layerPush(layer){
 //   return{
 //     type: render,
-//     subtype: LAYER_UPDATE,
+//     subtype: LAYER_PUSH,
+//     layer
+//   }
+// }
+
+//pushes a new Image onto the draw stack
+// export function layerPushImage(layer){
+//   return{
+//     type: render,
+//     subtype: LAYER_PUSHIMAGE,
+//     layer
+//   }
+// }
+
+//pops a new layer from the draw stack
+// export function layerPop(layerID){
+//   return{
+//     type: render,
+//     subtype: LAYER_POP,
 //     layerID
 //   }
 // }
@@ -389,32 +413,16 @@ export function sceneFinRmvPt(id){
   };
 }
 
-//marks edit item for update
-// export function sceneEditUpdate(toggle){
-//   return {
-//     type: scene,
-//     subtype: SCENE_EDITUPDATE,
-//     toggle
-//   };
-// }
-
-//pushes new item onto scene graph - prim is type
-export function scenePushEditItem(primType){
+//pushes new item onto scene - prim is type
+export function scenePushEditItem(prim, edit){
   return {
     type: scene,
     subtype: SCENE_PUSHEDITITEM,
-    primType
+    prim,
+    edit
   };
 }
 
-//pushes new item onto scene graph - prim type
-export function sceneNewEditItem(primType){
-  return {
-    type: scene,
-    subtype: SCENE_NEWEDITITEM,
-    primType
-  };
-}
 
 //removes item, must also remove points
 export function sceneRmvItem(id){
@@ -424,21 +432,3 @@ export function sceneRmvItem(id){
     id
   };
 }
-
-//fires when drawing properties are changed
-// export function sceneEditProps(){
-//   return {
-//     type: scene,
-//     subtype: SCENE_EDITPROPS,
-//   };
-// }
-
-//toggles update status of item
-// export function sceneItemUpdate(index, toggle){
-//   return {
-//     type: scene,
-//     subtype: SCENE_ITEMUPDATE,
-//     index,
-//     toggle
-//   };
-// }

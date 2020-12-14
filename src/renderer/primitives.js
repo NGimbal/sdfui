@@ -12,6 +12,23 @@ export function uuid(){
   return (+new Date).toString(36).slice(-8);
 }
 
+// https://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid
+// export function uuid() {
+//   var d = new Date().getTime();//Timestamp
+//   var d2 = (performance && performance.now && (performance.now()*1000)) || 0;//Time in microseconds since page-load or 0 if unsupported
+//   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+//       var r = Math.random() * 16;//random number between 0 and 16
+//       if(d > 0){//Use timestamp until depleted
+//           r = (d + r)%16 | 0;
+//           d = Math.floor(d/16);
+//       } else {//Use microseconds since page-load if supported
+//           r = (d2 + r)%16 | 0;
+//           d2 = Math.floor(d2/16);
+//       }
+//       return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+//   });
+// }
+
 //simple class for packaging shader and polypoint
 export class DataShader{
   constructor(shader, parameters){
@@ -23,10 +40,12 @@ export class DataShader{
 //simple point, color vector
 export class vec{
   constructor(x, y, z, w, pId, id, update){
+    this.v3 = twgl.v3.create(x, y, 0.0);
+
     this.x = x || 0;
     this.y = y || 0;
-    this.z = z || 0;
-    this.w = w || 0;
+    this.z = z || 0.0;
+    this.w = w || 0.0;
 
     //this is to conform to rbush data structure req
     this.minX = x;
@@ -35,7 +54,7 @@ export class vec{
     this.maxY = y;
 
     //parentId
-    this.parentId = pId || "";
+    this.parent = pId || "";
 
     this.id = id || uuid();
     this.update = update || false;
@@ -47,6 +66,9 @@ export function vecSet(vec, x, y, z, w){
   vec.y = y || vec.y;
   vec.z = z || vec.z;
   vec.w = w || vec.w;
+
+  this.v3 = twgl.v3.create(vec.x, vec.y, vec.z);
+
   return vec;
 }
 
@@ -72,24 +94,25 @@ export function angleVec(_vec){
   return (Math.atan2( - _vec.y, - _vec.x ) + Math.PI);
 }
 
-function distVec (a, b){
+export function distVec (a, b){
   let dx = a.x - b.x;
   let dy = a.y - b.y;
   return Math.sqrt(dx*dx + dy*dy);
 }
 
-function addVec(a, b){
+export function addVec(a, b){
   return new vec(a.x + b.x, a.y + b.y);
 }
 
-function subVec (a, b){
+export function subVec (a, b){
   let bInv = vecSet(b, b.x * -1, b.y * -1);
   return addVec(a, bInv);
 }
 
 export class bbox{
   //input array of points calculate min, max, width, height
-  constructor(points, id, _offset, _type){
+  constructor(_points, id, _offset, _type){
+    let points = [..._points];
     let offset = _offset ? _offset : 0.05;
     let type = _type ? _type : "polyline";
     if(!id) {console.log("Bounding box created with no object Id")}
@@ -107,12 +130,29 @@ export class bbox{
         this.maxY = points[points.length-1].y + offset;
 
         break;
+      case('polygon'):
+        points.sort((a,b) => (a.x < b.x) ? -1 : 1);
+        this.minX = points[0].x - offset;
+        this.maxX = points[points.length-1].x + offset;
+
+        points.sort((a,b) => (a.y < b.y) ? -1 : 1);
+        this.minY = points[0].y - offset;
+        this.maxY = points[points.length-1].y + offset;
+
+        break;
       case('circle'):
         let radius = distVec(points[0], points[1]);
         this.minX = points[0].x - radius - offset;
         this.maxX = points[0].x + radius + offset;
         this.minY = points[0].y - radius - offset;
         this.maxY = points[0].y + radius + offset;
+        break;
+      case('rectangle'):
+        // let radius = distVec(points[0], points[1]);
+        this.minX = points[0].x - offset;
+        this.maxX = points[1].x + offset;
+        this.minY = points[0].y - offset;
+        this.maxY = points[1].y + offset;
         break;
       case('img'):
         this.minX = points[0].x;
@@ -141,22 +181,25 @@ export var propsDefault = {
 }
 
 export class prim{
-  constructor(type, pts, _props, id, pId, merge){
+  constructor(type, pts, _props, id, _bbox){
     this.type = type;
     //list of point ids
     this.pts = pts || [];
     this.properties = _props || {...propsDefault};
-    this.needsUpdate = false;
+    
+    this.update = false;
+        
     this.id = id ||  uuid();
-    //parent id
-    this.pId = pId || "";
 
     let idCol = chroma.random();
     this.idCol = twgl.v3.create(idCol.gl()[0], idCol.gl()[1], idCol.gl()[2]);
     this.idColHex = idCol.hex();
 
-    //scene merge
-    this.merge = merge || "union";
+    this.translate = twgl.v3.create();
+
+    if(typeof _bbox !== "object") console.log(_bbox);
+
+    this.bbox = _bbox || null;
   }
 }
 
@@ -232,22 +275,23 @@ export class PolyPoint{
     return newPolyPoint;
   }
 
-  //adds point to polyPoint
-  //point x, y, z, w are stored as HalfFloat16
-  //https://github.com/petamoriken/float16
+  // adds point to polyPoint
+  // point x, y, z, w are stored as HalfFloat16
+  // https://github.com/petamoriken/float16
   addPoint(_pt, pId){
     let x = _pt.x;
     let y = _pt.y;
-    let z = _pt.z || 1.0;
-    let w = _pt.w || 1.0;
+    let z = _pt.z || 0.0;
+    let w = _pt.w || 0.0;
 
     let pt = new vec(x, y, z, w, pId);
 
     this.cTexel++;
 
     let index = this.cTexel * 4;
-    //use view.setFloat16() to set the digits in the DataView
-    //then use view.getUint16 to retrieve and write to data Texture
+
+    // use view.setFloat16() to set the digits in the DataView
+    // then use view.getUint16 to retrieve and write to data Texture
     let buffer = new ArrayBuffer(64);
     let view = new DataView(buffer);
 
@@ -262,7 +306,6 @@ export class PolyPoint{
     view.setFloat16(32, z, endD);
     view.setFloat16(48, w, endD);
 
-    //this seems to be working...
     this.data[index] = view.getUint16(0, endD);
     this.data[index + 1] = view.getUint16(16, endD);
     this.data[index + 2] = view.getUint16(32, endD);
@@ -292,19 +335,24 @@ export function distPrim(_mPt, prim){
     mPt = _mPt;
   }
 
+  // let mPt = twgl.v3.copy(_mPt.v3);
+
+  let tPt = twgl.v3.subtract(mPt, prim.translate);
+  // let tPt = mPt;
+  
   let dist = 1000;
   switch (prim.type){
     case  "polyline":
-      dist = Math.min(dist, pLineDist(mPt, prim));
+      dist = Math.min(dist, pLineDist(tPt, prim));
       break;
     case "polygon":
-      dist = Math.min(dist, polygonDist(mPt, prim));
+      dist = Math.min(dist, polygonDist(tPt, prim));
       break;
     case "circle":
-      dist = Math.min(dist, circleDist(mPt, prim));
+      dist = Math.min(dist, circleDist(tPt, prim));
       break;
     case "rectangle":
-      dist = Math.min(dist, rectDist(mPt, prim));
+      dist = Math.min(dist, rectDist(tPt, prim));
       break;
     default:
       break;
@@ -344,22 +392,21 @@ function rectDist(mPt, prim){
 
 //returns distance to a poly line
 function pLineDist(mPt, prim){
-  if (prim.type != "polyline"){
-    // console.log("pLineDist() called on primitive of " + prim.type + " type.");
-    // console.log(prim);
-    return 1000;
-  }
+  if (prim.type != "polyline"){ return 1000; }
+
   let dist = 1000;
   let prev;
-  for (let _p of prim.pts){
-    let p = state.scene.pts.find(pt => pt.id == _p);
-
+  for (let p of prim.pts){
+    // let p = state.scene.pts.find(pt => pt.id == _p);
+    // console.log(p);
     if(typeof prev === 'undefined'){
       prev = p;
       continue;
     }
 
-    dist = Math.min(dist, lineDist(mPt, prev, p, prim.properties.weight));
+    let lD = lineDist(mPt, prev, p, prim.properties.weight);
+
+    dist = Math.min(dist, lD);
     
     prev = p;
   }
@@ -374,19 +421,21 @@ function polygonDist(mPt, prim){
     return 1000;
   }
   // let dist = 1000;
-  let _prev = state.scene.pts.find(pt => pt.id == prim.pts[prim.pts.length - 1]);
-  let prev = twgl.v3.create(_prev.x, _prev.y, 0);
+  // let _prev = state.scene.pts.find(pt => pt.id == prim.pts[prim.pts.length - 1]);
+  let prev = twgl.v3.copy(prim.pts[prim.pts.length - 1].v3);
+  // let prev = twgl.v3.create(_prev.x, _prev.y, 0);
   
-  let _first = state.scene.pts.find(pt => pt.id == prim.pts[0]);
-  let first = twgl.v3.create(_first.x, _first.y, 0);
+  // let _first = state.scene.pts.find(pt => pt.id == prim.pts[0]);
+  // let first = twgl.v3.create(_first.x, _first.y, 0);
+  let first = twgl.v3.copy(prim.pts[0].v3);
   first = twgl.v3.subtract(mPt, first);
 
   let dist = twgl.v3.dot(first,first);
   let s = 1;
 
   for (let _p of prim.pts){
-    let _pt = state.scene.pts.find(pt => pt.id == _p);
-    let p = twgl.v3.create(_pt.x, _pt.y, 0);
+    // let _pt = state.scene.pts.find(pt => pt.id == _p);
+    let p = twgl.v3.copy(_p.v3);
 
     let e = twgl.v3.subtract(prev, p);
     let w = twgl.v3.subtract(mPt, p);
@@ -416,11 +465,13 @@ function circleDist(mPt, prim){
     // console.log(prim);
     return 1000;
   }
-  let ptA = state.scene.pts.find(pt => pt.id == prim.pts[0]);
-  let ptB = state.scene.pts.find(pt => pt.id == prim.pts[1]);
+  // let ptA = state.scene.pts.find(pt => pt.id == prim.pts[0]);
+  // let ptB = state.scene.pts.find(pt => pt.id == prim.pts[1]);
+  let ptA = twgl.v3.copy(prim.pts[0].v3);
+  let ptB = twgl.v3.copy(prim.pts[1].v3);
 
-  ptA = twgl.v3.create(ptA.x, ptA.y, 0);
-  ptB = twgl.v3.create(ptB.x, ptB.y, 0);
+  // ptA = twgl.v3.create(ptA.x, ptA.y, 0);
+  // ptB = twgl.v3.create(ptB.x, ptB.y, 0);
   
   let radius = twgl.v3.distance(ptA, ptB);
   let uv = twgl.v3.subtract(mPt, ptA);
@@ -432,25 +483,27 @@ function circleDist(mPt, prim){
 
 //returns distance to a line
 function lineDist(p, _a, _b, w){
-  let a, b;
-  if (_a.x){
-    a = twgl.v3.create(_a.x, _a.y, 0);
-  } else {
-    a = _a;
-  }
+  // let a, b;
+  // if (_a.x){
+  //   a = twgl.v3.create(_a.x, _a.y, 0);
+  // } else {
+  //   a = _a;
+  // }
 
-  if (_b.x){
-    b = twgl.v3.create(_b.x, _b.y, 0);
-  } else {
-    b = _b;
-  }
+  // if (_b.x){
+  //   b = twgl.v3.create(_b.x, _b.y, 0);
+  // } else {
+  //   b = _b;
+  // }
+  let a = twgl.v3.copy(_a.v3);
+  let b = twgl.v3.copy(_b.v3);
 
   let pa = twgl.v3.subtract(p, a);
   let ba = twgl.v3.subtract(b, a);
   let dot = twgl.v3.dot(pa,ba) / twgl.v3.dot(ba,ba);
   let h =  clamp(dot, 0.0, 1.0);
   //don't know why w needs to be squared here
-  return twgl.v3.length(twgl.v3.subtract(pa, twgl.v3.mulScalar(ba, h))) - w * 5;
+  return twgl.v3.length(twgl.v3.subtract(pa, twgl.v3.mulScalar(ba, h))) - w;
 }
 
 function clamp (a, low, high){

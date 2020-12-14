@@ -11,23 +11,17 @@ function LayerTree() {
 
   function strokeColorChange(e){
     let id = e.target.getAttribute('data-id');
-    let index = SDFUI.state.scene.editItems.findIndex(item => item.id === id);
-    SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), index));
+    SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), id));
   }
 
   function fillColorChange(e){
     let id = e.target.getAttribute('data-id');
-    let index = SDFUI.state.scene.editItems.findIndex(item => item.id === id);
-    SDFUI.store.dispatch(ACT.editFill(chroma(e.target.value).hex(), index));
+    SDFUI.store.dispatch(ACT.editFill(chroma(e.target.value).hex(), id));
   }
 
   function trashObject(e){
-    // console.log(this)
-    let index = SDFUI.state.scene.editItems.findIndex(i => i.id === this);
-    console.log( "delete " + this + " at " + index);
-    deleteItem(index);
-    // this doesn't work yet - will need more time to figure out I think >.<
-    // SDFUI.store.dispatch(ACT.sceneRmvItem(this));
+    console.log( "delete " + this);
+    deleteItem(this);
   }
 
   function rowBeginDrag(e){
@@ -42,7 +36,7 @@ function LayerTree() {
     if(SDFUI.state.scene.selected.filter(id => id === this).length > 0){
       SDFUI.store.dispatch(ACT.editSelectRmv(this));
     } else {
-      SDFUI.store.dispatch(ACT.editSelectIns(this));
+      SDFUI.store.dispatch(ACT.editSelectApnd(this));
     }
 
     if(SDFUI.state.scene.selected.length > 0){
@@ -57,7 +51,10 @@ function LayerTree() {
       <div>
         <List style={{height:"100%", maxHeight:"unset"}}>
           {
-            SDFUI.state.scene.editItems.map(item => <ListItem label={item.type.charAt(0).toUpperCase() + item.type.slice(1)} 
+            SDFUI.state.scene.editItems.map(item => {
+            if(item.pts.length === 0 && item.type !== "image") return;
+            return (
+                  <ListItem label={item.type.charAt(0).toUpperCase() + item.type.slice(1)} 
                     onclick={selectObject.bind(item.id)}
                     selected={SDFUI.state.scene.selected.includes(item.id)}
                     contentRight={
@@ -79,7 +76,10 @@ function LayerTree() {
                         onclick={rowBeginDrag}
                       />
                     }
-            />)
+                  />
+                )
+              }
+            )
           }
         </List>
       </div>

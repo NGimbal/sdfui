@@ -4,38 +4,39 @@
 // import * as PRIM from './primitives.js';
 import * as SDFUI from './draw.js';
 import * as LAYER from './layer.js';
+import * as twgl from 'twgl.js';
 
 //could also get frag stub here
 export function bake(layer){
   let prim = {};
   switch(layer.primType){
     case'polyline':
-      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return polyLine(prim, layer);
     case'polygon':
-      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return polygon(prim, layer);
     case'circle':
-      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return circleCall(prim, layer);
     case'rectangle':
-      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return rectangleCall(prim, layer);
     default:
-      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.prim);
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return polyLine(prim, layer);
   }
 }
 
 //POLYLINE-------------------------------------------------------
-//takes prim and datashader and bakes as a polyline
+//takes prim and layer and bakes as a polyline
 function polyLine(prim, layer){
   let shader = LAYER.getFragStub(prim.type, false);
   let parameters = layer.uniforms.u_eTex;
 
   //every layer gets its own parameters texture
   shader = polyLineFunc(prim, shader, parameters);
-  shader = polyLineCall(prim, shader);
+  shader = polyLineCall(prim, shader, layer.bbox);
   
   //need to recompile layer program
   //probably after returning the compiled shader
@@ -44,9 +45,6 @@ function polyLine(prim, layer){
 
 //prim is the shape, dataShader is the fragShader + parameters tex
 function polyLineFunc(prim, shader, parameters){
-  // let shader = dataShader.shader;
-  // let parameters = dataShader.parameters;
-
   //insert new function
   let insString = "//$INSERT FUNCTION$------";
   let insIndex = shader.indexOf(insString);
@@ -56,7 +54,7 @@ function polyLineFunc(prim, shader, parameters){
   let endShader = shader.slice(insIndex);
 
   // if function exists start and end should be before beginning and after end
-  let exFuncStr = '//$START-' + prim.id;
+  let exFuncStr = '//$START-' + prim.id.substr(0,7);
 
   let exFuncIndex = shader.indexOf(exFuncStr);
 
@@ -64,7 +62,7 @@ function polyLineFunc(prim, shader, parameters){
   if(exFuncIndex >= 0){
     startShader = shader.slice(0, exFuncIndex);
 
-    let postFuncStr = '//$END-' + prim.id;
+    let postFuncStr = '//$END-' + prim.id.substr(0,7);
     let postIndex = shader.indexOf(postFuncStr);
     postIndex += postFuncStr.length;
     endShader = shader.slice(postIndex);
@@ -72,10 +70,10 @@ function polyLineFunc(prim, shader, parameters){
 
   //create function
   let posString = '\n';
-  posString += '//$START-' + prim.id + '\n';
+  posString += '//$START-' + prim.id.substr(0,7) + '\n';
 
   // p is a translation for polyLine
-  posString += 'vec4 ' + prim.id + '(vec2 uv, vec2 p) {';
+  posString += 'vec4 ' + "pline" + prim.id.substr(0,7) + '(vec2 uv, vec2 p) {';
 
   posString += '\n\tvec2 tUv = uv - p;';
 
@@ -85,16 +83,7 @@ function polyLineFunc(prim, shader, parameters){
   let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
   let dataSize = parameters.dataSize;
 
-  // let rgbStroke = prim.properties.stroke;
-  // let colorStroke = 'vec3(' + rgbStroke[0].toFixed(4) + ',' + rgbStroke[1].toFixed(4) + ',' + rgbStroke[2].toFixed(4) +')';
-  // let weight = prim.properties.weight.toFixed(6);
-
-  // let count = 0;
-
-  //is this unreliable?
-  let cTexel = 0;
-  for (let _p of prim.pts){
-
+  for(let cTexel = 0; cTexel < prim.pts.length; cTexel++){
     if(cTexel == 0){
       indexX = (cTexel % dataSize) / dataSize + texelOffset;
       indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
@@ -104,7 +93,6 @@ function polyLineFunc(prim, shader, parameters){
       posString += '\n\tfloat accumD = 100.0;';
       posString += '\n\tvec2 index = vec2(' + indexX + ',' + indexY + ');';
       posString += '\n\tvec2 oldPos = texture(u_eTex, index).xy;';
-      cTexel++;
       continue;
     }else{
       indexX = (cTexel % dataSize) / dataSize + texelOffset;
@@ -115,26 +103,23 @@ function polyLineFunc(prim, shader, parameters){
       posString += '\n\td = drawLine(tUv, oldPos, pos, u_weight, 0.0);';
       posString += '\n\taccumD = min(accumD, d);';
       posString += '\n\toldPos = pos;';
-
-      cTexel++;
     }
   }
   
-  // posString += '\n\taccumD = line(accumD, u_weight);\n';
   posString += '\n\tfinalColor = mix(finalColor, u_stroke, line(accumD, u_weight));';
   posString += '\n\treturn vec4(finalColor, accumD);';
   posString += '\n}\n';
-  posString += '//$END-' + prim.id + '\n';
+  posString += '//$END-' + prim.id.substr(0,7) + '\n';
 
-  // prim.fragShader = posString;
   startShader += posString;
+
   let fragShader = startShader + endShader;
 
   return fragShader;
 }
 
 //creates function call for prim specific function
-function polyLineCall(prim, shader){
+function polyLineCall(prim, shader, bbox){
 
   let insString = "//$INSERT CALL$------";
   let insIndex = shader.indexOf(insString);
@@ -146,8 +131,11 @@ function polyLineCall(prim, shader){
   //create function
   let posString = '\n';
 
+  let norm = twgl.v3.subtract(twgl.v3.create(), bbox.min.v3);
+
+  let p = norm[0] + ',' + norm[1];
   // p here vec2(0.0,0.0) is a translation for polygon
-  posString += '\t colDist = ' + prim.id + '(uv, vec2(0.0,0.0));\n';
+  posString += '\t colDist = ' + "pline" + prim.id.substr(0,7) + '(uv, vec2(' + p + '));\n';
   startShader += posString;
 
   let fragShader = startShader + endShader;
@@ -164,7 +152,7 @@ function polygon(prim, layer){
   let parameters = layer.uniforms.u_eTex;
 
   shader = polygonFunc(prim, shader, parameters);
-  shader = polygonCall(prim, shader);
+  shader = polygonCall(prim, shader, layer.bbox);
 
   //need to recompile layer program after returning the compiled shader
   return shader;
@@ -182,7 +170,7 @@ function polygonFunc(prim, shader, parameters){
   let endShader = shader.slice(insIndex);
 
   // if function exists start and end should be before beginning and after end
-  let exFuncStr = '//$START-' + prim.id;
+  let exFuncStr = '//$START-' + prim.id.substr(0,7);
 
   let exFuncIndex = shader.indexOf(exFuncStr);
 
@@ -190,7 +178,7 @@ function polygonFunc(prim, shader, parameters){
   if(exFuncIndex >= 0){
     startShader = shader.slice(0, exFuncIndex);
 
-    let postFuncStr = '//$END-' + prim.id;
+    let postFuncStr = '//$END-' + prim.id.substr(0,7);
     let postIndex = shader.indexOf(postFuncStr);
     postIndex += postFuncStr.length;
     endShader = shader.slice(postIndex);
@@ -198,7 +186,7 @@ function polygonFunc(prim, shader, parameters){
 
   //create function
   let posString = '\n';
-  posString += '//$START-' + prim.id + '\n';
+  posString += '//$START-' + prim.id.substr(0,7) + '\n';
 
   let indexX = 0;
   let indexY = 0;
@@ -214,7 +202,7 @@ function polygonFunc(prim, shader, parameters){
   // let radius = prim.properties.radius.toFixed(4);
 
   // p is a translation for polygon
-  posString += 'vec4 ' + prim.id + '(vec2 uv, vec2 p) {';
+  posString += 'vec4 ' + "pgon" + prim.id.substr(0,7) + '(vec2 uv, vec2 p) {';
 
   posString += '\n\tvec2 tUv = uv - p;\n';
 
@@ -276,7 +264,7 @@ function polygonFunc(prim, shader, parameters){
   posString += '\treturn vec4(d);\n';
   
   posString += '\n}\n';
-  posString += '//$END-' + prim.id + '\n';
+  posString += '//$END-' + prim.id.substr(0,7) + '\n';
 
   startShader += posString;
   let fragShader = startShader + endShader;
@@ -285,7 +273,7 @@ function polygonFunc(prim, shader, parameters){
 }
 
 //creates function calls that draws prim as a polygon
-function polygonCall(prim, shader){
+function polygonCall(prim, shader, bbox){
 
   let insString = "//$INSERT CALL$------";
   let insIndex = shader.indexOf(insString);
@@ -297,9 +285,13 @@ function polygonCall(prim, shader){
   //create function
   let posString = '\n';
 
+  let norm = twgl.v3.subtract(twgl.v3.create(), bbox.min.v3);
+  let p = norm[0] + ',' + norm[1];
+  console.log(bbox);
+  console.log(p);
   // p here vec2(0.0,0.0) is a translation for polygon
   // eventually this will be a reference to another data texture
-  posString += '\t colDist = ' + prim.id +' (uv, vec2(0.0,0.0));\n';
+  posString += '\t colDist = ' + "pgon" + prim.id.substr(0,7) +' (uv, vec2(' + p + '));\n';
   startShader += posString;
 
   let fragShader = startShader + endShader;
@@ -327,7 +319,7 @@ export function circleCall(prim, layer){
   // let pt1 = SDFUI.state.scene.pts[j];
 
   // let _pt = {x:pt0.x, y:pt0.y, z:pt1.x, w:pt1.y};
-  // parameters.addPoint(_pt, prim.id);
+  // parameters.addPoint(_pt, prim.id.substr(0,7));
 
   // let cTexel = parameters.cTexel;
   // let dataSize = parameters.dataSize;
