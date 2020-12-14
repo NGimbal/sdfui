@@ -275,7 +275,7 @@ function render(_state=initialState, action) {
 
 //state related to the scene
 function scene(_state=initialState, action) {
-  console.log(action);
+  // console.log(action);
   let state = _state.scene;
   switch(action.subtype){
     case ACT.SCENE_SETEDITITEM:
