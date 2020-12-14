@@ -2,7 +2,7 @@ import m from "mithril";
 
 import '../sdfui.css';
 
-import {initDraw, addImage} from '../renderer/draw';
+import {initDraw, addImage} from '../app/draw';
 import SpeedDial from "./SpeedDial/SpeedDial";
 
 function Canvas() {

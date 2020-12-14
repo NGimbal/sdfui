@@ -4,9 +4,9 @@ import * as twgl from 'twgl.js';
 import * as ACT from '../store/actions.js';
 
 import {gl, store, state, resolution, mPt, dPt, bboxTree, layers, deleteLayer} from './draw.js';
-import {bakeLayer, createEditLayer} from './layer.js';
+import {bakeLayer, createEditLayer} from '../renderer/layer.js';
 
-import * as PRIM from './primitives'
+import * as PRIM from '../renderer/primitives'
 
 import * as chroma from 'chroma-js';
 

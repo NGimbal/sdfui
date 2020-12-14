@@ -4,10 +4,10 @@ import LayerTree from './LayerTree';
 import ghlogo from '../../assets/ghlogo.svg';
 // import '../../node_modules/construct-ui/lib/index.css';
 
-import * as SDFUI from "../renderer/draw";
+import * as SDFUI from "../app/draw";
 import * as ACT from '../store/actions';
 
-import {stressTest} from '../renderer/drawUI'
+import {stressTest} from '../app/drawUI'
 
 let dividerStyle =   {
   width:"100%",

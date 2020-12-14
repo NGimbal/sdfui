@@ -1,7 +1,7 @@
 //primitives.js
 'use strict';
 
-import {gl, state} from './draw.js';
+import {gl, state} from '../app/draw.js';
 import {getFloat16, setFloat16} from "@petamoriken/float16";
 
 import * as chroma from 'chroma-js';

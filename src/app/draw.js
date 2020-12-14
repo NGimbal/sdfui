@@ -9,9 +9,9 @@ import * as ACT from '../store/actions.js';
 import { reducer } from '../store/reducers.js';
 
 import {DrawUI} from './drawUI.js';
-import * as PRIM from './primitives.js';
-import * as SF from './frags.js';
-import {Layer, updateMatrices} from './layer.js';
+import * as PRIM from '../renderer/primitives.js';
+import * as SF from '../renderer/frags.js';
+import {Layer, updateMatrices} from '../renderer/layer.js';
 
 var canvas, ctx, ui;
 var view;

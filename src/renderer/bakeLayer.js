@@ -2,7 +2,7 @@
 "use strict";
 
 // import * as PRIM from './primitives.js';
-import * as SDFUI from './draw.js';
+import * as SDFUI from '../app/draw.js';
 import * as LAYER from './layer.js';
 import * as twgl from 'twgl.js';
 

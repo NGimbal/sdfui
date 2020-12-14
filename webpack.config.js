@@ -3,8 +3,9 @@ const path = require('path');
 
 module.exports = {
   entry: [
-    './src/renderer/draw.js',
-    './src/renderer/drawUI.js',
+    './src/app/draw.js',
+    './src/app/drawUI.js',
+
     './src/renderer/layer.js',
     './src/renderer/bakeLayer.js',
     './src/renderer/primitives.js',
@@ -13,8 +14,6 @@ module.exports = {
 
     './src/store/actions.js',
     './src/store/reducers.js',
-
-
 
     './src/index.js',
     './src/components/Root.js',
