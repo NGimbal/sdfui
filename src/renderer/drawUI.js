@@ -343,11 +343,12 @@ function endDrawUpdate(){
 
   bakeLayer(layer);
 
-  // TODO: create a reducer for this
   let bbox = new PRIM.bbox(currItem.pts, currItem.id, 0.05, currItem.type);
+  
   store.dispatch(ACT.editBbox(currItem.id, bbox));
+
+  // I'd like this to get managed in the listener function
   bboxTree.insert(bbox);
-  // console.log(bboxTree.all());
 
   let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
   

@@ -288,7 +288,7 @@ function scene(_state=initialState, action) {
         editItems: state.editItems.map(item => {
           if(item.id !== state.editItem) return item;
           return Object.assign({}, item, {
-            pts: [...item.pts, pt]
+            pts: appendItem(item.pts, pt)
           })
         }),
         // pts:[...state.pts, pt]
@@ -490,6 +490,12 @@ export const reducer = function(state = initialState, action){
 function insertItem(array, action) {
   let newArray = array.slice()
   newArray.splice(action.index, 0, action.item)
+  return newArray
+}
+
+function appendItem(array, item) {
+  let newArray = array.slice()
+  newArray.splice(array.length, 0, item)
   return newArray
 }
 

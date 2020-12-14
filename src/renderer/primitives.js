@@ -66,6 +66,9 @@ export function vecSet(vec, x, y, z, w){
   vec.y = y || vec.y;
   vec.z = z || vec.z;
   vec.w = w || vec.w;
+
+  this.v3 = twgl.v3.create(vec.x, vec.y, vec.z);
+
   return vec;
 }
 
@@ -108,7 +111,8 @@ export function subVec (a, b){
 
 export class bbox{
   //input array of points calculate min, max, width, height
-  constructor(points, id, _offset, _type){
+  constructor(_points, id, _offset, _type){
+    let points = [..._points];
     let offset = _offset ? _offset : 0.05;
     let type = _type ? _type : "polyline";
     if(!id) {console.log("Bounding box created with no object Id")}
@@ -331,6 +335,8 @@ export function distPrim(_mPt, prim){
     mPt = _mPt;
   }
 
+  // let mPt = twgl.v3.copy(_mPt.v3);
+
   // let tPt = twgl.v3.subtract(mPt, prim.translate);
   let tPt = mPt;
   
@@ -398,7 +404,9 @@ function pLineDist(mPt, prim){
       continue;
     }
 
-    dist = Math.min(dist, lineDist(mPt, prev, p, prim.properties.weight));
+    let lD = lineDist(mPt, prev, p, prim.properties.weight);
+
+    dist = Math.min(dist, lD);
     
     prev = p;
   }
@@ -475,18 +483,20 @@ function circleDist(mPt, prim){
 
 //returns distance to a line
 function lineDist(p, _a, _b, w){
-  let a, b;
-  if (_a.x){
-    a = twgl.v3.create(_a.x, _a.y, 0);
-  } else {
-    a = _a;
-  }
+  // let a, b;
+  // if (_a.x){
+  //   a = twgl.v3.create(_a.x, _a.y, 0);
+  // } else {
+  //   a = _a;
+  // }
 
-  if (_b.x){
-    b = twgl.v3.create(_b.x, _b.y, 0);
-  } else {
-    b = _b;
-  }
+  // if (_b.x){
+  //   b = twgl.v3.create(_b.x, _b.y, 0);
+  // } else {
+  //   b = _b;
+  // }
+  let a = twgl.v3.copy(_a.v3);
+  let b = twgl.v3.copy(_b.v3);
 
   let pa = twgl.v3.subtract(p, a);
   let ba = twgl.v3.subtract(b, a);

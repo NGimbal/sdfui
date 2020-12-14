@@ -39,7 +39,7 @@ var resize = false;
 function listener(){
 
   state = store.getState();
-  console.log(state);
+
   resolution = state.status.resolution;
   
   // update mouse position variable
@@ -90,7 +90,7 @@ function listener(){
 
   // get rid of layers if we've deleted the item
   // layers.filter(l => items.includes(l.id));
-  console.log(layers);
+  // console.log(layers);
   return state;
 }; 
 
@@ -459,12 +459,13 @@ function sceneDist(){
   }
 
   let bboxSearch = bboxTree.search(mouse).map(b => b.id);
-  // console.log(mouse);
-  // console.log(bboxSearch);
+  
   let inMouse = state.scene.editItems.filter(i => bboxSearch.includes(i.id))
+  
   if(inMouse.length > 0) console.log(inMouse);
+  
   for (let prim of inMouse){
-    // let prim = state.scene.editItems.find(p => p.id === layer.id);
+
     if (prim.id === state.scene.editItem) continue;
 
     let currDist = PRIM.distPrim(mPt, prim);
@@ -508,7 +509,7 @@ export function modifyDefine(_shader, define, val){
   startShader += val + "\n";
   shader = startShader + endShader;
   
-  console.log(shader);
+  // console.log(shader);
   
   return shader;
 }
