@@ -123,7 +123,7 @@ export class DrawUI{
         let mouse = twgl.v3.create(mPt.x, mPt.y, 1.0);
 
         let translate = twgl.v3.subtract(mouse, state.ui.dragOrigin);
-        console.log(translate);
+        // console.log(translate);
         // let prim = state.scene.editItems.find(item => item.id === id);
         // console.log(prim);
         store.dispatch(ACT.editTranslate(id, translate));
