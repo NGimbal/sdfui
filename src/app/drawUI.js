@@ -339,15 +339,14 @@ function endDrawUpdate(){
   
   let layer = layers.find(l => l.id === currItem.id);
 
-  bakeLayer(layer);
-
   // let bbox = new PRIM.bbox(currItem.pts, currItem.id, 0.05, currItem.type);
   let bbox = new PRIM.bbox(currItem, 0.05);
-
   store.dispatch(ACT.editBbox(currItem.id, bbox));
-
   // I'd like this to get managed in the listener function
   bboxTree.insert(bbox);
+
+  
+  bakeLayer(layer);
 
   let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
   
