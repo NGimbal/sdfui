@@ -110,14 +110,18 @@ export function subVec (a, b){
 }
 
 export class bbox{
-  //input array of points calculate min, max, width, height
-  constructor(_points, id, _offset, _type){
-    let points = [..._points];
+  // input prim calculate bbox
+  // sometimes has to operate on a layer
+  constructor(prim, _offset){
+    let points = prim.pts ? [...prim.pts] : [...prim.uniforms.u_eTex.pts];
+    let type = prim.type ? prim.type : prim.primType;
     let offset = _offset ? _offset : 0.05;
-    let type = _type ? _type : "polyline";
-    if(!id) {console.log("Bounding box created with no object Id")}
-    else {this.id = id}
 
+    if(!prim.id) {console.log("Bounding box created with no object Id")}
+    else {this.id = prim.id.slice()}
+    
+    console.log(prim);
+    
     switch(type){
       //polygon, polyline, rectangle all can default to this
       case('polyline'):
@@ -141,6 +145,7 @@ export class bbox{
 
         break;
       case('circle'):
+        console.log(points);
         let radius = distVec(points[0], points[1]);
         this.minX = points[0].x - radius - offset;
         this.maxX = points[0].x + radius + offset;
@@ -362,17 +367,15 @@ export function distPrim(_mPt, prim){
 
 //return distance to a rectangle
 function rectDist(mPt, prim){
-  if (prim.type != "rectangle"){
-    // console.log("pLineDist() called on primitive of " + prim.type + " type.");
-    // console.log(prim);
-    return 1000;
-  }
 
-  let ptA = state.scene.pts.find(pt => pt.id == prim.pts[0]);
-  let ptB = state.scene.pts.find(pt => pt.id == prim.pts[1]);
+  // let ptA = state.scene.pts.find(pt => pt.id == prim.pts[0]);
+  // let ptB = state.scene.pts.find(pt => pt.id == prim.pts[1]);
 
-  ptA = twgl.v3.create(ptA.x, ptA.y, 0);
-  ptB = twgl.v3.create(ptB.x, ptB.y, 0);
+  // ptA = twgl.v3.create(ptA.x, ptA.y, 0);
+  // ptB = twgl.v3.create(ptB.x, ptB.y, 0);
+
+  let ptA = twgl.v3.copy(prim.pts[0].v3);
+  let ptB = twgl.v3.copy(prim.pts[1].v3);
 
   let center = twgl.v3.add(twgl.v3.mulScalar(twgl.v3.subtract(ptB, ptA), 0.5), ptA);
   let b = twgl.v3.subtract(ptB, center);

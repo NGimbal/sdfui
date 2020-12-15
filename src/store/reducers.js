@@ -444,7 +444,7 @@ function scene(_state=initialState, action) {
         editItems: state.editItems.map((item) => {
           if(item.id !== action.id) return item;
           return Object.assign({}, item, {
-            bbox: {...action.bbox} //should the new bbox be made here?
+            bbox: {...action.bbox}
           })
         }),
       });

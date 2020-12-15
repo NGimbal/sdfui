@@ -4,7 +4,7 @@ import * as twgl from 'twgl.js';
 import * as ACT from '../store/actions.js';
 
 import {gl, store, state, resolution, mPt, dPt, bboxTree, layers, deleteLayer} from './draw.js';
-import {bakeLayer, createEditLayer} from '../renderer/layer.js';
+import {bakeLayer, createLayer} from '../renderer/layer.js';
 
 import * as PRIM from '../renderer/primitives'
 
@@ -222,30 +222,27 @@ function drawUp(e){
     if(!modState) continue;
   }
 
-  let currItem  = state.scene.editItems.find(item => item.id === state.scene.editItem);
-  let currLayer = layers.find(l => l.id === currItem.id);
-
-  // 
+  // TODO: Make layers a pure function of primitives
+  let currLayer = layers.find(l => l.id === state.scene.editItem);
   let pt = currLayer.uniforms.u_eTex.addPoint(mPt, state.scene.editItem);
 
   store.dispatch(ACT.sceneAddPt(pt));
-  
-  // this condition isn't great but seems to work
-  if ( (currItem.type == "circle" || currItem.type == "rectangle") && currItem.pts.length >= 1 ){
-    bakeLayer(currLayer);
-    
-    // let bbox = new PRIM.bbox(currLayer.uniforms.u_eTex.pts, currItem.id, 0.05, currItem.type);
-    let bbox = new PRIM.bbox(currItem.pts, currItem.id, 0.05, currItem.type);
 
+  let currItem  = state.scene.editItems.find(item => item.id === state.scene.editItem);
+
+  // this condition isn't great but seems to work
+  if ( (currItem.type == "circle" || currItem.type == "rectangle") && currItem.pts.length == 2 ){    
+    let bbox = new PRIM.bbox(currItem, 0.05);
     store.dispatch(ACT.editBbox(currItem.id, bbox));
     bboxTree.insert(bbox);
+
+    bakeLayer(currLayer);
     
-    // better pattern might be make new item, pass whole new item, keep reference for new layer
     let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
     
     store.dispatch(ACT.scenePushEditItem(newPrim));
-    // let newItem = state.scene.editItems.find(i=> i.id === state.scene.editItem);
-    let newLayer = createEditLayer(newPrim);
+
+    let newLayer = createLayer(newPrim);
     layers.push(newLayer);
   }
 
@@ -344,8 +341,9 @@ function endDrawUpdate(){
 
   bakeLayer(layer);
 
-  let bbox = new PRIM.bbox(currItem.pts, currItem.id, 0.05, currItem.type);
-  
+  // let bbox = new PRIM.bbox(currItem.pts, currItem.id, 0.05, currItem.type);
+  let bbox = new PRIM.bbox(currItem, 0.05);
+
   store.dispatch(ACT.editBbox(currItem.id, bbox));
 
   // I'd like this to get managed in the listener function
@@ -357,7 +355,7 @@ function endDrawUpdate(){
 
   // let newItem = state.scene.editItems.find(item => item.id === state.scene.editItem);
   //next item
-  let newLayer = createEditLayer(newPrim);
+  let newLayer = createLayer(newPrim);
 
   layers.push(newLayer);
 
@@ -378,7 +376,7 @@ function escDrawUpdate(){
   store.dispatch(ACT.scenePushEditItem(newPrim));
   // let newItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
   // store.dispatch(ACT.layerPush(createEditLayer(newItem)));
-  layers.push(createEditLayer(newPrim));
+  layers.push(createLayer(newPrim));
 
   let del = deleteItem(id);
   
@@ -520,7 +518,8 @@ export function stressTest(){
     bakeLayer(layer);
 
     let currItem = state.scene.editItems.find(state.scene.editItem);    
-    let bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, currItem.id, 0.05, currItem.type);
+    // let bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, currItem.id, 0.05, currItem.type);
+    let bbox = new PRIM.bbox(currItem, 0.05);
     store.dispatch(ACT.editBbox(currItem.id, bbox));
     bboxTree.insert(bbox);
 
@@ -529,7 +528,7 @@ export function stressTest(){
     store.dispatch(ACT.scenePushEditItem(newPrim));
   
     //next item
-    let newLayer = createEditLayer();
+    let newLayer = createLayer();
 
     layers.push(newLayer)
   }

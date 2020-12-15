@@ -117,11 +117,10 @@ export function updateMatrices(layer){
 
 //bakes layer
 export function bakeLayer(layer){
-  console.log("DEPRECATED: bakeLayer should be called from draw.js")
-  // let prim = state.scene.editItems.find(item => item.id === layer.id);
 
   // set bounding box
-  layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id, 0.05, layer.primType);
+  layer.bbox = new PRIM.bbox(layer, 0.05);
+  
   updateMatrices(layer);
 
   let fs = BAKE.bake(layer);
@@ -134,7 +133,7 @@ export function bakeLayer(layer){
 }
 
 //create new edit layer of a certain primitive type
-export function createEditLayer(prim){
+export function createLayer(prim){
   let uniforms = getUniforms(prim.type);
 
   //get program stub for prim type

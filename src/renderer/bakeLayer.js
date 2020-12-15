@@ -36,7 +36,7 @@ function polyLine(prim, layer){
 
   //every layer gets its own parameters texture
   shader = polyLineFunc(prim, shader, parameters);
-  shader = polyLineCall(prim, shader, layer.bbox);
+  shader = polyLineCall(prim, shader);
   
   //need to recompile layer program
   //probably after returning the compiled shader
@@ -119,7 +119,7 @@ function polyLineFunc(prim, shader, parameters){
 }
 
 //creates function call for prim specific function
-function polyLineCall(prim, shader, bbox){
+function polyLineCall(prim, shader){
 
   let insString = "//$INSERT CALL$------";
   let insIndex = shader.indexOf(insString);
@@ -131,7 +131,7 @@ function polyLineCall(prim, shader, bbox){
   //create function
   let posString = '\n';
 
-  let norm = twgl.v3.subtract(twgl.v3.create(), bbox.min.v3);
+  let norm = twgl.v3.subtract(twgl.v3.create(), prim.bbox.min.v3);
 
   let p = norm[0] + ',' + norm[1];
   // p here vec2(0.0,0.0) is a translation for polygon
@@ -273,7 +273,7 @@ function polygonFunc(prim, shader, parameters){
 }
 
 //creates function calls that draws prim as a polygon
-function polygonCall(prim, shader, bbox){
+function polygonCall(prim, shader){
 
   let insString = "//$INSERT CALL$------";
   let insIndex = shader.indexOf(insString);
@@ -285,10 +285,9 @@ function polygonCall(prim, shader, bbox){
   //create function
   let posString = '\n';
 
-  let norm = twgl.v3.subtract(twgl.v3.create(), bbox.min.v3);
+  let norm = twgl.v3.subtract(twgl.v3.create(), prim.bbox.min.v3);
   let p = norm[0] + ',' + norm[1];
-  console.log(bbox);
-  console.log(p);
+
   // p here vec2(0.0,0.0) is a translation for polygon
   // eventually this will be a reference to another data texture
   posString += '\t colDist = ' + "pgon" + prim.id.substr(0,7) +' (uv, vec2(' + p + '));\n';
@@ -308,33 +307,18 @@ export function circleCall(prim, layer){
   let parameters = layer.uniforms.u_eTex;
   let dataSize = layer.uniforms.u_eTex.dataSize;
 
-  //bakes pointPrim data the fluentDoc.parameters
-  // let _pt0 = prim.pts[0];
-  // let _pt1 = prim.pts[1];
-
-  // let i = SDFUI.state.scene.pts.findIndex(i => i.id === _pt0);
-  // let pt0 = SDFUI.state.scene.pts[i];
-
-  // let j = SDFUI.state.scene.pts.findIndex(j => j.id === _pt1);
-  // let pt1 = SDFUI.state.scene.pts[j];
-
-  // let _pt = {x:pt0.x, y:pt0.y, z:pt1.x, w:pt1.y};
-  // parameters.addPoint(_pt, prim.id.substr(0,7));
-
-  // let cTexel = parameters.cTexel;
-  // let dataSize = parameters.dataSize;
-
   let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
 
-
-  //eventually address these functions using id in place of d
-  //then perform scene merge operation when modifying finalColor
   let insString = "//$INSERT CALL$------";
   let insIndex = shader.indexOf(insString);
   insIndex += insString.length;
 
   let startShader = shader.slice(0, insIndex);
   let endShader = shader.slice(insIndex);
+
+  // normalize coordinates of object
+  let norm = twgl.v3.subtract(twgl.v3.create(), prim.bbox.min.v3);
+  let p = norm[0] + ',' + norm[1];
 
   //create function call
   let posString = '\n';
@@ -350,7 +334,7 @@ export function circleCall(prim, layer){
   posString += '\tvec2 rad = vec2(' + indexX + ', ' + indexY + ');\n';
 
   posString += '\tfloat radius = distance(texture(u_eTex, pos).xy, texture(u_eTex, rad).xy);\n';
-  posString += '\tfloat d = sdCircle(uv, texture(u_eTex, pos).xy, radius);\n';
+  posString += '\tfloat d = sdCircle(uv - vec2(' + p +'), texture(u_eTex, pos).xy, radius);\n';
   posString += '\tfloat stroke = line(d, u_weight);\n';
   posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';
   posString += '\tfloat fill = fillMask(d);';
@@ -385,6 +369,10 @@ export function rectangleCall(prim, layer){
   let startShader = shader.slice(0, insIndex);
   let endShader = shader.slice(insIndex);
 
+  // normalize coordinates of object
+  let norm = twgl.v3.subtract(twgl.v3.create(), prim.bbox.min.v3);
+  let p = norm[0] + ',' + norm[1];
+
   //create function call
   let posString = '\n';
 
@@ -402,10 +390,7 @@ export function rectangleCall(prim, layer){
   posString += '\tvec2 rect2 = texture(u_eTex, vec2('+index+')).xy;\n';
   posString += '\tvec2 center = 0.5 * (rect2 - rect1) + rect1;\n';
   posString += '\tvec2 rPt = abs(rect2 - center);\n';
-  posString += '\tfloat d = sdBox(uv, center, rPt, u_radius);\n';
-
-  // posString += '\tfloat radius = distance(texture(u_eTex, pos).xy, texture(u_eTex, rad).xy);\n';
-  // posString += '\tfloat d = sdCircle(uv, texture(u_eTex, pos).xy, radius);\n';
+  posString += '\tfloat d = sdBox(uv - vec2('+ p + '), center, rPt, u_radius);\n';
 
   posString += '\tfloat stroke = line(d, u_weight);\n';
   posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';
@@ -418,7 +403,7 @@ export function rectangleCall(prim, layer){
   startShader += posString;
   let fragShader = startShader + endShader;
 
-  console.log(posString);
+  // console.log(posString);
 
   return fragShader;
 }
