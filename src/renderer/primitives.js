@@ -119,9 +119,7 @@ export class bbox{
 
     if(!prim.id) {console.log("Bounding box created with no object Id")}
     else {this.id = prim.id.slice()}
-    
-    console.log(prim);
-    
+        
     switch(type){
       //polygon, polyline, rectangle all can default to this
       case('polyline'):
