@@ -4,3 +4,4 @@ npm-debug.log
 firebaseconfig.js
 laminar.svg
 CNAME
+/bin/*.js

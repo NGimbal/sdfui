@@ -5,7 +5,7 @@ import * as PRIM from '../renderer/primitives.js';
 import * as ACT from './actions.js';
 import * as twgl from 'twgl.js';
 
-import { ptTree } from '../renderer/draw.js';
+import { ptTree } from '../app/draw.js';
 import { scale } from 'chroma-js';
 
 var knn = require('rbush-knn');
@@ -283,6 +283,7 @@ function scene(_state=initialState, action) {
         editItem: action.editItem
       });
     case ACT.SCENE_ADDPT:
+      // lala
       // let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItems[state.editItem].id , action.pt.id, true);
       let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItem, action.pt.id, true);
       return Object.assign({}, state,{
@@ -443,7 +444,7 @@ function scene(_state=initialState, action) {
         editItems: state.editItems.map((item) => {
           if(item.id !== action.id) return item;
           return Object.assign({}, item, {
-            bbox: {...action.bbox} //should the new bbox be made here?
+            bbox: {...action.bbox}
           })
         }),
       });

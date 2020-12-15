@@ -1,9 +1,9 @@
 import m from "mithril";
 import { Button, Icon, Icons, List, ListItem, Size, Switch } from 'construct-ui';
 
-import * as SDFUI from "../renderer/draw";
+import * as SDFUI from "../app/draw";
 import * as ACT from '../store/actions';
-import {deleteItem}  from '../renderer/drawUI'
+import {deleteItem}  from '../app/drawUI'
 
 import chroma from 'chroma-js';
 

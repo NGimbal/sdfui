@@ -9,9 +9,9 @@ import * as ACT from '../store/actions.js';
 import { reducer } from '../store/reducers.js';
 
 import {DrawUI} from './drawUI.js';
-import * as PRIM from './primitives.js';
-import * as SF from './frags.js';
-import {Layer, updateMatrices} from './layer.js';
+import * as PRIM from '../renderer/primitives.js';
+import * as SF from '../renderer/frags.js';
+import {Layer, updateMatrices} from '../renderer/layer.js';
 
 var canvas, ctx, ui;
 var view;
@@ -176,6 +176,7 @@ export function initDraw() {
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
   // would like to try and render "distance" to accumulating buffer like color
+  // https://stackoverflow.com/questions/51793336/webgl-2-0-multiple-output-textures-from-the-same-program/51798078#51798078
   // gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
 
   requestAnimationFrame(render);
@@ -205,9 +206,6 @@ export function addImage(_srcURL, dims, evPt) {
     u_img: image,
   }
   
-  let imgPrim = new PRIM.prim("image", [], {}, PRIM.uuid(), bbox);
-  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, imgUniforms);
-  
   // Will want to add some cool image processing stuff at some point...
   // Blending, edge detection, img -> sdf in some way :)
   
@@ -221,9 +219,15 @@ export function addImage(_srcURL, dims, evPt) {
   evPt.x = evPt.x * (dPt[2] / 64.);
   evPt.y = evPt.y * (dPt[2] / 64.);
 
-  let bbox = new PRIM.bbox([{x: evPt.x, y: evPt.y},
-                                 {x: evPt.x + width, y: evPt.y + height}],imgLayer.id,
-                                 0.0, '');
+  let pts = [{x: evPt.x, y: evPt.y},
+                {x: evPt.x + width, y: evPt.y + height}];
+
+  let imgPrim = new PRIM.prim("image", pts, {}, PRIM.uuid(), bbox);
+  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, imgUniforms);
+
+  let bbox = new PRIM.bbox(pts,0.0);
+  
+  imgPrim.bbox = bbox;
   imgLayer.bbox = {...bbox};
     
   store.dispatch(ACT.scenePushEditItem(imgPrim, state.scene.editItem))
