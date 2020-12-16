@@ -149,9 +149,24 @@ export function initDraw() {
   }
 
   // grid layer
-  let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, gridUniforms);
+  let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, 0, gridUniforms);
   // store.dispatch(ACT.layerPush(gridLayer));
   layers.push(gridLayer);
+
+  let uiUniforms = {
+    u_textureMatrix: twgl.m4.copy(texMatrix),
+    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+    u_dPt: dPt,
+    u_mPt: mPt.v3,
+    u_eTex: {},
+    u_weight: 0.001,
+    u_stroke: chroma("#ffa724").gl().slice(0,3),
+  }
+
+  // grid layer
+  let uiLayer = new Layer({type:"ui"}, SF.simpleVert, SF.uiFrag, 10000, uiUniforms);
+  // store.dispatch(ACT.layerPush(gridLayer));
+  layers.push(uiLayer);
 
   // demo shader
   // let demoUniforms = {
@@ -168,7 +183,7 @@ export function initDraw() {
 
   // full screen edit layer
   let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
-  let plineLayer = new Layer(currItem, SF.simpleVert, SF.pLineEdit);
+  let plineLayer = new Layer(currItem, SF.simpleVert, SF.pLineEdit, state.scene.editItems.length);
   // store.dispatch(ACT.layerPush(plineLayer));
   layers.push(plineLayer);
 
@@ -223,7 +238,7 @@ export function addImage(_srcURL, dims, evPt) {
                 {x: evPt.x + width, y: evPt.y + height}];
 
   let imgPrim = new PRIM.prim("image", pts, {}, PRIM.uuid(), bbox);
-  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, imgUniforms);
+  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, state.scene.editItems.length, imgUniforms);
 
   let bbox = new PRIM.bbox(pts,0.0);
   
@@ -268,6 +283,9 @@ function update() {
   layers.forEach(function(layer){
     let prim = state.scene.editItems.find(a => a.id === layer.id);
     
+    if(layer.primType === "ui") {
+      prim = state.scene.editItems.find(item => item.id === state.scene.editItem);
+    }
     // This is probably fine to do this at render...
     updateUniforms(prim, layer);
     
@@ -276,7 +294,7 @@ function update() {
 }
 
 function updateUniforms(prim, layer){
-
+  
   gl.useProgram(layer.programInfo.program);
 
   if(resize){
@@ -367,7 +385,7 @@ function draw() {
   //                                              state.scene.editItems[state.scene.editItem].id === l.id || 
   //                                              l.idType === "grid");
   
-  twgl.drawObjectList(gl, layers);
+  twgl.drawObjectList(gl, layers.sort((a,b)=> a.order - b.order));
 
   // save raster image
   if(state.status.raster){

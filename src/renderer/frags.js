@@ -222,6 +222,65 @@ void main() {
   outColor = vec4(col,1.0);
 }`;
 //---------------------------------------------
+export const uiFrag =
+`#version 300 es
+#define saturate(a) clamp(a, 0.0, 1.0)
+
+precision mediump float;
+
+in vec2 v_texcoord;
+
+uniform vec3 u_resolution;
+uniform vec3 u_dPt;
+
+uniform vec3 u_mPt;
+
+uniform sampler2D u_eTex;
+
+uniform float u_weight;
+uniform vec3 u_stroke;
+uniform float u_opacity;
+
+out vec4 outColor;
+
+float sdCircle(vec2 uv, vec2 p, float r){
+  uv = uv - p;
+  return length(uv) - r;
+}
+
+//smooth Line Filter
+float line(float d, float w){
+  d = clamp(abs(d) - w, 0.0, 1.0);
+  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
+  return d;
+}
+
+vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
+    vec3 color = mix(col, vec3(1.0, 0.25, 0.25), dist);
+    return color;
+}
+
+void main(){
+  outColor = vec4(1.0);
+  vec2 uv = v_texcoord;
+  uv.x *= u_resolution.x / u_resolution.y;
+  uv -= u_dPt.xy;
+  uv *= (u_dPt.z / 64.);
+
+  float texelOffset = 0.5 * (1. / (16. * 16.));
+
+  // float dist = 1.0 - smoothstep(0., 0.0002, abs(sdCircle(uv, u_mPt.xy, 0.008)) - 0.0017);
+  float dist = line(sdCircle(uv, u_mPt.xy, 0.008 + (u_weight * 2.)), 0.00075);
+
+  vec3 col = mix(vec3(1.0),u_stroke, dist);
+  
+
+  // if ( dist < 0.0001) discard;
+
+  //outColor = vec4(col, dist + (1. - smoothstep(0., 0.15, sqrt(dSh))));
+  outColor = vec4(col, dist);
+}`;
+//---------------------------------------------
 export const pLineEdit =
 `#version 300 es
 #define saturate(a) clamp(a, 0.0, 1.0)

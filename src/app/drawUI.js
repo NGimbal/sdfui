@@ -242,7 +242,7 @@ function drawUp(e){
     
     store.dispatch(ACT.scenePushEditItem(newPrim));
 
-    let newLayer = createLayer(newPrim);
+    let newLayer = createLayer(newPrim, state.scene.editItems.length);
     layers.push(newLayer);
   }
 
@@ -354,7 +354,7 @@ function endDrawUpdate(){
 
   // let newItem = state.scene.editItems.find(item => item.id === state.scene.editItem);
   //next item
-  let newLayer = createLayer(newPrim);
+  let newLayer = createLayer(newPrim, state.scene.editItems.length);
 
   layers.push(newLayer);
 
@@ -375,7 +375,7 @@ function escDrawUpdate(){
   store.dispatch(ACT.scenePushEditItem(newPrim));
   // let newItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
   // store.dispatch(ACT.layerPush(createEditLayer(newItem)));
-  layers.push(createLayer(newPrim));
+  layers.push(createLayer(newPrim, state.scene.editItems.length));
 
   let del = deleteItem(id);
   
@@ -490,45 +490,46 @@ class UIModifier{
   }
 }
 
-//stress test
+// stress test
 // create a lines of n points
 // needs prim and chroma
-export function stressTest(){
-  console.log("stress test");
-  for(let i = 0; i < 100; i++){
-    let n = 50;
-    let lociX = Math.random() * 6;
-    let lociY = Math.random() * 6;
-    let stroke = chroma.random().hex();
+// probably broken?
+// export function stressTest(){
+//   console.log("stress test");
+//   for(let i = 0; i < 100; i++){
+//     let n = 50;
+//     let lociX = Math.random() * 6;
+//     let lociY = Math.random() * 6;
+//     let stroke = chroma.random().hex();
   
-    store.dispatch(ACT.editStroke(stroke, state.scene.editItem));
+//     store.dispatch(ACT.editStroke(stroke, state.scene.editItem));
   
-    for(let j = 0; j < n; j++){
-      let x = Math.random() + lociX;
-      let y = Math.random() + lociY;
-      let randPt = new PRIM.vec(x, y)
-      let currLayer = layers[layers.length - 1];
+//     for(let j = 0; j < n; j++){
+//       let x = Math.random() + lociX;
+//       let y = Math.random() + lociY;
+//       let randPt = new PRIM.vec(x, y)
+//       let currLayer = layers[layers.length - 1];
 
-      let pt = currLayer.uniforms.u_eTex.addPoint(randPt, state.scene.editItem);
-      store.dispatch(ACT.sceneAddPt(pt));
-    }
+//       let pt = currLayer.uniforms.u_eTex.addPoint(randPt, state.scene.editItem);
+//       store.dispatch(ACT.sceneAddPt(pt));
+//     }
   
-    let layer = layers[layers.length - 1];
-    bakeLayer(layer);
+//     let layer = layers[layers.length - 1];
+//     bakeLayer(layer);
 
-    let currItem = state.scene.editItems.find(state.scene.editItem);    
-    // let bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, currItem.id, 0.05, currItem.type);
-    let bbox = new PRIM.bbox(currItem, 0.05);
-    store.dispatch(ACT.editBbox(currItem.id, bbox));
-    bboxTree.insert(bbox);
+//     let currItem = state.scene.editItems.find(state.scene.editItem);    
+//     // let bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, currItem.id, 0.05, currItem.type);
+//     let bbox = new PRIM.bbox(currItem, 0.05);
+//     store.dispatch(ACT.editBbox(currItem.id, bbox));
+//     bboxTree.insert(bbox);
 
-    let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
+//     let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
     
-    store.dispatch(ACT.scenePushEditItem(newPrim));
+//     store.dispatch(ACT.scenePushEditItem(newPrim));
   
-    //next item
-    let newLayer = createLayer();
+//     //next item
+//     let newLayer = createLayer(newPrim, state.scene.editItems.length);
 
-    layers.push(newLayer)
-  }
-}
+//     layers.push(newLayer)
+//   }
+// }
