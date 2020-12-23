@@ -142,7 +142,7 @@ function ContextMenu() {
                                                                 alignSelf:"flex-end",
                                                                 marginBottom:"5px"}}/>
         <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Weight</h6>
-        <input type="range" oninput={strokeWeightChange} min="0" max="100" value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.weight * 10000}/>
+        <input type="range" oninput={strokeWeightChange} min="1" max="100" value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.weight * 10000}/>
         
         <hr style={dividerStyle}/>
         <h6 class={Classes.Muted} style={inputLabelStyle}>Opacity</h6>

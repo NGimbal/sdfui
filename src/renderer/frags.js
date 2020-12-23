@@ -275,7 +275,7 @@ void main(){
   vec3 col = mix(vec3(1.0),u_stroke, dist);
   
 
-  // if ( dist < 0.0001) discard;
+  if ( dist < 0.0001) discard;
 
   //outColor = vec4(col, dist + (1. - smoothstep(0., 0.15, sqrt(dSh))));
   outColor = vec4(col, dist);
@@ -365,7 +365,6 @@ void main(){
 
   float texelOffset = 0.5 * (1. / (16. * 16.));
 
-  //float dist = sdCircle(uv, u_mPt.xy, 0.003);
   float dist = 10.0;
 
   vec2 prevPt = texture(u_eTex, vec2(texelOffset, texelOffset)).xy;
@@ -374,7 +373,7 @@ void main(){
   if(prevPt == vec2(0.)) {discard;}
 
   //drop shadow
-  vec2 dShTrans = normalize(vec2(-0.125, 0.125))*.01;
+  vec2 dShTrans = normalize(vec2(-1. * u_weight, u_weight))*u_weight;
   float dSh = 10.0;
 
   for (float i = 0.; i < 16.; i++ ){
@@ -525,7 +524,7 @@ void main(){
   float dist = line(scene.w, u_weight);
 
   //drop shadow
-  vec2 dShTrans = normalize(vec2(-0.125, 0.125))*.01;
+  vec2 dShTrans = normalize(vec2(-1. * u_weight, u_weight))*u_weight;
 
   float dSh = sceneDist(uv - dShTrans).w;
   dSh = (1. - smoothstep(0., 0.15, sqrt(dSh)))*.25;
@@ -649,9 +648,10 @@ void main(){
   dist = dot(uv - first, uv - first);
   vec2 prevPt = last;
 
-  //may need another texture to display current mouse pos
-  // if(prevPt == vec2(0.)) {discard;}
-  
+  //drop shadow
+  vec2 dShTrans = normalize(vec2(-0.125, 0.125))*.01;
+  float dSh = 10.0;
+
   float s = 1.0;
   for (float i = 0.; i < 16.; i++ ){
     float yIndex = i / 16. + texelOffset;
@@ -669,6 +669,10 @@ void main(){
         vec2 w = uv - tPt;
         vec2 b = w - e*clamp( dot(w,e)/dot(e,e), 0.0, 1.0 );
         dist = min( dist, dot(b,b) );
+
+        // vec2 wDSh = (uv - dShTrans) - tPt;
+        // vec2 bDSh = wDSh - e*clamp( dot(wDSh,e)/dot(e,e), 0.0, 1.0 );
+        // dSh = min(dSh, dot(bDSh, bDSh));
 
         // winding number from http://geomalgorithms.com/a03-_inclusion.html
         bvec3 cond = bvec3( uv.y>=tPt.y, uv.y<prevPt.y, e.x*w.y>e.y*w.x );
@@ -688,16 +692,23 @@ void main(){
   if (prevPt != vec2(0.)){
     dist = min(dist, drawLine(uv, prevPt, u_mPt.xy, u_weight / 2., 0.0));
     dist = min(dist, drawLine(uv, u_mPt.xy, first, u_weight / 2., 0.0));
+
+    // dSh = min(dSh, drawLine(uv - dShTrans, prevPt, u_mPt.xy, u_weight / 2.0, 0.0));
+    // dSh = min(dSh, drawLine(uv - dShTrans, u_mPt.xy, first, u_weight / 2.0, 0.0));
   }
 
   float stroke = line(dist, u_weight);
   vec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);
   
+  // dSh = (1. - smoothstep(0., 0.15, sqrt(dSh)))*.25;
+
   dist = min(stroke, fill);
   
   if ( dist > 1.) discard;
 
   outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
+  // outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb) * vec3(dSh), fillCol.a + strokeCol.a + dSh);
+
 }`;
 
 //---------------------------------------------

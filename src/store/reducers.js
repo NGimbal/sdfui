@@ -129,9 +129,10 @@ function ui(_state=initialState, action){
         dragging: action.toggle
       });
     case ACT.UI_DRAGSTART:
+      console.log(action);
       return Object.assign({}, state,{
         dragStart: action.toggle,
-        dragOrigin: twgl.v3.create(action.pt.x, action.pt.y, 1.0),
+        dragOrigin: twgl.v3.copy(action.pt),
       });
     default:
       return state;
@@ -210,6 +211,7 @@ function cursor(_state=initialState, action) {
         pt.x = prev.x - (PRIM.lengthVec(line) * Math.cos(snapA));
         pt.y = prev.y - (PRIM.lengthVec(line) * Math.sin(snapA));
       } return Object.assign({}, state,{
+        // prevPos: twgl.v3.create(state.pos.x, state.pos.y, 0.0),
         pos: pt
       });
     case ACT.CURSOR_SNAPGLOBAL:
@@ -283,8 +285,6 @@ function scene(_state=initialState, action) {
         editItem: action.editItem
       });
     case ACT.SCENE_ADDPT:
-      // lala
-      // let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItems[state.editItem].id , action.pt.id, true);
       let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItem, action.pt.id, true);
       return Object.assign({}, state,{
         editItems: state.editItems.map(item => {
@@ -294,6 +294,16 @@ function scene(_state=initialState, action) {
           })
         }),
         // pts:[...state.pts, pt]
+      });
+    case ACT.SCENE_ADDPT:
+      let id = action._id || state.editItem;
+      return Object.assign({}, state,{
+        editItems: state.editItems.map(item => {
+          if(item.id !== id) return item;
+          return Object.assign({}, item, {
+            pts: [...item.pts, ...action.pts]
+          })
+        }),
       });
     case ACT.SCENE_RMVPT:
       let parent = state.editItems.find(i => i.id === action.pt.parent);
@@ -421,20 +431,25 @@ function scene(_state=initialState, action) {
       return Object.assign({}, state,{
         editItems: state.editItems.map((item) => {
           if(item.id !== action.id) return item;
-          let translate = twgl.v3.subtract(action.v3, item.translate);
+          // let translate = twgl.v3.subtract(action.v3, item.translate);
+          // console.log(item.translate);
+          console.log(action)
+          console.log(item)
+          let translate = twgl.v3.add(item.translate, action.v3) 
+          console.log(translate)
           return Object.assign({}, item, {
-            translate: twgl.v3.add(item.translate, translate),
+            translate: translate,
             bbox: Object.assign({}, item.bbox, {
-              maxX : item.bbox.maxX + translate[0],
-              minX : item.bbox.minX + translate[0],
+              maxX : item.bbox.maxX + action.v3[0],
+              minX : item.bbox.minX + action.v3[0],
               
-              maxY : item.bbox.maxY + translate[1],
-              minY : item.bbox.minY + translate[1],
+              maxY : item.bbox.maxY + action.v3[1],
+              minY : item.bbox.minY + action.v3[1],
 
-              min : new PRIM.vec(item.bbox.minX + translate[0], 
-                                 item.bbox.minY + translate[1]),
-              max : new PRIM.vec(item.bbox.maxX + translate[0],
-                                 item.bbox.maxY + translate[1])
+              min : new PRIM.vec(item.bbox.minX + action.v3[0], 
+                                 item.bbox.minY + action.v3[1]),
+              max : new PRIM.vec(item.bbox.maxX + action.v3[0],
+                                 item.bbox.maxY + action.v3[1])
             })
           })
         }),

@@ -176,7 +176,7 @@ export var propsDefault = {
   type:"",
   filter:"",
   stroke: "#ffa724",
-  fill: "#cfcfcf",
+  fill: "#efefef",
   weight:0.001,
   radius:0.001,
   opacity:0.85,
@@ -357,6 +357,9 @@ export function distPrim(_mPt, prim){
     case "rectangle":
       dist = Math.min(dist, rectDist(tPt, prim));
       break;
+    case "img":
+      dist = Math.min(dist, rectDist(tPt, prim));
+      break;
     default:
       break;
   }
@@ -398,15 +401,16 @@ function pLineDist(mPt, prim){
   let dist = 1000;
   let prev;
   for (let p of prim.pts){
-    // let p = state.scene.pts.find(pt => pt.id == _p);
-    // console.log(p);
+    
     if(typeof prev === 'undefined'){
       prev = p;
       continue;
     }
 
+    // TODO: return h from lineDist
     let lD = lineDist(mPt, prev, p, prim.properties.weight);
 
+    // TODO: if lD < dist, return (dist, {a: prev, b: p}, h)
     dist = Math.min(dist, lD);
     
     prev = p;

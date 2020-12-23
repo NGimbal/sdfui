@@ -96,8 +96,8 @@ function listener(){
 
 
 //subscribe to store changes - run listener to set relevant variables
-// store.subscribe(() => console.log(listener()));
-store.subscribe(() => listener());
+store.subscribe(() => console.log(listener()));
+// store.subscribe(() => listener());
 
 export function initDraw() {
   let canvasContainer = document.querySelector('#canvasContainer');
@@ -234,13 +234,19 @@ export function addImage(_srcURL, dims, evPt) {
   evPt.x = evPt.x * (dPt[2] / 64.);
   evPt.y = evPt.y * (dPt[2] / 64.);
 
-  let pts = [{x: evPt.x, y: evPt.y},
-                {x: evPt.x + width, y: evPt.y + height}];
+  // let pts = [{x: evPt.x, y: evPt.y},
+  //               {x: evPt.x + width, y: evPt.y + height}];
+  
+  let pt0 = new PRIM.vec(evPt.x, evPt.y);
+  let pt1 = new PRIM.vec(evPt.x + width, evPt.y + height);
+  let pts = [pt0, pt1];
 
-  let imgPrim = new PRIM.prim("image", pts, {}, PRIM.uuid(), bbox);
+  // state.dispatch(ACT.sceneAddPts(pts))
+
+  let imgPrim = new PRIM.prim("img", pts, {}, PRIM.uuid(), bbox);
   let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, state.scene.editItems.length, imgUniforms);
 
-  let bbox = new PRIM.bbox(pts,0.0);
+  let bbox = new PRIM.bbox(imgPrim,0.0);
   
   imgPrim.bbox = bbox;
   imgLayer.bbox = {...bbox};

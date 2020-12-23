@@ -53,6 +53,7 @@ export const LAYER_UPDATE        = "LAYER_UPDATE"; //update a layer, should be a
 //SCENE 
 export const SCENE_SETEDITITEM   = 'SCENE_SETEDITITEM' //sets edit item
 export const SCENE_ADDPT         = 'SCENE_ADDPT'; //add point to scene
+export const SCENE_ADDPTS        = 'SCENE_ADDPTS'; //add points to scene
 export const SCENE_RMVPT         = 'SCENE_RMVPT'; //stages pt for removal
 export const SCENE_FINRMVPT      = 'SCENE_FINRMVPT'; //finishes removing pt from state
 export const SCENE_PUSHEDITITEM  = 'SCENE_PUSHEDITITEM';
@@ -385,12 +386,22 @@ export function setEditItem(editItem){
   };
 }
 
-//adds point
+//add point
 export function sceneAddPt(pt){
   return {
     type: scene,
     subtype: SCENE_ADDPT,
     pt
+  };
+}
+
+//adds points - pts [] and prim id
+export function sceneAddPts(pts, _id){
+  return {
+    type: scene,
+    subtype: SCENE_ADDPTS,
+    pts,
+    _id
   };
 }
 

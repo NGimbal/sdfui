@@ -77,6 +77,8 @@ export class DrawUI{
 
     let selMods = [targetHome, screenshot, endSel];
 
+    // this.prevMpt = twgl.v3.create();
+
     //if no drawing tools are selected, drawExit();
     let draw = new UIMode("draw", drawMods, {mv:drawMv, up:drawUp});
     let select = new UIMode("select", selMods, {mv:selMv, up:selUp, dwn:selDwn});
@@ -120,14 +122,15 @@ export class DrawUI{
       for (let id of state.scene.selected){
         if(id === state.scene.editItem) continue;
 
-        let mouse = twgl.v3.create(mPt.x, mPt.y, 1.0);
+        let mouse = twgl.v3.copy(mPt.v3);
 
         let translate = twgl.v3.subtract(mouse, state.ui.dragOrigin);
-        // console.log(translate);
-        // let prim = state.scene.editItems.find(item => item.id === id);
-        // console.log(prim);
+        
+    
         store.dispatch(ACT.editTranslate(id, translate));
       }
+      // this is like a "prevPos" while dragging
+      store.dispatch(ACT.uiDragStart(true, twgl.v3.copy(mPt.v3)));
     }
 
     for(let m of mode.modifiers){
@@ -262,7 +265,7 @@ function endSelUpdate(){
 
 function selUp(e){
   if(state.ui.dragging){
-    store.dispatch(ACT.uiDragStart(false, mPt));
+    store.dispatch(ACT.uiDragStart(false, mPt.v3));
     store.dispatch(ACT.uiDragging(false));
 
     // drag finished reinsert in bboxTree
@@ -275,8 +278,8 @@ function selUp(e){
     }
     // console.log(bboxTree.all());
   } else if (state.ui.dragStart){
-    store.dispatch(ACT.uiDragStart(false, mPt));
-
+    store.dispatch(ACT.uiDragStart(false, mPt.v3));
+    
     if(state.scene.selected.includes(state.scene.hover)){
       store.dispatch(ACT.editSelectRmv(state.scene.hover));
     }else{
@@ -287,7 +290,7 @@ function selUp(e){
 
 function selDwn(e){
   if(state.scene.hover !== ""){
-    store.dispatch(ACT.uiDragStart(true, mPt));
+    store.dispatch(ACT.uiDragStart(true, mPt.v3));
     // if (!state.scene.selected.includes(state.scene.hover)){
       // store.dispatch(ACT.editSelectApnd(state.scene.hover));
     // }
