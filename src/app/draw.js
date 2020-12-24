@@ -26,6 +26,7 @@ export var mPt = new PRIM.vec(0, 0);
 
 //dPt z is scale
 export var dPt = new twgl.v3.create(0, 0, 64);
+
 export var ptTree = new RBush();
 export var bboxTree = new RBush();
 
@@ -45,52 +46,44 @@ function listener(){
   // update mouse position variable
   mPt = PRIM.vecSet(mPt, state.cursor.pos.x, state.cursor.pos.y);
 
-  // update kdTree
-  let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
-  
-  if(currItem) {
-    for(let p of currItem.pts){
-      if(p.update == true){
-        ptTree.insert(p);
-        //TODO: create a reducer that changes this parameter
-        p.update = false;
-      }
-    }  
-  }
+  // update kdTree - this seems inefficient but whatever
+  ptTree = new RBush();
 
-  // remove pts for kd tree if need be
-  for(let pId of state.scene.rmPts){
-    // so a = pId, b are the points we're mapping over
-    ptTree.remove(pId, (a, b) => {
-      return a === b.id;
-    });
-    store.dispatch(ACT.sceneFinRmvPt(pId));
-  }
+  let pts = state.scene.editItems.reduce((prev, curr, index, arr) => {
+    if(state.ui.dragging && state.scene.selected.includes(curr.id)) return prev;
+    return [...prev, ...curr.pts.map((p,i,a) => PRIM.addVec(p, curr.translate))];
+  },[]);
 
-  // update bboxTree
+  ptTree.load(pts);
+
+  bboxTree = new RBush();
+
+  let boxes = state.scene.editItems.reduce((prev, curr, index, arr) => {
+    if(state.scene.editItem === curr.id) return prev;
+    return [...prev, ...[curr.bbox]];
+  }, []);
+
+  bboxTree.load(boxes)
+
   // update layers[]
-  let stack = [];
+  // let stack = [];
 
-  // prim.update means we need to update uniforms
-  // prim.bake means we need to bake the layer
-  for (let item of state.scene.editItems){
-    // items.push(item.id);
-    // if(!item.update) continue;
-    // if(item.bake) { bake layer }
-    let layer = layers.find(l => l.id === item.id);
-    stack.push(layer);
-    if(!layer && state.scene.editItem !== item.id){
-      // layer = bakePrim(item);
-      // stack.push(layer);
-    } else if(layer) {
-      // console.log(layer);
-      // updateUniforms(item, layer);
-    }
-  }
-
+  // layer uniforms are getting updated
+  // in render loop
+  // for (let item of state.scene.editItems){
+  //   if(!item.update) continue;
+  //   let layer = layers.find(l => l.id === item.id);
+  //   stack.push(layer);
+  //   if(!layer && state.scene.editItem !== item.id){
+  //     layer = bakePrim(item);
+  //     stack.push(layer);
+  //   } else if(layer) {
+  //     updateUniforms(item, layer);
+  //   }
+  // }
   // get rid of layers if we've deleted the item
   // layers.filter(l => items.includes(l.id));
-  // console.log(layers);
+
   return state;
 }; 
 
@@ -253,7 +246,7 @@ export function addImage(_srcURL, dims, evPt) {
     
   store.dispatch(ACT.scenePushEditItem(imgPrim, state.scene.editItem))
 
-  bboxTree.insert({...bbox});
+  // bboxTree.insert({...bbox});
 
   updateMatrices(imgLayer);
 
@@ -329,9 +322,6 @@ function updateUniforms(prim, layer){
   if(typeof layer.uniforms.u_weight === 'number'){
     layer.uniforms.u_weight = prim.properties.weight;
   }
-  if(typeof layer.uniforms.u_weight === 'number'){
-    layer.uniforms.u_weight = prim.properties.weight;
-  }
   if(typeof layer.uniforms.u_opacity  === 'number'){
     layer.uniforms.u_opacity = prim.properties.opacity;
   }
@@ -361,7 +351,7 @@ function updateUniforms(prim, layer){
 // this should be a different type of function that creates a layer 
 // whole cloth from a prim
 // does this make more sense than the bakeLayer paradigm?
-function bakePrim(prim){
+// function bakePrim(prim){
   // set bounding box
   // layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id, 0.05, layer.primType);
   // updateMatrices(layer);
@@ -373,7 +363,7 @@ function bakePrim(prim){
   // // This line is important
   // gl.useProgram(layer.programInfo.program);
   // twgl.setUniforms(layer.programInfo, layer.uniforms);
-}
+// }
 
 function draw() {
 
@@ -417,21 +407,17 @@ function scrollPan(e){
   if (e.ctrlKey) {
     // Your zoom/scale factor
     dPt[2] = Math.max(1., dPt[2] + e.deltaY * 0.1);
-    // console.log(dPt.z);
   } else {
     dPt[0] += e.deltaX * 0.001;
     dPt[1] += e.deltaY * 0.001;
   }
 
-  // This appears to be correct
   view = {
     minX: (0.0 - dPt[0]) / (64 / dPt[2]),
     minY: (0.0 - dPt[1]) / (64 / dPt[2]),
     maxX: ((resolution.x / resolution.y) - dPt[0]) / (64 / dPt[2]) ,
     maxY: (1.0 - dPt[1]) / (64 / dPt[2]) ,
   }
-  // console.log(dPt);
-  // console.log(view);
 }
 
 // mouse dragging - I think this is disabled at the moment
@@ -465,14 +451,14 @@ function updateCtx(selDist){
   pixelPt.x = ((mPt.x * (64. / dPt[2]) + dPt[0]) * resolution.x) * (resolution.y/resolution.x);
   pixelPt.y = ((mPt.y * (64. / dPt[2]) + dPt[1]) * resolution.y);
 
-  let mPtString = '(' + mPt.x.toFixed(3) + ', ' + mPt.y.toFixed(3) + ')';
-
-  ctx.fillStyle = 'black';
-  ctx.fillText("Cursor: " + mPtString, pixelPt.x + 10, pixelPt.y);
+  // display current mouse pos
+  // ctx.fillStyle = 'black';
+  // let mPtString = '(' + mPt.x.toFixed(3) + ', ' + mPt.y.toFixed(3) + ')';
+  // ctx.fillText("Cursor: " + mPtString, pixelPt.x + 10, pixelPt.y);
   
   if(typeof selPrim !== "undefined" && dist < 0){
     ctx.fillStyle = selPrim.idColHex;
-    ctx.fillText("Sel Item: " + dist, pixelPt.x + 10, pixelPt.y + 12);
+    ctx.fillText(selPrim.type + ': ' + selPrim.id, pixelPt.x + 14, pixelPt.y);
   }
 }
 

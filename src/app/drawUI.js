@@ -126,7 +126,6 @@ export class DrawUI{
 
         let translate = twgl.v3.subtract(mouse, state.ui.dragOrigin);
         
-    
         store.dispatch(ACT.editTranslate(id, translate));
       }
       // this is like a "prevPos" while dragging
@@ -237,7 +236,6 @@ function drawUp(e){
   if ( (currItem.type == "circle" || currItem.type == "rectangle") && currItem.pts.length == 2 ){    
     let bbox = new PRIM.bbox(currItem, 0.05);
     store.dispatch(ACT.editBbox(currItem.id, bbox));
-    bboxTree.insert(bbox);
 
     bakeLayer(currLayer);
     
@@ -265,19 +263,12 @@ function endSelUpdate(){
 
 function selUp(e){
   if(state.ui.dragging){
+
     store.dispatch(ACT.uiDragStart(false, mPt.v3));
     store.dispatch(ACT.uiDragging(false));
 
-    // drag finished reinsert in bboxTree
-    console.log("drag end")
-    for (let id of state.scene.selected){
-      if(id === state.scene.editItem) continue;
-      let prim = state.scene.editItems.find(i => i.id === id);
-      // console.log(prim.bbox);
-      bboxTree.insert(prim.bbox);
-    }
-    // console.log(bboxTree.all());
   } else if (state.ui.dragStart){
+
     store.dispatch(ACT.uiDragStart(false, mPt.v3));
     
     if(state.scene.selected.includes(state.scene.hover)){
@@ -291,9 +282,6 @@ function selUp(e){
 function selDwn(e){
   if(state.scene.hover !== ""){
     store.dispatch(ACT.uiDragStart(true, mPt.v3));
-    // if (!state.scene.selected.includes(state.scene.hover)){
-      // store.dispatch(ACT.editSelectApnd(state.scene.hover));
-    // }
   }
 }
 
@@ -301,25 +289,11 @@ function selMv(){
   if(state.ui.dragStart && !state.ui.dragging){
     store.dispatch(ACT.uiDragging(true));
     
-    // drag start remove from bbox tree
     console.log("drag start")
-    for (let id of state.scene.selected){
-      if(id === state.scene.editItem) continue;
-      let prim = state.scene.editItems.find(i => i.id === id);
-      // console.log(prim.bbox);
-      // bboxTree.remove(id, (a,b) => {
-      //   a.id === b;
-      // })
-      bboxTree.remove(id, (a, b) => {
-        return a === b.id;
-      });
-    }
-    // console.log(bboxTree.all());
   }
 }
 
 //---SELECT----------------------------
-
 
 function endDrawClck(){
   this.toggle = true;
@@ -342,20 +316,15 @@ function endDrawUpdate(){
   
   let layer = layers.find(l => l.id === currItem.id);
 
-  // let bbox = new PRIM.bbox(currItem.pts, currItem.id, 0.05, currItem.type);
   let bbox = new PRIM.bbox(currItem, 0.05);
   store.dispatch(ACT.editBbox(currItem.id, bbox));
-  // I'd like this to get managed in the listener function
-  bboxTree.insert(bbox);
 
-  
   bakeLayer(layer);
 
   let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
   
   store.dispatch(ACT.scenePushEditItem(newPrim));
 
-  // let newItem = state.scene.editItems.find(item => item.id === state.scene.editItem);
   //next item
   let newLayer = createLayer(newPrim, state.scene.editItems.length);
 
@@ -370,14 +339,12 @@ function escDrawUpdate(){
   
   let id = state.scene.editItem;
   let currItem = state.scene.editItems.find(i => i.id === id);
-  // let layer = layers.find(l => l.id === id);
   
   let props = {...currItem.properties};
   let newPrim = new PRIM.prim(currItem.type, [], props);
   
   store.dispatch(ACT.scenePushEditItem(newPrim));
-  // let newItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
-  // store.dispatch(ACT.layerPush(createEditLayer(newItem)));
+
   layers.push(createLayer(newPrim, state.scene.editItems.length));
 
   let del = deleteItem(id);
@@ -399,9 +366,9 @@ export function deleteItem(id){
   let lId = layer.id;
 
 
-  bboxTree.remove(lId, (a, b) => {
-    return a === b.id;
-  });
+  // bboxTree.remove(lId, (a, b) => {
+  //   return a === b.id;
+  // });
 
   deleteLayer(lId);
 
@@ -438,7 +405,7 @@ class UIModifier{
     this.keyCut = keyCut;
 
     this.toggle = false;
-    //whether this modifiers move function should be called on move or onUpdate
+    //whether this modifier's move function should be called on move or onUpdate
     if(events.update){
       this.update = events.update;
     }
@@ -470,8 +437,6 @@ class UIModifier{
   }
 
   addButton(){
-    // let elem = HINT.addButtonHint(this);
-
     //button element
     this.elem = elem;
     this.innerHTML = this.elem.innerHTML;
@@ -485,11 +450,6 @@ class UIModifier{
 
   dispatch(){
     store.dispatch(this.act);
-    if(this.pulse){
-      // HINT.pulseActive(this);
-    }else{
-      // HINT.toggleActive(this);
-    }
   }
 }
 

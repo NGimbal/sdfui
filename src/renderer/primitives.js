@@ -37,7 +37,8 @@ export class DataShader{
   }
 }
 
-//simple point, color vector
+// simple point, color vector
+// ideally this would be a thin wrapper around twgl v3
 export class vec{
   constructor(x, y, z, w, pId, id, update){
     this.v3 = twgl.v3.create(x, y, 0.0);
@@ -101,7 +102,12 @@ export function distVec (a, b){
 }
 
 export function addVec(a, b){
-  return new vec(a.x + b.x, a.y + b.y);
+  // this is to handle adding vec and twgl v3
+  if(b.x) {
+    return new vec(a.x + b.x, a.y + b.y);
+  } else {
+    return new vec(a.x + b[0], a.y + b[1]);
+  }
 }
 
 export function subVec (a, b){

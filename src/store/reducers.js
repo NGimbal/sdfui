@@ -67,7 +67,7 @@ let firstPrim = new PRIM.prim("polyline", [], {...PRIM.propsDefault});
 const sceneInit = {
   editItem:firstPrim.id.slice(),//id of item points are being added to
   // pts:[], //all points in scene
-  rmPts:[],   //points staged to be removed
+  // rmPts:[],   //points staged to be removed
   editItems:[firstPrim], //all items in scene
   hover:{},
   selected:[firstPrim.id.slice()], //all items who's properties can be edited by ui
@@ -317,13 +317,13 @@ function scene(_state=initialState, action) {
           })
         }),
         // pts: state.pts.filter(i => i !== action.pt.id),
-        rmPts: [...state.rmPts, action.pt.id.slice()]
+        // rmPts: [...state.rmPts, action.pt.id.slice()]
       });
-    case ACT.SCENE_FINRMVPT:
-      //remove point from rmPts array this may be on a per user basis
-      return Object.assign({}, state,{
-        rmPts: state.rmPts.filter(id => id !== action.id)
-      });
+    // case ACT.SCENE_FINRMVPT:
+    //   //remove point from rmPts array this may be on a per user basis
+    //   return Object.assign({}, state,{
+    //     rmPts: state.rmPts.filter(id => id !== action.id)
+    //   });
     case ACT.SCENE_PUSHEDITITEM: //takes prim type, appends to edit items and sel array
       // console.log(action);
       return Object.assign({}, state,{
@@ -336,9 +336,34 @@ function scene(_state=initialState, action) {
       return Object.assign({}, state,{
         editItems: state.editItems.filter(i => i.id !== action.id),
         // pts: state.pts.filter(pt => pt.parent !== action.id),
-        rmPts: [...state.rmPts, 
-          state.editItems.find(i => i.id === action.id).pts.map(pt => pt.id)],
+        // rmPts: [...state.rmPts, 
+        //   state.editItems.find(i => i.id === action.id).pts.map(pt => pt.id)],
         selected: state.selected.filter(i => i !== action.id)
+      });
+    case ACT.SCENE_ITEMUPDATE:
+      return Object.assign({}, state, {
+        editItems: state.editItems.map(item => {
+          if(item.id !== action.id) return item;
+          return Object.assign({}, item, {
+            update: action.toggle
+          })
+        })
+      });
+    case ACT.SCENE_PTUPDATE:
+      return Object.assign({}, state, {
+        editItems: state.editItems.map(item => {
+          if(item.id !== action.pt.pId) return item;
+          return Object.assign({}, item, {
+            // set it to true or prev val
+            update: action.toggle || item.update,
+            pts: item.pts.map(p => {
+              if(p.id !== action.pt.id) return p;
+              return Object.assign({}, p, {
+                update: action.toggle
+              })
+            })
+          })
+        })
       });
     case ACT.EDIT_WEIGHT:
       return Object.assign({}, state,{
@@ -431,12 +456,7 @@ function scene(_state=initialState, action) {
       return Object.assign({}, state,{
         editItems: state.editItems.map((item) => {
           if(item.id !== action.id) return item;
-          // let translate = twgl.v3.subtract(action.v3, item.translate);
-          // console.log(item.translate);
-          console.log(action)
-          console.log(item)
           let translate = twgl.v3.add(item.translate, action.v3) 
-          console.log(translate)
           return Object.assign({}, item, {
             translate: translate,
             bbox: Object.assign({}, item.bbox, {
@@ -450,7 +470,9 @@ function scene(_state=initialState, action) {
                                  item.bbox.minY + action.v3[1]),
               max : new PRIM.vec(item.bbox.maxX + action.v3[0],
                                  item.bbox.maxY + action.v3[1])
-            })
+            }),
+            pts: item.pts.map(p => {return({...p, update:true})}),
+            update: true,
           })
         }),
       });

@@ -58,6 +58,8 @@ export const SCENE_RMVPT         = 'SCENE_RMVPT'; //stages pt for removal
 export const SCENE_FINRMVPT      = 'SCENE_FINRMVPT'; //finishes removing pt from state
 export const SCENE_PUSHEDITITEM  = 'SCENE_PUSHEDITITEM';
 export const SCENE_RMVITEM       = 'SCENE_RMVITEM'; //remove item w/ id - must also remove points
+export const SCENE_PTUPDATE      = 'SCENE_PTUPDATE'; //toggle pt update
+export const SCENE_ITEMUPDATE      = 'SCENE_ITEMUPDATE'; //toggle pt update
 
 export const EDIT_HOVERSET       = 'EDIT_HOVERSET'; // set current hover item
 export const EDIT_HOVERCLR       = 'EDIT_HOVERCLR'; // set current hover item
@@ -416,11 +418,29 @@ export function sceneRmvPt(pt){
 
 //removes points from rmPts[] list
 //call after points have been removed from kdTree or parameters tex
-export function sceneFinRmvPt(id){
+// export function sceneFinRmvPt(id){
+//   return {
+//     type: scene,
+//     subtype: SCENE_FINRMVPT,
+//     id
+//   };
+// }
+
+export function scenePtUpdate(pt, toggle){
   return {
     type: scene,
-    subtype: SCENE_FINRMVPT,
-    id
+    subtype: SCENE_PTUPDATE,
+    pt,
+    toggle
+  };
+}
+
+export function sceneItemUpdate(id, toggle){
+  return {
+    type: scene,
+    subtype: SCENE_ItemUPDATE,
+    id,
+    toggle
   };
 }
 
