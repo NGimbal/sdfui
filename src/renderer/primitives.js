@@ -183,11 +183,11 @@ export class bbox{
 export var propsDefault = {
   type:"",
   filter:"",
-  stroke: "#ffa724",
+  stroke: "#4682b4",
   fill: "#efefef",
   weight:0.001,
   radius:0.001,
-  opacity:0.85,
+  opacity:1.0,
   sel: 0.0,  //deselected by default when it's "baked"
 }
 

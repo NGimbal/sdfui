@@ -55,7 +55,7 @@ function listener(){
   },[]);
 
   ptTree.load(pts);
-  
+
   bboxTree = new RBush();
 
   let boxes = state.scene.editItems.reduce((prev, curr, index, arr) => {
@@ -463,13 +463,13 @@ function updateCtx(selDist){
   pixelPt.y = ((mPt.y * (64. / dPt[2]) + dPt[1]) * resolution.y);
 
   // display current mouse pos
-  // ctx.fillStyle = 'black';
-  // let mPtString = '(' + mPt.x.toFixed(3) + ', ' + mPt.y.toFixed(3) + ')';
-  // ctx.fillText("Cursor: " + mPtString, pixelPt.x + 10, pixelPt.y);
+  ctx.fillStyle = 'black';
+  let mPtString = '(' + mPt.x.toFixed(3) + ', ' + mPt.y.toFixed(3) + ')';
+  ctx.fillText("Cursor: " + mPtString, pixelPt.x + 12, pixelPt.y);
   
   if(typeof selPrim !== "undefined" && dist < 0){
     ctx.fillStyle = selPrim.idColHex;
-    ctx.fillText(selPrim.type + ': ' + selPrim.id, pixelPt.x + 14, pixelPt.y);
+    ctx.fillText(selPrim.type + ': ' + selPrim.id, pixelPt.x + 12, pixelPt.y + 14);
   }
 }
 
@@ -510,7 +510,7 @@ export function deleteLayer(id){
 }
 
 export function pushLayer(layer){
-  layers = layers.push(layer);
+  layers.push(layer);
 }
 
 const saveBlob = (function() {

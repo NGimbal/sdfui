@@ -127,6 +127,7 @@ function ui(_state=initialState, action){
         dragging: action.toggle
       });
     case ACT.UI_DRAGSTART:
+      console.log(action);
       return Object.assign({}, state,{
         dragStart: action.toggle,
         dragOrigin: twgl.v3.copy(action.pt),
@@ -429,8 +430,9 @@ function scene(_state=initialState, action) {
       });
     // Selection array
     case ACT.EDIT_SELECTAPND:
+      let sel = [...state.selected, ...action.sel];
       return Object.assign({}, state,{
-        selected: [...state.selected, ...action.sel]
+        selected: sel.filter((id, i) => sel.indexOf(id) === i)
       });
     // Selection array
     case ACT.EDIT_SELECTREPLACE:

@@ -8,7 +8,7 @@ import {bakeLayer, createLayer} from '../renderer/layer.js';
 
 import * as PRIM from '../renderer/primitives'
 
-import * as chroma from 'chroma-js';
+// import * as chroma from 'chroma-js';
 
 //So this is going to be a way to register
 //sets of functions to different UI modes
@@ -125,7 +125,7 @@ export class DrawUI{
         let mouse = twgl.v3.copy(mPt.v3);
 
         let translate = twgl.v3.subtract(mouse, state.ui.dragOrigin);
-        
+
         store.dispatch(ACT.editTranslate(id, translate));
       }
       // this is like a "prevPos" while dragging

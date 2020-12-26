@@ -54,7 +54,7 @@ function FloatingMenu() {
       }
 
       newLayer = createLayer(newPrim);
-
+      
       pushLayer(newLayer);
     }
     m.redraw();
