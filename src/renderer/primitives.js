@@ -104,9 +104,11 @@ export function distVec (a, b){
 export function addVec(a, b){
   // this is to handle adding vec and twgl v3
   if(b.x) {
-    return new vec(a.x + b.x, a.y + b.y);
+    // return new vec(a.x + b.x, a.y + b.y);
+    return {...a, x: a.x + b.x, y: a.y + b.y}
   } else {
-    return new vec(a.x + b[0], a.y + b[1]);
+    // return new vec(a.x + b[0], a.y + b[1]);
+    return {...a, x: a.x + b[0], y: a.y + b[1]}
   }
 }
 

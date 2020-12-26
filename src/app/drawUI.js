@@ -3,7 +3,7 @@ import * as twgl from 'twgl.js';
 
 import * as ACT from '../store/actions.js';
 
-import {gl, store, state, resolution, mPt, dPt, bboxTree, layers, deleteLayer} from './draw.js';
+import {gl, store, state, resolution, mPt, dPt, ptTree, layers, deleteLayer} from './draw.js';
 import {bakeLayer, createLayer} from '../renderer/layer.js';
 
 import * as PRIM from '../renderer/primitives'
@@ -228,7 +228,7 @@ function drawUp(e){
   let currLayer = layers.find(l => l.id === state.scene.editItem);
   let pt = currLayer.uniforms.u_eTex.addPoint(mPt, state.scene.editItem);
 
-  store.dispatch(ACT.sceneAddPt(pt));
+  store.dispatch(ACT.sceneAddPt([pt], state.scene.editItem));
 
   let currItem  = state.scene.editItems.find(item => item.id === state.scene.editItem);
 
@@ -273,15 +273,17 @@ function selUp(e){
     
     if(state.scene.selected.includes(state.scene.hover)){
       store.dispatch(ACT.editSelectRmv(state.scene.hover));
-    }else{
-      store.dispatch(ACT.editSelectApnd(state.scene.hover));
     }
   }
+  store.dispatch(ACT.uiBoxSelect(mPt.v3, 0));
 }
 
 function selDwn(e){
   if(state.scene.hover !== ""){
     store.dispatch(ACT.uiDragStart(true, mPt.v3));
+    store.dispatch(ACT.editSelectApnd([state.scene.hover]));
+  } else {
+    store.dispatch(ACT.uiBoxSelect(mPt.v3, 1));
   }
 }
 
@@ -290,6 +292,27 @@ function selMv(){
     store.dispatch(ACT.uiDragging(true));
     
     console.log("drag start")
+  }
+  // This isn't working
+  if(state.ui.boxSelectState){
+    console.log(ptTree.all());
+    let selBox = {
+      minX: Math.min(state.ui.boxSel[0], mPt.v3[0]),
+      maxX: Math.max(state.ui.boxSel[0], mPt.v3[0]),
+      minY: Math.min(state.ui.boxSel[1], mPt.v3[1]),
+      maxY: Math.max(state.ui.boxSel[1], mPt.v3[1]),
+    }
+  
+    let boxSel = ptTree.search(selBox).reduce((prev,curr,index,array) => {
+      if(!prev.includes(curr.parent)) {
+        return [...prev, curr.parent]
+      } else {
+        return prev;
+      }
+    }, []);
+    
+    console.log(boxSel);
+    store.dispatch(ACT.editSelectReplace(boxSel))
   }
 }
 

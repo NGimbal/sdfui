@@ -55,7 +55,7 @@ function listener(){
   },[]);
 
   ptTree.load(pts);
-
+  
   bboxTree = new RBush();
 
   let boxes = state.scene.editItems.reduce((prev, curr, index, arr) => {
@@ -154,6 +154,8 @@ export function initDraw() {
     u_eTex: {},
     u_weight: 0.001,
     u_stroke: chroma("#ffa724").gl().slice(0,3),
+    u_boxSel: twgl.v3.create(),
+    u_boxState: state.ui.boxSelectState,
   }
 
   // grid layer
@@ -328,6 +330,15 @@ function updateUniforms(prim, layer){
   if(typeof layer.uniforms.u_radius  === 'number'){
     layer.uniforms.u_radius = prim.properties.radius; 
   }
+  // box select pt A
+  if(typeof layer.uniforms.u_boxSel  === 'object'){
+    layer.uniforms.u_boxSel = twgl.v3.copy(state.ui.boxSel);
+  }
+  // box select state 0, 1
+  if(typeof layer.uniforms.u_boxState  === 'number'){
+    layer.uniforms.u_boxState = state.ui.boxSelectState; 
+  }
+
 
   if(typeof layer.uniforms.u_sel  === 'number'){
     if(state.scene.selected.includes(prim.id)){
@@ -496,6 +507,10 @@ function sceneDist(){
 
 export function deleteLayer(id){
   layers = layers.filter(l => l.id !== id);
+}
+
+export function pushLayer(layer){
+  layers = layers.push(layer);
 }
 
 const saveBlob = (function() {

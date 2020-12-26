@@ -25,13 +25,11 @@ const uiInit = {
   dragging: false,
   dragStart: false,
   dragOrigin: twgl.v3.create(),
-  //are we moving towards a target
-  targeting: false,
-  //where is the view moving
-  // targets:[] someday could have multiple tagets for prezi like effect
-  target: twgl.v3.create(0,0,64),
-  // properties: {...PRIM.propsDefault},
-  mode: "draw"
+  targeting: false, //are we moving the view towards a target
+  target: twgl.v3.create(0,0,64), //where the view is moving
+  mode: "draw",
+  boxSel: twgl.v3.create(0), // box select pt A
+  boxSelectState: 0, // 0 is off, 1 is on
 }
 
 const cursorInit = {
@@ -129,10 +127,14 @@ function ui(_state=initialState, action){
         dragging: action.toggle
       });
     case ACT.UI_DRAGSTART:
-      console.log(action);
       return Object.assign({}, state,{
         dragStart: action.toggle,
         dragOrigin: twgl.v3.copy(action.pt),
+      });
+    case ACT.UI_BOXSELECT:
+      return Object.assign({}, state,{
+        boxSel: twgl.v3.copy(action.vec2),
+        boxSelectState: action.int,
       });
     default:
       return state;
@@ -285,21 +287,9 @@ function scene(_state=initialState, action) {
         editItem: action.editItem
       });
     case ACT.SCENE_ADDPT:
-      let pt = new PRIM.vec(action.pt.x, action.pt.y, action.pt.z, action.pt.w, state.editItem, action.pt.id, true);
       return Object.assign({}, state,{
         editItems: state.editItems.map(item => {
-          if(item.id !== state.editItem) return item;
-          return Object.assign({}, item, {
-            pts: [...item.pts, pt]
-          })
-        }),
-        // pts:[...state.pts, pt]
-      });
-    case ACT.SCENE_ADDPT:
-      let id = action._id || state.editItem;
-      return Object.assign({}, state,{
-        editItems: state.editItems.map(item => {
-          if(item.id !== id) return item;
+          if(item.id !== action.id) return item;
           return Object.assign({}, item, {
             pts: [...item.pts, ...action.pts]
           })
@@ -440,7 +430,12 @@ function scene(_state=initialState, action) {
     // Selection array
     case ACT.EDIT_SELECTAPND:
       return Object.assign({}, state,{
-        selected: [...state.selected, action.sel]
+        selected: [...state.selected, ...action.sel]
+      });
+    // Selection array
+    case ACT.EDIT_SELECTREPLACE:
+      return Object.assign({}, state,{
+        selected: [...action.sel]
       });
     // Selection array
     case ACT.EDIT_SELECTRMV:
@@ -491,7 +486,6 @@ function scene(_state=initialState, action) {
 };
 
 export const reducer = function(state = initialState, action){
-  // console.log(action);
   if (!state) {
     console.error('Reducer got null state. Should be initialized');
     return initialState;

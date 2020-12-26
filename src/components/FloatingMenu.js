@@ -1,7 +1,7 @@
 import m from "mithril";
 import { ControlGroup, Classes, Button, Icons, CustomSelect, PopoverMenu, MenuItem } from 'construct-ui';
 // import '../../node_modules/construct-ui/lib/index.css';
-import * as SDFUI from '../app/draw'
+import {state, store, layers, deleteLayer, pushLayer} from '../app/draw'
 import * as ACT from '../store/actions'
 import {bakeLayer, createLayer} from '../renderer/layer';
 import * as PRIM from '../renderer/primitives'
@@ -32,7 +32,7 @@ function FloatingMenu() {
     primSel = e.toLowerCase();
     console.log(primSel);
     
-    let currItem = SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem);
+    let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
     let type = currItem.type;
 
     // this is nice
@@ -40,65 +40,171 @@ function FloatingMenu() {
       // let nextPrim = {};
       let newLayer = {};
       
-      let currLayer = SDFUI.layers.find(l => l.id === currItem.id);
+      let currLayer = layers.find(l => l.id === currItem.id);
 
       let newPrim = new PRIM.prim(primSel, [], {...currItem.properties});
 
       if(currItem && currItem.pts.length > 1){
         bakeLayer(currLayer);
-        SDFUI.store.dispatch(ACT.scenePushEditItem(newPrim));
+        store.dispatch(ACT.scenePushEditItem(newPrim));
       } else {
-        SDFUI.deleteLayer(currLayer.id);
-        SDFUI.store.dispatch(ACT.sceneRmvItem(currItem.id));
-        SDFUI.store.dispatch(ACT.scenePushEditItem(newPrim));
+        deleteLayer(currLayer.id);
+        store.dispatch(ACT.sceneRmvItem(currItem.id));
+        store.dispatch(ACT.scenePushEditItem(newPrim));
       }
 
       newLayer = createLayer(newPrim);
 
-      SDFUI.layers.push(newLayer);
+      pushLayer(newLayer);
     }
     m.redraw();
   }
 
   function toggleSnapAngle(e) {
-    SDFUI.store.dispatch(ACT.cursorSnapRef());
+    store.dispatch(ACT.cursorSnapRef());
   }
 
   function toggleSnapPt(e) {
-    SDFUI.store.dispatch(ACT.cursorSnapPt());
+    store.dispatch(ACT.cursorSnapPt());
   }
 
   function toggleSnapGlobal(e){
-    SDFUI.store.dispatch(ACT.cursorSnapGlobal());
+    store.dispatch(ACT.cursorSnapGlobal());
   }
 
   function toggleSnapGrid(e){
-    SDFUI.store.dispatch(ACT.cursorSnapGrid());
+    store.dispatch(ACT.cursorSnapGrid());
   }
 
   function strokeWeightChange(e){
-    for (let sel of SDFUI.state.scene.selected){
-      SDFUI.store.dispatch(ACT.editWeight(e.target.value / 10000, sel));
+    for (let sel of state.scene.selected){
+      store.dispatch(ACT.editWeight(e.target.value / 10000, sel));
     }
   }
 
   function strokeColorChange(e){
-    for (let sel of SDFUI.state.scene.selected){
-      SDFUI.store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), sel));
+    for (let sel of state.scene.selected){
+      store.dispatch(ACT.editStroke(chroma(e.target.value).hex(), sel));
     }
   }
 
   function fillOpacityChange(e){
-    for (let sel of SDFUI.state.scene.selected){
-      SDFUI.store.dispatch(ACT.editOpacity(e.currentTarget.value / 100, sel));
+    for (let sel of state.scene.selected){
+      store.dispatch(ACT.editOpacity(e.currentTarget.value / 100, sel));
     }
   }
 
   function fillColorChange(e){
-    for (let sel of SDFUI.state.scene.selected){
-      SDFUI.store.dispatch(ACT.editFill(chroma(e.currentTarget.value).hex(), sel));
+    for (let sel of state.scene.selected){
+      store.dispatch(ACT.editFill(chroma(e.currentTarget.value).hex(), sel));
     }
   }
+
+  function draw(){
+    return(
+      <div>    
+        <PopoverMenu content={[
+                      // <hr style={dividerStyle}/>,
+                      <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Color</h6>,
+                      <input type="color" style={{margin:"auto", width:"100%"}} value={state.scene.editItems.find(i => i.id === state.scene.editItem).properties.stroke } oninput={strokeColorChange}/>,
+                      
+                      <hr style={dividerStyle}/>,
+                      <h6 class={Classes.Muted} style={inputLabelStyle}>Fill Color</h6>,
+                      <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={state.scene.editItems.find(i => i.id === state.scene.editItem).properties.fill}/>,
+                      // <hr style={dividerStyle}/>
+                    ]}
+                  trigger={m(Button, { iconLeft: Icons.DROPLET })}
+                  menuAttrs={{style:{padding:"8px"}}}
+                  />
+
+      <PopoverMenu content={[
+                  <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Weight</h6>,
+                  <input type="range" oninput={strokeWeightChange} min="1" max="100" value={state.scene.editItems.find(i => i.id === state.scene.editItem).properties.weight * 10000}/>,
+                  
+                  <hr style={dividerStyle}/>,
+                  <h6 class={Classes.Muted} style={inputLabelStyle}>Opacity</h6>,
+                  <input type="range" oninput={fillOpacityChange} min="0" max="100" value={state.scene.editItems.find(i => i.id === state.scene.editItem).properties.opacity * 100}/>,
+                
+                  ]}
+                  trigger={m(Button, { iconLeft: Icons.PEN_TOOL })}
+                  menuAttrs={{style:{padding:"8px"}}}
+                  />
+
+      <PopoverMenu content={[
+                      <MenuItem iconLeft={Icons.GRID}
+                        active={state.cursor.snapGrid}
+                        onclick={toggleSnapGrid}
+                        label={"Snap to Grid"}/>,
+                      <MenuItem iconLeft={Icons.CROSSHAIR}
+                        active={state.cursor.snapPt}
+                        onclick={toggleSnapPt}
+                        label={"Snap to Points"}/>,
+                      <MenuItem iconLeft={Icons.GLOBE}
+                        active={state.cursor.snapGlobal}
+                        onclick={toggleSnapGlobal}
+                        label={"Snap to Global"}/>,
+                      <MenuItem iconLeft={Icons.TRIANGLE}
+                        active={state.cursor.snapRef}
+                        onclick={toggleSnapAngle}
+                        label={"Snap to Relative"}/>]}
+                  trigger={m(Button, { iconLeft: Icons.SETTINGS })}
+                  />
+
+      <CustomSelect options={primList} defaultValue={"Polyline"} onSelect={primitiveChange}/>
+    </div>
+  )}
+
+  function select(){
+    return(
+      <div>    
+        <PopoverMenu content={[
+                      // <hr style={dividerStyle}/>,
+                      <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Color</h6>,
+                      <input type="color" style={{margin:"auto", width:"100%"}} value={state.scene.editItems.find(i => i.id === state.scene.editItem).properties.stroke } oninput={strokeColorChange}/>,
+                      
+                      <hr style={dividerStyle}/>,
+                      <h6 class={Classes.Muted} style={inputLabelStyle}>Fill Color</h6>,
+                      <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={state.scene.editItems.find(i => i.id === state.scene.editItem).properties.fill}/>,
+                      // <hr style={dividerStyle}/>
+                    ]}
+                  trigger={m(Button, { iconLeft: Icons.DROPLET })}
+                  menuAttrs={{style:{padding:"8px"}}}
+                  />
+
+        <PopoverMenu content={[
+                  <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Weight</h6>,
+                  <input type="range" oninput={strokeWeightChange} min="1" max="100" value={state.scene.editItems.find(i => i.id === state.scene.editItem).properties.weight * 10000}/>,
+                  
+                  <hr style={dividerStyle}/>,
+                  <h6 class={Classes.Muted} style={inputLabelStyle}>Opacity</h6>,
+                  <input type="range" oninput={fillOpacityChange} min="0" max="100" value={state.scene.editItems.find(i => i.id === state.scene.editItem).properties.opacity * 100}/>,
+                
+                  ]}
+                  trigger={m(Button, { iconLeft: Icons.PEN_TOOL })}
+                  menuAttrs={{style:{padding:"8px"}}}
+                  />
+
+        <PopoverMenu content={[
+                      <MenuItem iconLeft={Icons.GRID}
+                        active={state.cursor.snapGrid}
+                        onclick={toggleSnapGrid}
+                        label={"Snap to Grid"}/>,
+                      <MenuItem iconLeft={Icons.CROSSHAIR}
+                        active={state.cursor.snapPt}
+                        onclick={toggleSnapPt}
+                        label={"Snap to Points"}/>,
+                      <MenuItem iconLeft={Icons.GLOBE}
+                        active={state.cursor.snapGlobal}
+                        onclick={toggleSnapGlobal}
+                        label={"Snap to Global"}/>,
+                      <MenuItem iconLeft={Icons.TRIANGLE}
+                        active={state.cursor.snapRef}
+                        onclick={toggleSnapAngle}
+                        label={"Snap to Relative"}/>]}
+                  trigger={m(Button, { iconLeft: Icons.SETTINGS })}
+                  />
+    </div>
+  )}
 
   return {
     view: () => (
@@ -111,54 +217,11 @@ function FloatingMenu() {
           <ControlGroup style="margin-left:auto;
                               margin-right:auto;"> 
 
-          <PopoverMenu content={[
-                            // <hr style={dividerStyle}/>,
-                            <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Color</h6>,
-                            <input type="color" style={{margin:"auto", width:"100%"}} value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.stroke } oninput={strokeColorChange}/>,
-                            
-                            <hr style={dividerStyle}/>,
-                            <h6 class={Classes.Muted} style={inputLabelStyle}>Fill Color</h6>,
-                            <input type="color" style={{margin:"auto", width:"100%"}} oninput={fillColorChange} value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.fill}/>,
-                            // <hr style={dividerStyle}/>
-                          ]}
-                        trigger={m(Button, { iconLeft: Icons.DROPLET })}
-                        menuAttrs={{style:{padding:"8px"}}}
-                        />
-
-            <PopoverMenu content={[
-                        <h6 class={Classes.Muted} style={inputLabelStyle}>Stroke Weight</h6>,
-                        <input type="range" oninput={strokeWeightChange} min="1" max="100" value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.weight * 10000}/>,
-                        
-                        <hr style={dividerStyle}/>,
-                        <h6 class={Classes.Muted} style={inputLabelStyle}>Opacity</h6>,
-                        <input type="range" oninput={fillOpacityChange} min="0" max="100" value={SDFUI.state.scene.editItems.find(i => i.id === SDFUI.state.scene.editItem).properties.opacity * 100}/>,
-                      
-                        ]}
-                        trigger={m(Button, { iconLeft: Icons.PEN_TOOL })}
-                        menuAttrs={{style:{padding:"8px"}}}
-                        />
-
-            <PopoverMenu content={[
-                            <MenuItem iconLeft={Icons.GRID}
-                              active={SDFUI.state.cursor.snapGrid}
-                              onclick={toggleSnapGrid}
-                              label={"Snap to Grid"}/>,
-                            <MenuItem iconLeft={Icons.CROSSHAIR}
-                              active={SDFUI.state.cursor.snapPt}
-                              onclick={toggleSnapPt}
-                              label={"Snap to Points"}/>,
-                            <MenuItem iconLeft={Icons.GLOBE}
-                              active={SDFUI.state.cursor.snapGlobal}
-                              onclick={toggleSnapGlobal}
-                              label={"Snap to Global"}/>,
-                            <MenuItem iconLeft={Icons.TRIANGLE}
-                              active={SDFUI.state.cursor.snapRef}
-                              onclick={toggleSnapAngle}
-                              label={"Snap to Relative"}/>]}
-                        trigger={m(Button, { iconLeft: Icons.SETTINGS })}
-                        />
-          
-            <CustomSelect options={primList} defaultValue={"Polyline"} onSelect={primitiveChange}/>
+          {
+            state.ui.mode === "draw"   ? draw()   : 
+            state.ui.mode === "select" ? select() :
+            draw()
+          }
         
         </ControlGroup>
       </div>

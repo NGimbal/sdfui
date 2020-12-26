@@ -241,11 +241,28 @@ uniform float u_weight;
 uniform vec3 u_stroke;
 uniform float u_opacity;
 
+uniform vec3 u_boxSel;
+uniform float u_boxState;
+
 out vec4 outColor;
 
 float sdCircle(vec2 uv, vec2 p, float r){
   uv = uv - p;
   return length(uv) - r;
+}
+
+//uv, p translation point, b 1/2 length, width, r radius
+float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r)
+{
+    b -= r;
+    uv = (uv-p);
+    vec2 d = abs(uv)-b;
+    return length(max(d,vec2(0))) + min(max(d.x,d.y),0.0) - r;
+}
+
+// fill
+float fillMask(float dist){
+	return smoothstep(0.0,0.003, clamp(-dist, 0.0, 1.0));
 }
 
 //smooth Line Filter
@@ -269,15 +286,22 @@ void main(){
 
   float texelOffset = 0.5 * (1. / (16. * 16.));
 
-  // float dist = 1.0 - smoothstep(0., 0.0002, abs(sdCircle(uv, u_mPt.xy, 0.008)) - 0.0017);
-  float dist = line(sdCircle(uv, u_mPt.xy, 0.008 + (u_weight * 2.)), 0.00075);
+  float dist = line(sdCircle(uv, u_mPt.xy, 0.008 + u_weight), 0.00075);
+
+  vec2 center = 0.5 * (u_mPt.xy - u_boxSel.xy) + u_boxSel.xy;
+  vec2 rPt = abs(u_mPt.xy - center);
+  float box = sdBox(uv, center, rPt, 0.001);
+
+  float stroke = line(box, 0.0);
+  vec3 strokeCol = mix(vec3(1.), vec3(0.2745, 0.5098, 0.7059), stroke);
+  strokeCol *= u_boxState;
+  
+  dist = max(dist, min(stroke, u_boxState));
 
   vec3 col = mix(vec3(1.0),u_stroke, dist);
-  
 
   if ( dist < 0.0001) discard;
 
-  //outColor = vec4(col, dist + (1. - smoothstep(0., 0.15, sqrt(dSh))));
   outColor = vec4(col, dist);
 }`;
 //---------------------------------------------

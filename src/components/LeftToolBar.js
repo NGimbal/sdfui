@@ -4,7 +4,7 @@ import LayerTree from './LayerTree';
 import ghlogo from '../../assets/ghlogo.svg';
 // import '../../node_modules/construct-ui/lib/index.css';
 
-import * as SDFUI from "../app/draw";
+import {state, store} from "../app/draw";
 import * as ACT from '../store/actions';
 
 // import {stressTest} from '../app/drawUI'
@@ -53,17 +53,17 @@ function LeftToolBar() {
         <hr style={dividerStyle}/>
         
         <Button iconLeft={Icons.MOUSE_POINTER}
-                active={SDFUI.state.ui.mode === "select"}
+                active={state.ui.mode === "select"}
                 size={"x0"}
                 basic={"true"}
-                onclick={() => SDFUI.store.dispatch(ACT.uiMode("select"))}
+                onclick={() => store.dispatch(ACT.uiMode("select"))}
                 style="margin: 0px 0px 10px 0px;"  />
 
         <Button iconLeft={Icons.PEN_TOOL}
-                active={SDFUI.state.ui.mode === "draw"}
+                active={state.ui.mode === "draw"}
                 size={"x0"}
                 basic={"true"}
-                onclick={() => SDFUI.store.dispatch(ACT.uiMode("draw"))}
+                onclick={() => store.dispatch(ACT.uiMode("draw"))}
                 style="margin: 0px 0px 10px 0px;"  />
         
         <Button iconLeft={Icons.LAYERS}
