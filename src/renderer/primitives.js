@@ -103,13 +103,24 @@ export function distVec (a, b){
 
 export function addVec(a, b){
   // this is to handle adding vec and twgl v3
+  let x, y;
   if(b.x) {
     // return new vec(a.x + b.x, a.y + b.y);
-    return {...a, x: a.x + b.x, y: a.y + b.y}
+    x = a.x + b.x;
+    y = a.y + b.y;
   } else {
     // return new vec(a.x + b[0], a.y + b[1]);
-    return {...a, x: a.x + b[0], y: a.y + b[1]}
+    x = a.x + b[0];
+    y = a.y + b[1];
   }
+  return {...a, 
+             x: x, 
+             y: y,
+             minX:x,
+             maxX:x,
+             minY:y,
+             maxY:y,
+             v3: twgl.v3.create(x, y, 0.0)}
 }
 
 export function subVec (a, b){
