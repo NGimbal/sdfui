@@ -26,7 +26,7 @@ let dividerStyle =   {
 
 function FloatingMenu() {
   let primSel = "Circle";
-  let primList = ["Polyline", "Polygon", "Circle", "Rectangle"];
+  let primList = ["Polyline", "Polygon", "Circle", "Ellipse", "Rectangle"];
 
   function primitiveChange(e){
     primSel = e.toLowerCase();

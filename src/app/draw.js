@@ -59,7 +59,7 @@ function listener(){
   bboxTree = new RBush();
 
   let boxes = state.scene.editItems.reduce((prev, curr, index, arr) => {
-    if(state.scene.editItem === curr.id) return prev;
+    if(state.scene.editItem === curr.id || curr.bbox === null) return prev;
     return [...prev, ...[curr.bbox]];
   }, []);
 
@@ -402,8 +402,6 @@ function draw() {
     store.dispatch(ACT.statusRaster(false));
   }
 }
-
-
 
 function render() {
   update();

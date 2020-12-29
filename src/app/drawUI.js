@@ -3,7 +3,7 @@ import * as twgl from 'twgl.js';
 
 import * as ACT from '../store/actions.js';
 
-import {gl, store, state, resolution, mPt, dPt, ptTree, layers, deleteLayer} from './draw.js';
+import {gl, store, state, resolution, mPt, dPt, ptTree, layers, deleteLayer, pushLayer} from './draw.js';
 import {bakeLayer, createLayer} from '../renderer/layer.js';
 
 import * as PRIM from '../renderer/primitives'
@@ -233,7 +233,7 @@ function drawUp(e){
   let currItem  = state.scene.editItems.find(item => item.id === state.scene.editItem);
 
   // this condition isn't great but seems to work
-  if ( (currItem.type == "circle" || currItem.type == "rectangle") && currItem.pts.length == 2 ){    
+  if ( (currItem.type == "circle" || currItem.type == "ellipse" || currItem.type == "rectangle") && currItem.pts.length == 2 ){    
     let bbox = new PRIM.bbox(currItem, 0.05);
     store.dispatch(ACT.editBbox(currItem.id, bbox));
 
@@ -363,20 +363,22 @@ function escDrawUpdate(){
   let id = state.scene.editItem;
   let currItem = state.scene.editItems.find(i => i.id === id);
   
+  console.log(currItem);
+
   let props = {...currItem.properties};
   let newPrim = new PRIM.prim(currItem.type, [], props);
-  
+  console.log(newPrim);
   store.dispatch(ACT.scenePushEditItem(newPrim));
-
-  layers.push(createLayer(newPrim, state.scene.editItems.length));
-
+  let newLayer = createLayer(newPrim, state.scene.editItems.length);
+  pushLayer(newLayer);
+  console.log(newLayer);
   let del = deleteItem(id);
   
-  if (!del) {
+  // if (!del) {
     // store.dispatch(ACT.uiMode("select"));
-    this.toggle = false;
-    return;
-  }
+  //   this.toggle = false;
+  //   return;
+  // }
 
   this.toggle = false;
   return;

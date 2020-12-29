@@ -161,6 +161,8 @@ export function getFragStub(type, edit){
       return edit ? FS.polygonEdit.slice() : FS.polygonStub.slice();
     case'circle':
       return edit ? FS.circleEdit.slice() : FS.circleStub.slice();
+    case'ellipse':
+      return edit ? FS.ellipseEdit.slice() : FS.ellipseStub.slice();
     case'rectangle':
       return edit ? FS.rectangleEdit.slice() : FS.rectangleStub.slice();
     default:
@@ -207,6 +209,21 @@ function getUniforms(type){
         u_fill: chroma(properties.fill).gl().slice(0,3),
       }
     case'circle':
+      return {
+        // u_matrix: matrix,
+        // u_idColor: [3],
+        u_textureMatrix: twgl.m4.copy(texMatrix),
+        u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+        u_mPt: twgl.v3.create(mPt[0], mPt[1], 0),
+        u_dPt: twgl.v3.create(dPt[0], dPt[1], 0),
+        u_eTex: {},
+        u_cTex: -1,
+        u_weight: properties.weight,
+        u_opacity: properties.opacity,
+        u_stroke: chroma(properties.stroke).gl().slice(0,3),
+        u_fill: chroma(properties.fill).gl().slice(0,3),
+      }
+    case'ellipse':
       return {
         // u_matrix: matrix,
         // u_idColor: [3],

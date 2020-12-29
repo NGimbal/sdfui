@@ -19,6 +19,9 @@ export function bake(layer){
     case'circle':
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return circleCall(prim, layer);
+    case'ellipse':
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
+      return ellipseCall(prim, layer);
     case'rectangle':
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return rectangleCall(prim, layer);
@@ -351,6 +354,64 @@ export function circleCall(prim, layer){
   return fragShader;
 }
 //CIRCLE-------------------------------------------------------------------
+
+//ELLIPSE---------------------------------------------------------
+//creates function call that draws prim - circle
+export function ellipseCall(prim, layer){
+  let shader = LAYER.getFragStub(prim.type, false);
+  let parameters = layer.uniforms.u_eTex;
+  let dataSize = layer.uniforms.u_eTex.dataSize;
+
+  let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+
+  let insString = "//$INSERT CALL$------";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex);
+
+  // normalize coordinates of object
+  let norm = twgl.v3.subtract(twgl.v3.create(), prim.bbox.min.v3);
+  let p = norm[0] + ',' + norm[1];
+
+  //create function call
+  let posString = '\n';
+
+  let indexX = (0 % dataSize) / dataSize + texelOffset;
+  let indexY = (Math.floor(0 / dataSize)) / dataSize  + texelOffset;
+
+  posString += '\tvec2 cIndex = vec2(' + indexX + ', ' + indexY + ');\n';
+  
+  indexX = (1. % dataSize) / dataSize + texelOffset;
+  indexY = (Math.floor(1. / dataSize)) / dataSize  + texelOffset;
+ 
+  posString += '\tvec2 dIndex = vec2(' + indexX + ', ' + indexY + ');\n';
+
+  // vec2 center = texture(u_eTex, vec2(texelOffset, texelOffset)).xy;
+  // if(center.x != 0.0){
+  //   dist = sdEllipse(uv - center, abs(u_mPt.xy - center));
+  // }
+
+  posString += '\tvec2 center = texture(u_eTex, cIndex).xy;\n';
+  posString += '\tvec2 dims = texture(u_eTex, dIndex).xy + vec2(0.01, 0.01);\n';
+  posString += '\tfloat d = sdEllipse(uv - vec2(' + p +') - center, abs(dims - center));\n';
+  posString += '\tfloat stroke = line(d, u_weight);\n';
+  posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';
+  posString += '\tfloat fill = fillMask(d);';
+  posString += '\tvec4 fillCol = mix(vec4(vec3(1.),0.), vec4(u_fill, u_opacity), fill);\n';
+  posString += '\td = min(stroke, fill);\n';
+  posString += '\tif ( d > 1.) discard;\n';
+  posString += '\toutColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);\n';
+ 
+  startShader += posString;
+  let fragShader = startShader + endShader;
+
+  // console.log(posString);
+
+  return fragShader;
+}
+//EllIPSE-------------------------------------------------------------------
 
 
 //RECTANGLE---------------------------------------------------------

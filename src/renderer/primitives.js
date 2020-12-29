@@ -138,7 +138,7 @@ export class bbox{
 
     if(!prim.id) {console.log("Bounding box created with no object Id")}
     else {this.id = prim.id.slice()}
-        
+    let radius;
     switch(type){
       //polygon, polyline, rectangle all can default to this
       case('polyline'):
@@ -162,8 +162,14 @@ export class bbox{
 
         break;
       case('circle'):
-        console.log(points);
-        let radius = distVec(points[0], points[1]);
+        radius = distVec(points[0], points[1]);
+        this.minX = points[0].x - radius - offset;
+        this.maxX = points[0].x + radius + offset;
+        this.minY = points[0].y - radius - offset;
+        this.maxY = points[0].y + radius + offset;
+        break;
+      case('ellipse'):
+        radius = distVec(points[0], points[1]);
         this.minX = points[0].x - radius - offset;
         this.maxX = points[0].x + radius + offset;
         this.minY = points[0].y - radius - offset;
@@ -219,7 +225,7 @@ export class prim{
 
     this.translate = twgl.v3.create();
 
-    if(typeof _bbox !== "object") console.log(_bbox);
+    // if(typeof _bbox !== "object") console.log(_bbox);
 
     this.bbox = _bbox || null;
   }
@@ -371,6 +377,9 @@ export function distPrim(_mPt, prim){
       dist = Math.min(dist, polygonDist(tPt, prim));
       break;
     case "circle":
+      dist = Math.min(dist, circleDist(tPt, prim));
+      break;
+    case "ellipse":
       dist = Math.min(dist, circleDist(tPt, prim));
       break;
     case "rectangle":
