@@ -394,8 +394,8 @@ export function ellipseCall(prim, layer){
   // }
 
   posString += '\tvec2 center = texture(u_eTex, cIndex).xy;\n';
-  posString += '\tvec2 dims = texture(u_eTex, dIndex).xy + vec2(0.01, 0.01);\n';
-  posString += '\tfloat d = sdEllipse(uv - vec2(' + p +') - center, abs(dims - center));\n';
+  posString += '\tvec2 dims = texture(u_eTex, dIndex).xy;\n';
+  posString += '\tfloat d = sdEllipse(uv - vec2(' + p +') - center, max(abs(dims - center), vec2(0.01,0.01)));\n';
   posString += '\tfloat stroke = line(d, u_weight);\n';
   posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';
   posString += '\tfloat fill = fillMask(d);';

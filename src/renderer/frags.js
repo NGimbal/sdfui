@@ -1079,7 +1079,7 @@ void main(){
   if(center.x != 0.0){
     // vec2 rPt = u_mPt.xy;
     // float radius = distance(center, rPt);
-    dist = sdEllipse(uv - center, abs(u_mPt.xy - center) + vec2(0.01, 0.01));
+    dist = sdEllipse(uv - center, max(abs(u_mPt.xy - center), vec2(0.01,0.01)));
   }
 
   //stroke

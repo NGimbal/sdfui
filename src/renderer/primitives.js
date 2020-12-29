@@ -168,7 +168,7 @@ export class bbox{
         this.minY = points[0].y - radius - offset;
         this.maxY = points[0].y + radius + offset;
         break;
-      case('ellipse'):
+      case('ellipse'): // this is a quite wasteful but whatevs
         radius = distVec(points[0], points[1]);
         this.minX = points[0].x - radius - offset;
         this.maxX = points[0].x + radius + offset;
@@ -176,11 +176,10 @@ export class bbox{
         this.maxY = points[0].y + radius + offset;
         break;
       case('rectangle'):
-        // let radius = distVec(points[0], points[1]);
-        this.minX = points[0].x - offset;
-        this.maxX = points[1].x + offset;
-        this.minY = points[0].y - offset;
-        this.maxY = points[1].y + offset;
+        this.minX = Math.min(points[0].x, points[1].x) - offset;
+        this.maxX = Math.max(points[0].x, points[1].x) + offset;
+        this.minY = Math.min(points[0].y, points[1].y) - offset;
+        this.maxY = Math.max(points[0].y, points[1].y) + offset;
         break;
       case('img'):
         this.minX = points[0].x;
