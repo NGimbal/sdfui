@@ -401,7 +401,7 @@ export function ellipseCall(prim, layer){
   posString += '\tfloat fill = fillMask(d);';
   posString += '\tvec4 fillCol = mix(vec4(vec3(1.),0.), vec4(u_fill, u_opacity), fill);\n';
   posString += '\td = min(stroke, fill);\n';
-  posString += '\tif ( d > 1.) discard;\n';
+  // posString += '\tif ( d > 1.) discard;\n';
   posString += '\toutColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);\n';
  
   startShader += posString;

@@ -363,11 +363,11 @@ function escDrawUpdate(){
   let id = state.scene.editItem;
   let currItem = state.scene.editItems.find(i => i.id === id);
   
-  console.log(currItem);
+  // console.log(currItem);
 
   let props = {...currItem.properties};
   let newPrim = new PRIM.prim(currItem.type, [], props);
-  console.log(newPrim);
+  // console.log(newPrim);
   store.dispatch(ACT.scenePushEditItem(newPrim));
   let newLayer = createLayer(newPrim, state.scene.editItems.length);
   pushLayer(newLayer);

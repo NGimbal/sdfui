@@ -138,7 +138,7 @@ export class bbox{
 
     if(!prim.id) {console.log("Bounding box created with no object Id")}
     else {this.id = prim.id.slice()}
-    let radius;
+
     switch(type){
       //polygon, polyline, rectangle all can default to this
       case('polyline'):
@@ -162,18 +162,18 @@ export class bbox{
 
         break;
       case('circle'):
-        radius = distVec(points[0], points[1]);
+        let radius = distVec(points[0], points[1]);
         this.minX = points[0].x - radius - offset;
         this.maxX = points[0].x + radius + offset;
         this.minY = points[0].y - radius - offset;
         this.maxY = points[0].y + radius + offset;
         break;
       case('ellipse'): // this is a quite wasteful but whatevs
-        radius = distVec(points[0], points[1]);
-        this.minX = points[0].x - radius - offset;
-        this.maxX = points[0].x + radius + offset;
-        this.minY = points[0].y - radius - offset;
-        this.maxY = points[0].y + radius + offset;
+        let dims = absV3(twgl.v3.subtract(points[0].v3, points[1].v3));
+        this.minX = points[0].x - dims[0] - offset;
+        this.maxX = points[0].x + dims[0] + offset;
+        this.minY = points[0].y - dims[1] - offset;
+        this.maxY = points[0].y + dims[1] + offset;
         break;
       case('rectangle'):
         this.minX = Math.min(points[0].x, points[1].x) - offset;
@@ -379,7 +379,7 @@ export function distPrim(_mPt, prim){
       dist = Math.min(dist, circleDist(tPt, prim));
       break;
     case "ellipse":
-      dist = Math.min(dist, circleDist(tPt, prim));
+      dist = Math.min(dist, ellipseDist(tPt, prim));
       break;
     case "rectangle":
       dist = Math.min(dist, rectDist(tPt, prim));
@@ -395,12 +395,6 @@ export function distPrim(_mPt, prim){
 
 //return distance to a rectangle
 function rectDist(mPt, prim){
-
-  // let ptA = state.scene.pts.find(pt => pt.id == prim.pts[0]);
-  // let ptB = state.scene.pts.find(pt => pt.id == prim.pts[1]);
-
-  // ptA = twgl.v3.create(ptA.x, ptA.y, 0);
-  // ptB = twgl.v3.create(ptB.x, ptB.y, 0);
 
   let ptA = twgl.v3.copy(prim.pts[0].v3);
   let ptB = twgl.v3.copy(prim.pts[1].v3);
@@ -447,18 +441,9 @@ function pLineDist(mPt, prim){
 
 //returns distance to a poly line
 function polygonDist(mPt, prim){
-  if (prim.type != "polygon"){
-    // console.log("polygonDist() called on primitive of " + prim.type + " type.");
-    // console.log(prim);
-    return 1000;
-  }
-  // let dist = 1000;
-  // let _prev = state.scene.pts.find(pt => pt.id == prim.pts[prim.pts.length - 1]);
+
   let prev = twgl.v3.copy(prim.pts[prim.pts.length - 1].v3);
-  // let prev = twgl.v3.create(_prev.x, _prev.y, 0);
-  
-  // let _first = state.scene.pts.find(pt => pt.id == prim.pts[0]);
-  // let first = twgl.v3.create(_first.x, _first.y, 0);
+
   let first = twgl.v3.copy(prim.pts[0].v3);
   first = twgl.v3.subtract(mPt, first);
 
@@ -490,20 +475,11 @@ function polygonDist(mPt, prim){
   return dist;
 }
 
-//returns distance to a poly line
+//returns distance to a circle
 function circleDist(mPt, prim){
-  if (prim.type != "circle"){
-    // console.log("circleDist() called on primitive of " + prim.type + " type.");
-    // console.log(prim);
-    return 1000;
-  }
-  // let ptA = state.scene.pts.find(pt => pt.id == prim.pts[0]);
-  // let ptB = state.scene.pts.find(pt => pt.id == prim.pts[1]);
+
   let ptA = twgl.v3.copy(prim.pts[0].v3);
   let ptB = twgl.v3.copy(prim.pts[1].v3);
-
-  // ptA = twgl.v3.create(ptA.x, ptA.y, 0);
-  // ptB = twgl.v3.create(ptB.x, ptB.y, 0);
   
   let radius = twgl.v3.distance(ptA, ptB);
   let uv = twgl.v3.subtract(mPt, ptA);
@@ -513,20 +489,80 @@ function circleDist(mPt, prim){
   return dist;
 }
 
+// twgl.v3 a, twgl.v3 b
+function clampV3(a, _min, _max){
+  let min = twgl.v3.create(_min,_min,0.0);
+  let max = twgl.v3.create(_max,_max,0.0);
+
+  return twgl.v3.min(twgl.v3.max(a,min),max);
+}
+
+function absV3(a){
+  return twgl.v3.create(Math.abs(a[0]),
+                        Math.abs(a[1]),
+                        Math.abs(a[2]));
+}
+
+// returns distance to an ellipse
+function ellipseDist(mPt, prim){
+
+  // ptA is center of the ellipse
+  let ptA = twgl.v3.copy(prim.pts[0].v3);
+
+  let ptB = twgl.v3.copy(prim.pts[1].v3);
+  let e = twgl.v3.max(twgl.v3.subtract(ptB, ptA), twgl.v3.create(0.1,0.1,0.0));
+
+  let pAbs = absV3(twgl.v3.subtract(mPt, ptA));
+  
+  // not sure if the z value should be 0 or 1
+  let ei = twgl.v3.divide(twgl.v3.create(1.0,1.0,1.0), e);
+  let e2 = twgl.v3.multiply(e, e);
+  let ve = twgl.v3.multiply(ei, twgl.v3.create(e2[0] - e2[1], e2[1] - e2[0], 0.0));
+
+  let t = twgl.v3.create(0.70710678118654752, 0.70710678118654752, 0.0);
+
+  for(let i = 0; i < 3; i++){
+    let v = twgl.v3.multiply(ve, t);
+    twgl.v3.multiply(v,t,v);
+    twgl.v3.multiply(v,t,v);
+    let u = twgl.v3.normalize(twgl.v3.subtract(pAbs, v));
+    twgl.v3.multiply(u,twgl.v3.length(twgl.v3.subtract(twgl.v3.multiply(t,e),v)),u);
+    let w = twgl.v3.multiply(ei, twgl.v3.add(v, u));
+    t = twgl.v3.normalize(clampV3(w, 0.0, 1.0));
+  }
+
+  let nearestAbs = twgl.v3.multiply(t, e);
+  let dist = twgl.v3.length(twgl.v3.subtract(pAbs, nearestAbs));
+
+  return twgl.v3.dot(pAbs, pAbs) < twgl.v3.dot(nearestAbs, nearestAbs) ?
+         -1 * dist : dist;
+
+  // shader code -----
+  // vec2 pAbs = abs(p);
+  // vec2 ei = 1.0 / e;
+  // vec2 e2 = e*e;
+  // vec2 ve = ei * vec2(e2.x - e2.y, e2.y - e2.x);
+  
+  // vec2 t = vec2(0.70710678118654752, 0.70710678118654752);
+  // for (int i = 0; i < 3; i++) {
+  //     vec2 v = ve*t*t*t;
+  //     vec2 u = normalize(pAbs - v) * length(t * e - v);
+  //     vec2 w = ei * (v + u);
+  //     t = normalize(clamp(w, 0.0, 1.0));
+  // }
+  
+  // vec2 nearestAbs = t * e;
+  // float dist = length(pAbs - nearestAbs);
+  // return dot(pAbs, pAbs) < dot(nearestAbs, nearestAbs) ? -dist : dist;
+  // shader code ------
+  // function call ----
+  // dist = sdEllipse(uv - center, max(abs(u_mPt.xy - center), vec2(0.01,0.01)));
+
+}
+
 //returns distance to a line
 function lineDist(p, _a, _b, w){
-  // let a, b;
-  // if (_a.x){
-  //   a = twgl.v3.create(_a.x, _a.y, 0);
-  // } else {
-  //   a = _a;
-  // }
 
-  // if (_b.x){
-  //   b = twgl.v3.create(_b.x, _b.y, 0);
-  // } else {
-  //   b = _b;
-  // }
   let a = twgl.v3.copy(_a.v3);
   let b = twgl.v3.copy(_b.v3);
 
@@ -534,7 +570,7 @@ function lineDist(p, _a, _b, w){
   let ba = twgl.v3.subtract(b, a);
   let dot = twgl.v3.dot(pa,ba) / twgl.v3.dot(ba,ba);
   let h =  clamp(dot, 0.0, 1.0);
-  //don't know why w needs to be squared here
+
   return twgl.v3.length(twgl.v3.subtract(pa, twgl.v3.mulScalar(ba, h))) - w;
 }
 
