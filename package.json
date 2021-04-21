@@ -25,7 +25,6 @@
     "@petamoriken/float16": "^2.0.0",
     "chroma-js": "^2.1.0",
     "construct-ui": "^0.2.8",
-    "firebase": "^7.20.0",
     "mithril": "^2.0.4",
     "rbush": "^3.0.1",
     "rbush-knn": "^3.0.1",
