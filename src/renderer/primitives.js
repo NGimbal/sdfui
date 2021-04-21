@@ -168,7 +168,7 @@ export class bbox{
         this.minY = points[0].y - radius - offset;
         this.maxY = points[0].y + radius + offset;
         break;
-      case('ellipse'): // this is a quite wasteful but whatevs
+      case('ellipse'):
         let dims = absV3(twgl.v3.subtract(points[0].v3, points[1].v3));
         this.minX = points[0].x - dims[0] - offset;
         this.maxX = points[0].x + dims[0] + offset;
@@ -326,6 +326,7 @@ export class PolyPoint{
     view.setFloat16 = (...args) => setFloat16(view, ...args);
 
     //assume little endian
+    // https://abdulapopoola.com/2019/01/20/check-endianness-with-javascript/
     let endD = false;
 
     view.setFloat16(0, x, endD);
@@ -508,30 +509,32 @@ function ellipseDist(mPt, prim){
 
   // ptA is center of the ellipse
   let ptA = twgl.v3.copy(prim.pts[0].v3);
-
+  // ptA[2] = 1.0;
   let ptB = twgl.v3.copy(prim.pts[1].v3);
-  let e = twgl.v3.max(twgl.v3.subtract(ptB, ptA), twgl.v3.create(0.1,0.1,0.0));
-
+  // ptB[2] = 1.0;
+  let e = twgl.v3.max(twgl.v3.subtract(ptB, ptA), twgl.v3.create(0.1,0.1,1.0));
+  e[2] = 1.0;
   let pAbs = absV3(twgl.v3.subtract(mPt, ptA));
-  
+  pAbs[2] = 1.0;
   // not sure if the z value should be 0 or 1
   let ei = twgl.v3.divide(twgl.v3.create(1.0,1.0,1.0), e);
   let e2 = twgl.v3.multiply(e, e);
-  let ve = twgl.v3.multiply(ei, twgl.v3.create(e2[0] - e2[1], e2[1] - e2[0], 0.0));
+  let ve = twgl.v3.multiply(ei, twgl.v3.create(e2[0] - e2[1], e2[1] - e2[0], 1.0));
 
-  let t = twgl.v3.create(0.70710678118654752, 0.70710678118654752, 0.0);
+  let t = twgl.v3.create(0.70710678118654752, 0.70710678118654752, 1.0);
 
   for(let i = 0; i < 3; i++){
     let v = twgl.v3.multiply(ve, t);
     twgl.v3.multiply(v,t,v);
     twgl.v3.multiply(v,t,v);
     let u = twgl.v3.normalize(twgl.v3.subtract(pAbs, v));
-    twgl.v3.multiply(u,twgl.v3.length(twgl.v3.subtract(twgl.v3.multiply(t,e),v)),u);
+    twgl.v3.mulScalar(u,twgl.v3.length(twgl.v3.subtract(twgl.v3.multiply(t,e),v)),u);
     let w = twgl.v3.multiply(ei, twgl.v3.add(v, u));
     t = twgl.v3.normalize(clampV3(w, 0.0, 1.0));
   }
 
   let nearestAbs = twgl.v3.multiply(t, e);
+  nearestAbs[2] = 1;
   let dist = twgl.v3.length(twgl.v3.subtract(pAbs, nearestAbs));
 
   return twgl.v3.dot(pAbs, pAbs) < twgl.v3.dot(nearestAbs, nearestAbs) ?

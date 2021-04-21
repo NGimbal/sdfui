@@ -8,52 +8,15 @@ import {bakeLayer, createLayer} from '../renderer/layer.js';
 
 import * as PRIM from '../renderer/primitives'
 
-// import * as chroma from 'chroma-js';
-
-//So this is going to be a way to register
-//sets of functions to different UI modes
-//Try to move as much as this as possible to the redux store
-//will still need something that calls dispatch on events
-//like mouse move and keyup
-//so this is what will make sure that the right events are
-//registered / the right functions will be called on an event
-
 //store ui.state = "draw", "select", 
 //DrawUI.states = {draw: draw, select: select}
+
+// This is going to become an interaction manager that uses a simple event emitter
+// some of this code will be moved to a client
+// most of the UI modifier shit should be like events + event handlers
 export class DrawUI{
 
   constructor(){
-    // need to check endianess for half float usage
-    // https://abdulapopoola.com/2019/01/20/check-endianness-with-javascript/
-    function endianNess(){
-        let uInt32 = new Uint32Array([0x11223344]);
-        let uInt8 = new Uint8Array(uInt32.buffer);
-
-        if(uInt8[0] === 0x44) {
-            return 'Little Endian';
-        } else if (uInt8[0] === 0x11) {
-            return 'Big Endian';
-        } else {
-            return 'Maybe mixed-endian?';
-        }
-    }
-
-    this.endD = false;
-
-    switch(endianNess()){
-      case 'Little Endian':
-        this.endD = true;
-        break;
-      case 'Big Endian':
-        this.endD = false;
-        break;
-      case 'Maybe mixed-endian?':
-        this.endD = true;
-        break;
-      default:
-        this.endD = true;
-        break;
-    }
 
     //MODIFIERS
     // constructor(name, tag, keyCut, events, _pulse){
@@ -375,7 +338,7 @@ function escDrawUpdate(){
   let del = deleteItem(id);
   
   // if (!del) {
-    // store.dispatch(ACT.uiMode("select"));
+  //   store.dispatch(ACT.uiMode("select"));
   //   this.toggle = false;
   //   return;
   // }

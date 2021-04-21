@@ -12,6 +12,7 @@ import {DrawUI} from './drawUI.js';
 import * as PRIM from '../renderer/primitives.js';
 import * as SF from '../renderer/frags.js';
 import {Layer, updateMatrices} from '../renderer/layer.js';
+import { DrawerPosition } from 'construct-ui';
 
 var canvas, ctx, ui;
 var view;
@@ -31,6 +32,8 @@ export var ptTree = new RBush();
 export var bboxTree = new RBush();
 
 export var layers = [];
+
+var distBuffer, distTex;
 
 var mouseDragStart = new PRIM.vec(0, 0);
 
@@ -89,8 +92,8 @@ function listener(){
 
 
 //subscribe to store changes - run listener to set relevant variables
-store.subscribe(() => console.log(listener()));
-// store.subscribe(() => listener());
+// store.subscribe(() => console.log(listener()));
+store.subscribe(() => listener());
 
 export function initDraw() {
   let canvasContainer = document.querySelector('#canvasContainer');
@@ -143,7 +146,6 @@ export function initDraw() {
 
   // grid layer
   let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, 0, gridUniforms);
-  // store.dispatch(ACT.layerPush(gridLayer));
   layers.push(gridLayer);
 
   let uiUniforms = {
@@ -160,10 +162,10 @@ export function initDraw() {
 
   // grid layer
   let uiLayer = new Layer({type:"ui"}, SF.simpleVert, SF.uiFrag, 10000, uiUniforms);
-  // store.dispatch(ACT.layerPush(gridLayer));
   layers.push(uiLayer);
 
   // demo shader
+  // need to make it easier to add primitives to the scene...
   // let demoUniforms = {
   //   u_textureMatrix: twgl.m4.copy(texMatrix),
   //   u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
@@ -171,36 +173,63 @@ export function initDraw() {
   //   u_eTex: {},
   // }
 
-  // let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.raymarchFrag, demoUniforms);
+  // let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.raymarchFrag, 1, demoUniforms);
   // demoLayer.bbox = new PRIM.bbox([{x:0., y:0.}, {x:1.0, y:1.0}], "demo"); 
   // updateMatrices(demoLayer);
-  // store.dispatch(ACT.layerPush(demoLayer));
+  // layers.push(emoLayer);
 
   // full screen edit layer
   let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
   let plineLayer = new Layer(currItem, SF.simpleVert, SF.pLineEdit, state.scene.editItems.length);
-  // store.dispatch(ACT.layerPush(plineLayer));
   layers.push(plineLayer);
+  //---
+  distTex = twgl.createTexture(gl, {
+    level: 0,
+    width: gl.canvas.width,
+    height: gl.canvas.height,
+    min: gl.LINEAR,
+    wrap: gl.CLAMP_TO_EDGE
+  })
+
+  let sceneTex = twgl.createTexture(gl, {
+    level: 0,
+    width: gl.canvas.width,
+    height: gl.canvas.height,
+    min: gl.LINEAR,
+    wrap: gl.CLAMP_TO_EDGE
+  })
+
+  // eventually would like 
+  distBuffer = twgl.createFramebufferInfo(gl, [
+    {attachment:sceneTex, attachmentPoint:gl.COLOR_ATTACHMENT0},
+    {attachment:distTex, attachmentPoint:gl.COLOR_ATTACHMENT1}
+  ], gl.canvas.width, gl.canvas.height)
 
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-  // would like to try and render "distance" to accumulating buffer like color
-  // https://stackoverflow.com/questions/51793336/webgl-2-0-multiple-output-textures-from-the-same-program/51798078#51798078
-  // gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
-
+  
   requestAnimationFrame(render);
 }
 
 // addImage function
-export function addImage(_srcURL, dims, evPt) {
-  let srcURL = _srcURL || "../assets/textures/leaves.jpg";
+export function addImage(_src, dims, evPt) {
+  let src;
+  console.log(typeof _src);
+  switch(typeof _src){
+    case "string":
+      src = _src;
+      break;
+    default :
+      src = "../assets/textures/leaves.jpg";
+      break;
+  }
+  // let src = _src || "../assets/textures/leaves.jpg";
 
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
   texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
 
   let image = twgl.createTexture(gl, {
-    src: srcURL,
+    src: src,
     color: [0.125, 0.125, 0.125, 0.125],
   }, () => {
     // console.log(image);
@@ -238,7 +267,7 @@ export function addImage(_srcURL, dims, evPt) {
 
   // state.dispatch(ACT.sceneAddPts(pts))
 
-  let imgPrim = new PRIM.prim("img", pts, {}, PRIM.uuid(), bbox);
+  let imgPrim = new PRIM.prim("img", pts, {}, PRIM.uuid());
   let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, state.scene.editItems.length, imgUniforms);
 
   let bbox = new PRIM.bbox(imgPrim,0.0);
@@ -330,6 +359,9 @@ function updateUniforms(prim, layer){
   if(typeof layer.uniforms.u_radius  === 'number'){
     layer.uniforms.u_radius = prim.properties.radius; 
   }
+  if(typeof layer.uniforms.u_distTex  === 'object'){
+    layer.uniforms.u_distTex = distTex; 
+  }
   // box select pt A
   if(typeof layer.uniforms.u_boxSel  === 'object'){
     layer.uniforms.u_boxSel = twgl.v3.copy(state.ui.boxSel);
@@ -338,7 +370,6 @@ function updateUniforms(prim, layer){
   if(typeof layer.uniforms.u_boxState  === 'number'){
     layer.uniforms.u_boxState = state.ui.boxSelectState; 
   }
-
 
   if(typeof layer.uniforms.u_sel  === 'number'){
     if(state.scene.selected.includes(prim.id)){
@@ -358,40 +389,37 @@ function updateUniforms(prim, layer){
   twgl.setUniforms(layer.programInfo, layer.uniforms);
 }
 
-// so bake edit layer currently works by baking the current edit layer
-// this should be a different type of function that creates a layer 
-// whole cloth from a prim
-// does this make more sense than the bakeLayer paradigm?
-// function bakePrim(prim){
-  // set bounding box
-  // layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id, 0.05, layer.primType);
-  // updateMatrices(layer);
-
-  // let fs = BAKE.bake(layer);
-  // layer.frag = fs;
-  // layer.programInfo = twgl.createProgramInfo(gl, [layer.vert, fs]);
-  
-  // // This line is important
-  // gl.useProgram(layer.programInfo.program);
-  // twgl.setUniforms(layer.programInfo, layer.uniforms);
-// }
-
 function draw() {
+  // spatial indexing / hashing for rendering
+  // filtering the render list causes the framerate to drop
+  let bboxSearch = bboxTree.search(view).map(b => b.id);
+  layers.forEach(l => l.active = (bboxSearch.includes(l.id) || 
+                                 state.scene.editItem === l.id || 
+                                 l.primType === "grid" || l.primType === "ui") && l.visible);
 
+  // draw to distTex
+  twgl.bindFramebufferInfo(gl, distBuffer)
+  gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
+  gl.drawBuffers([
+    gl.COLOR_ATTACHMENT0,
+    gl.COLOR_ATTACHMENT1
+  ])
+  // Clear
+  gl.clearColor(1, 1, 1, 0.0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  twgl.drawObjectList(gl, layers.sort((a,b)=> a.order - b.order));
+
+  // draw to canvas
+  // an optimization could be to render sceneTex to the screen instead of re-rendering the scene
+  twgl.bindFramebufferInfo(gl, null)
+  gl.drawBuffers([
+    gl.RENDERBUFFER
+  ])
+  // Clear the canvas
+  gl.clearColor(1, 1, 1, 0.0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   // Tell WebGL how to convert from clip space to pixels
   gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
-
-  // Clear the canvas
-  gl.clearColor(1, 1, 1, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-  // bringing objects in and out of the render list causes the framerate to drop
-  // spatial indexing / hashing for rendering
-  // let bboxSearch = bboxTree.search(view).map(b => b.id);
-  // let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
-  //                                              state.scene.editItems[state.scene.editItem].id === l.id || 
-  //                                              l.idType === "grid");
-  
   twgl.drawObjectList(gl, layers.sort((a,b)=> a.order - b.order));
 
   // save raster image

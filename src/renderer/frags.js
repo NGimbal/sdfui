@@ -63,6 +63,8 @@ void main() {
 
   outColor = texture(u_img, uv);
 }`
+
+//---------------------------------------------
 export const demoFrag =
 `#version 300 es
 precision mediump float;
@@ -83,6 +85,7 @@ void main() {
 
   outColor = vec4(uv.x, uv.y, 0.0, 1.0);
 }`;
+//---------------------------------------------
 export const raymarchFrag =
 `#version 300 es
 
@@ -189,7 +192,9 @@ in vec2 v_texcoord;
 uniform vec3 u_resolution;
 uniform vec3 u_dPt;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 // float repeat(float x) { return abs(fract(x*0.5+0.5)-0.5)*2.0; }
 float gridMnr(float x) { return abs(fract(x*0.5+0.5)-0.5) * 2.; }
@@ -220,6 +225,9 @@ void main() {
   //col *= clamp(pow( 256.0*q.x*q.y*(1.0-q.x)*(1.0-q.y), .09 ),0.,1.)*.325+0.7;
 
   outColor = vec4(col,1.0);
+  // so this effectively "clears" the distance texture
+  // prevents alpha channel from being effective...
+  outColorDist = vec4(0.0);
 }`;
 //---------------------------------------------
 export const uiFrag =
@@ -244,7 +252,9 @@ uniform float u_opacity;
 uniform vec3 u_boxSel;
 uniform float u_boxState;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 float sdCircle(vec2 uv, vec2 p, float r){
   uv = uv - p;
@@ -303,6 +313,7 @@ void main(){
   if ( dist < 0.0001) discard;
 
   outColor = vec4(col, dist);
+  outColorDist = vec4(0.0);
 }`;
 //---------------------------------------------
 export const pLineEdit =
@@ -323,7 +334,9 @@ uniform float u_weight;
 uniform vec3 u_stroke;
 uniform float u_opacity;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 //https://www.shadertoy.com/view/4tc3DX
 float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
@@ -434,6 +447,7 @@ void main(){
 
   //outColor = vec4(col, dist + (1. - smoothstep(0., 0.15, sqrt(dSh))));
   outColor = vec4(col * vec3(max(dSh, dist)), (dist + dSh) * u_opacity);
+  outColorDist = vec4(vec3(dist),1.0);
 }`;
 
 //---------------------------------------------
@@ -458,7 +472,9 @@ uniform float u_opacity;
 uniform vec3 u_idCol;
 uniform float u_sel;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 //https://www.shadertoy.com/view/4tc3DX
 float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
@@ -554,14 +570,12 @@ void main(){
   dSh = (1. - smoothstep(0., 0.15, sqrt(dSh)))*.25;
   dSh *= u_sel;
   
-  // if ( dist + dSh < 0.01){
-  //   discard;
-  // }
+  if ( dist + dSh < 0.01){
+    discard;
+  }
 
-  // outColor = vec4(dSh);
   outColor = vec4(col * vec3(max(dSh, dist)), (dist + dSh) * u_opacity);
-  // col = mix(u_idCol, col, max(dSh, dist));
-  // outColor = vec4(col, max(dist, 0.25));
+  outColorDist = vec4(vec3(dist),1.0);
 }`;
 //---------------------------------------------
 export const polygonEdit =
