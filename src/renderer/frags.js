@@ -200,7 +200,7 @@ layout(location = 1) out vec4 outColorDist;
 float gridMnr(float x) { return abs(fract(x*0.5+0.5)-0.5) * 2.; }
 
 void main() {
-  outColor = vec4(1.0);
+  // outColor = vec4(1.00);
 
   vec2 uv = v_texcoord;
   uv.x *= u_resolution.x / u_resolution.y;
@@ -212,7 +212,8 @@ void main() {
   //https://www.shadertoy.com/view/XtVcWc - beautiful grid
   
   // red lines
-  vec3 col = vec3(1.) - smoothstep( (u_dPt.z * 0.001),0.0, abs(gridMnr(uv.x)))*vec3(.25,0.15,0.02);
+  // vec3(x) is background color
+  vec3 col = vec3(0.35) - smoothstep( (u_dPt.z * 0.001),0.0, abs(gridMnr(uv.x)))*vec3(.25,0.15,0.02);
   col -= smoothstep((u_dPt.z * 0.001), 0.0, abs(gridMnr(uv.y)))*vec3(.25,0.15,0.02);
   
   // blue lines
@@ -225,8 +226,6 @@ void main() {
   //col *= clamp(pow( 256.0*q.x*q.y*(1.0-q.x)*(1.0-q.y), .09 ),0.,1.)*.325+0.7;
 
   outColor = vec4(col,1.0);
-  // so this effectively "clears" the distance texture
-  // prevents alpha channel from being effective...
   outColorDist = vec4(0.0);
 }`;
 //---------------------------------------------
@@ -598,7 +597,9 @@ uniform vec3 u_stroke;
 uniform vec3 u_fill;
 uniform float u_opacity;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 //https://www.shadertoy.com/view/4tc3DX
 float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
@@ -734,8 +735,7 @@ void main(){
   if ( dist > 1.) discard;
 
   outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
-  // outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb) * vec3(dSh), fillCol.a + strokeCol.a + dSh);
-
+  outColorDist = vec4(vec3(dist),1.0);
 }`;
 
 //---------------------------------------------
@@ -761,7 +761,9 @@ uniform float u_opacity;
 
 uniform vec3 u_idCol;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 //https://www.shadertoy.com/view/4tc3DX
 float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
@@ -872,7 +874,7 @@ void main(){
   }
 
   outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
-  // outColor = vec4(vec3(0.), scene.w);
+  outColorDist = vec4(vec3(dist),1.0);
 }`;
 //CIRCLE
 //---------------------------------------------
@@ -895,7 +897,9 @@ uniform vec3 u_stroke;
 uniform vec3 u_fill;
 uniform float u_opacity;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 float sdCircle(vec2 uv, vec2 p, float r){
   uv = uv - p;
@@ -944,6 +948,7 @@ void main(){
   if ( dist > 1.) discard;
 
   outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
+  outColorDist = vec4(vec3(dist),1.0);
 }`;
 
 //---------------------------------------------
@@ -968,7 +973,9 @@ uniform float u_opacity;
 
 uniform vec3 u_idCol;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 float sdCircle(vec2 uv, vec2 p, float r){
   uv = uv - p;
@@ -999,10 +1006,12 @@ void main(){
   uv.x *= u_resolution.x / u_resolution.y;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
+  float d = 0.0;
 
   //$INSERT CALL$------
 
   //$ENDINSERT CALL$---
+  outColorDist = vec4(vec3(d), 1.0);
 }`;
 //---------------------------------------------
 //ELLIPSE
@@ -1026,7 +1035,9 @@ uniform vec3 u_stroke;
 uniform vec3 u_fill;
 uniform float u_opacity;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 float msign(in float x) { return (x<0.0)?-1.0:1.0; }
 
@@ -1104,9 +1115,10 @@ void main(){
 
   dist = min(stroke, fill);
 
-  // if ( dist > 1.) discard;
+  if ( dist > 1.) discard;
 
   outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
+  outColorDist = vec4(vec3(dist),1.0);
 }`;
 
 //---------------------------------------------
@@ -1131,7 +1143,9 @@ uniform float u_opacity;
 
 uniform vec3 u_idCol;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 float msign(in float x) { return (x<0.0)?-1.0:1.0; }
 
@@ -1185,10 +1199,12 @@ void main(){
   uv.x *= u_resolution.x / u_resolution.y;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
+  float d = 0.0;
 
   //$INSERT CALL$------
 
   //$ENDINSERT CALL$---
+  outColorDist = vec4(vec3(d),1.0);
 }`;
 //---------------------------------------------
 
@@ -1214,7 +1230,9 @@ uniform vec3 u_fill;
 uniform float u_opacity;
 uniform float u_radius;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 float sdCircle(vec2 uv, vec2 p, float r){
   uv = uv - p;
@@ -1273,9 +1291,10 @@ void main(){
 
   dist = min(stroke, fill);
 
-  if ( dist > 1.) discard;
+  if ( dist + fill < 0.01) discard;
 
   outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
+  outColorDist = vec4(vec3(fill),1.0);
 }`;
 
 //---------------------------------------------
@@ -1301,7 +1320,9 @@ uniform float u_radius;
 
 uniform vec3 u_idCol;
 
-out vec4 outColor;
+// out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outColorDist;
 
 float sdCircle(vec2 uv, vec2 p, float r){
   uv = uv - p;
@@ -1341,9 +1362,154 @@ void main(){
   uv.x *= u_resolution.x / u_resolution.y;
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
+  float d = 0.0;
 
   //$INSERT CALL$------
 
   //$ENDINSERT CALL$---
+  outColorDist = vec4(vec3(d),1.0);
 }`;
 //---------------------------------------------
+export const pointLightEdit = 
+`#version 300 es
+#define saturate(a) clamp(a, 0.0, 1.0)
+
+precision mediump float;
+
+in vec2 v_texcoord;
+
+uniform vec3 u_resolution;
+
+uniform vec3 u_mPt;
+uniform vec3 u_dPt;
+
+uniform vec3 u_scale;
+
+// might be worth it to pack multiple lights into the same shader
+uniform sampler2D u_eTex;
+uniform sampler2D u_distTex;
+
+uniform float u_cTex;
+uniform float u_weight;
+uniform vec3 u_stroke;
+uniform vec3 u_fill;
+uniform float u_opacity;
+uniform float u_radius;
+
+// uniform vec3 u_idCol;
+
+out vec4 outColor;
+
+float sdCircle(vec2 uv, vec2 p, float r){
+  uv = uv - p;
+  return length(uv) - r;
+}
+
+// fill
+float fillMask(float dist){
+	return smoothstep(0.0,0.003, clamp(-dist, 0.0, 1.0));
+}
+
+float sceneDist(vec2 uv) {
+  float d = texture(u_distTex, uv).x;
+  return d;
+}
+
+float shadow(vec2 p, vec2 pos, float radius)
+{
+	vec2 dir = normalize(pos - p);
+	float dl = length(p - pos);
+	// fraction of light visible, starts at one radius (second half added in the end);
+	float lf = radius * dl;
+	// distance traveled
+	float dt = 0.000001;
+	for (int i = 0; i < 100; ++i)
+	{
+		// distance to scene at current position
+		float sd = sceneDist(p + dir * dt);
+    // early out when this ray is guaranteed to be full shadow
+    // if (sd < -radius){
+    //   return 0.0;
+    // }
+    if (sd < 0.){
+      return 0.0;
+    }
+		// width of cone-overlap at light
+		// 0 in center, so 50% overlap: add one radius outside of loop to get total coverage
+		// should be '(sd / dt) * dl', but '*dl' outside of loop
+		lf = min(lf, sd / dt);
+		// move ahead
+		dt += max(0.001, abs(sd));
+		if (dt > dl) break;
+	}
+	// multiply by dl to get the real projected overlap (moved out of loop)
+	// add one radius, before between -radius and + radius
+	// normalize to 1 ( / 2*radius)
+	lf = clamp((lf*dl + radius) / (2.0 * radius), 0.0, 1.0);
+	lf = smoothstep(0.00, 1.0, lf);
+	return lf;
+}
+
+vec3 drawLight(vec2 p, vec2 pos, vec3 color, float range, float radius)
+{
+	// distance to light
+	float ld = length(p - pos);
+	// out of range
+	if (ld > range) return vec3(0.0);
+	// shadow and falloff
+	float shad = shadow(p, pos, radius);
+	float fall = (range - ld)/range;
+	fall *= fall;
+	float source = fillMask(sdCircle(p - pos, vec2(0.,0.), radius));
+  return (shad * fall + source) * color;
+}
+
+float luminance(vec3 col)
+{
+	return 0.2126 * col.r + 0.7152 * col.g + 0.0722 * col.b;
+}
+
+vec3 setLuminance(vec3 col, float lum)
+{
+	lum /= luminance(col);
+	return col *= lum;
+}
+
+// float AO(vec2 p, float dist, float radius, float intensity)
+// {
+// 	float a = clamp(dist / radius, 0.0, 1.0) - 1.0;
+// 	return 1.0 - (pow(abs(a), 5.0) + 1.0) * intensity + (1.0 - intensity);
+// 	//return smoothstep(0.0, 1.0, dist / radius);
+// }
+
+vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
+    vec3 color = mix(col, vec3(1.0, 0.25, 0.25), dist);
+    return color;
+}
+
+void main(){
+  outColor = vec4(0.0);
+  vec2 uv = v_texcoord;
+  uv.x *= u_resolution.x / u_resolution.y;
+  uv -= u_dPt.xy;
+  uv *= (u_dPt.z / 64.);
+
+  //fill color
+  //set luminance
+  vec3 col = drawLight(uv, u_mPt.xy, setLuminance(u_fill, 0.6), u_weight * 20.0, 0.1);
+  //outColor += col.xyz
+
+  // float fill = fillMask(d);
+  // vec4 fillCol = mix(vec4(vec3(1.),0.), vec4(u_fill, u_opacity), fill);
+  // float stroke = line(d, u_weight);
+  // vec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);
+  
+  // float dist = min(stroke, fill);
+
+  // if ( dist > 1.){
+  //   discard;
+  // }
+
+  outColor = vec4(col, 0.5);
+}
+`

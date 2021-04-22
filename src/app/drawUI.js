@@ -256,9 +256,9 @@ function selMv(){
     
     console.log("drag start")
   }
-  // This isn't working
+
   if(state.ui.boxSelectState){
-    console.log(ptTree.all());
+    // console.log(ptTree.all());
     let selBox = {
       minX: Math.min(state.ui.boxSel[0], mPt.v3[0]),
       maxX: Math.max(state.ui.boxSel[0], mPt.v3[0]),
@@ -274,7 +274,7 @@ function selMv(){
       }
     }, []);
     
-    console.log(boxSel);
+    // console.log(boxSel);
     store.dispatch(ACT.editSelectReplace(boxSel))
   }
 }

@@ -337,7 +337,7 @@ export function circleCall(prim, layer){
   posString += '\tvec2 rad = vec2(' + indexX + ', ' + indexY + ');\n';
 
   posString += '\tfloat radius = distance(texture(u_eTex, pos).xy, texture(u_eTex, rad).xy);\n';
-  posString += '\tfloat d = sdCircle(uv - vec2(' + p +'), texture(u_eTex, pos).xy, radius);\n';
+  posString += '\td = sdCircle(uv - vec2(' + p +'), texture(u_eTex, pos).xy, radius);\n';
   posString += '\tfloat stroke = line(d, u_weight);\n';
   posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';
   posString += '\tfloat fill = fillMask(d);';
@@ -395,7 +395,7 @@ export function ellipseCall(prim, layer){
 
   posString += '\tvec2 center = texture(u_eTex, cIndex).xy;\n';
   posString += '\tvec2 dims = texture(u_eTex, dIndex).xy;\n';
-  posString += '\tfloat d = sdEllipse(uv - vec2(' + p +') - center, max(abs(dims - center), vec2(0.01,0.01)));\n';
+  posString += '\td = sdEllipse(uv - vec2(' + p +') - center, max(abs(dims - center), vec2(0.01,0.01)));\n';
   posString += '\tfloat stroke = line(d, u_weight);\n';
   posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';
   posString += '\tfloat fill = fillMask(d);';
@@ -451,7 +451,7 @@ export function rectangleCall(prim, layer){
   posString += '\tvec2 rect2 = texture(u_eTex, vec2('+index+')).xy;\n';
   posString += '\tvec2 center = 0.5 * (rect2 - rect1) + rect1;\n';
   posString += '\tvec2 rPt = abs(rect2 - center);\n';
-  posString += '\tfloat d = sdBox(uv - vec2('+ p + '), center, rPt, u_radius);\n';
+  posString += '\td = sdBox(uv - vec2('+ p + '), center, rPt, u_radius);\n';
 
   posString += '\tfloat stroke = line(d, u_weight);\n';
   posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';

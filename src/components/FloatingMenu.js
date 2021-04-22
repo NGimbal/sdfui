@@ -26,10 +26,10 @@ let dividerStyle =   {
 
 function FloatingMenu() {
   let primSel = "Circle";
-  let primList = ["Polyline", "Polygon", "Circle", "Ellipse", "Rectangle"];
+  let primList = ["Polyline", "Polygon", "Circle", "Ellipse", "Rectangle", "Point Light"];
 
   function primitiveChange(e){
-    primSel = e.toLowerCase();
+    primSel = e.replace(/\s+/g, '').toLowerCase();
     console.log(primSel);
     
     let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);

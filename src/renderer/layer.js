@@ -181,6 +181,8 @@ export function getFragStub(type, edit){
       return edit ? FS.ellipseEdit.slice() : FS.ellipseStub.slice();
     case'rectangle':
       return edit ? FS.rectangleEdit.slice() : FS.rectangleStub.slice();
+    case'pointlight':
+      return FS.pointLightEdit.slice();
     default:
       return FS.pLineStub.slice();
   }
@@ -264,6 +266,23 @@ function getUniforms(type){
         u_dPt: twgl.v3.create(dPt[0], dPt[1], 0),
         u_eTex: {},
         u_cTex: -1,
+        u_weight: properties.weight,
+        u_opacity: properties.opacity,
+        u_stroke: chroma(properties.stroke).gl().slice(0,3),
+        u_fill: chroma(properties.fill).gl().slice(0,3),
+        u_radius: 0.01,
+      }
+    case'pointlight':
+      return {
+        // u_matrix: matrix,
+        // u_idColor: [3],
+        u_textureMatrix: twgl.m4.copy(texMatrix),
+        u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+        u_mPt: twgl.v3.create(mPt.x, mPt.y, 0),
+        u_dPt: twgl.v3.create(dPt[0], dPt[1], 0),
+        u_eTex: {},
+        u_distTex: {},
+        u_cTex: -1, // not really a tex... stands for current Texel
         u_weight: properties.weight,
         u_opacity: properties.opacity,
         u_stroke: chroma(properties.stroke).gl().slice(0,3),

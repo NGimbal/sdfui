@@ -360,7 +360,8 @@ function updateUniforms(prim, layer){
     layer.uniforms.u_radius = prim.properties.radius; 
   }
   if(typeof layer.uniforms.u_distTex  === 'object'){
-    layer.uniforms.u_distTex = distTex; 
+    // console.log(layer);
+    layer.uniforms.u_distTex = distTex;
   }
   // box select pt A
   if(typeof layer.uniforms.u_boxSel  === 'object'){
@@ -395,7 +396,9 @@ function draw() {
   let bboxSearch = bboxTree.search(view).map(b => b.id);
   layers.forEach(l => l.active = (bboxSearch.includes(l.id) || 
                                  state.scene.editItem === l.id || 
-                                 l.primType === "grid" || l.primType === "ui") && l.visible);
+                                 l.primType === "grid" || l.primType === "ui") 
+                                 && l.visible 
+                                 && l.primType !== 'pointlight');
 
   // draw to distTex
   twgl.bindFramebufferInfo(gl, distBuffer)
@@ -409,12 +412,14 @@ function draw() {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   twgl.drawObjectList(gl, layers.sort((a,b)=> a.order - b.order));
 
-  // draw to canvas
+  //
   // an optimization could be to render sceneTex to the screen instead of re-rendering the scene
+  layers.forEach(l => l.active = (bboxSearch.includes(l.id) || 
+                                 state.scene.editItem === l.id || 
+                                 l.primType === "grid" || l.primType === "ui") 
+                                 && l.visible);
+  // draw to canvas
   twgl.bindFramebufferInfo(gl, null)
-  gl.drawBuffers([
-    gl.RENDERBUFFER
-  ])
   // Clear the canvas
   gl.clearColor(1, 1, 1, 0.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
