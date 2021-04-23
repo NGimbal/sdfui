@@ -189,6 +189,7 @@ function drawUp(e){
 
   // TODO: Make layers a pure function of primitives
   let currLayer = layers.find(l => l.id === state.scene.editItem);
+
   let pt = currLayer.uniforms.u_eTex.addPoint(mPt, state.scene.editItem);
 
   store.dispatch(ACT.sceneAddPt([pt], state.scene.editItem));

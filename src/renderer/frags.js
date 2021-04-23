@@ -62,8 +62,30 @@ void main() {
   // uv.x *= u_resolution.x / u_resolution.y;
 
   outColor = texture(u_img, uv);
+  // outColor = vec4(1.0,0.0,0.0,1.0);
 }`
 
+//---------------------------------------------
+export const distFrag =
+`#version 300 es
+precision highp float;
+ 
+in vec2 v_texcoord;
+ 
+uniform sampler2D u_distTex;
+uniform vec3 u_resolution;
+uniform vec3 u_dPt;
+
+out vec4 outColor;
+
+void main() {
+  vec2 uv = v_texcoord;
+  // uv.x *= u_resolution.x / u_resolution.y;
+  uv.x = abs(uv.x - (u_resolution.x/1000.0)) - 0.5;
+  vec4 dist = texture(u_distTex, uv);
+  outColor = mix(dist, vec4(1.0,0.0,0.0,0.25), dist.x);
+  // outColor = vec4(1.0,0.0,0.0,1.0);
+}`
 //---------------------------------------------
 export const demoFrag =
 `#version 300 es
@@ -635,7 +657,6 @@ float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float 
 
 float drawLine(vec2 uv, vec2 pA, vec2 pB, float weight, float dash){
   float line = LineDistField(uv, pA, pB, vec2(weight), weight, dash);
-  // line = 1.0 - smoothstep(0.0, 0.003, line);
   return line;
 }
 
@@ -732,7 +753,7 @@ void main(){
 
   dist = min(stroke, fill);
   
-  if ( dist > 1.) discard;
+  if ( stroke + fill < 0.01) discard;
 
   outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
   outColorDist = vec4(vec3(dist),1.0);
@@ -869,9 +890,7 @@ void main(){
   
   float dist = min(stroke, fill);
 
-  if ( dist > 1.){
-    discard;
-  }
+  if ( stroke + fill < 0.01) discard;
 
   outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
   outColorDist = vec4(vec3(dist),1.0);

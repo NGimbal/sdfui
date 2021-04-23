@@ -44,7 +44,7 @@ function FloatingMenu() {
 
       let newPrim = new PRIM.prim(primSel, [], {...currItem.properties});
 
-      if(currItem && currItem.pts.length > 1){
+      if(currItem && currItem.pts.length > 1 && currLayer.primType !== 'pointlight'){
         bakeLayer(currLayer);
         store.dispatch(ACT.scenePushEditItem(newPrim));
       } else {

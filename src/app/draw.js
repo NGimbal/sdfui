@@ -12,7 +12,7 @@ import {DrawUI} from './drawUI.js';
 import * as PRIM from '../renderer/primitives.js';
 import * as SF from '../renderer/frags.js';
 import {Layer, updateMatrices} from '../renderer/layer.js';
-import { DrawerPosition } from 'construct-ui';
+// import { DrawerPosition } from 'construct-ui';
 
 var canvas, ctx, ui;
 var view;
@@ -67,25 +67,6 @@ function listener(){
   }, []);
 
   bboxTree.load(boxes)
-
-  // update layers[]
-  // let stack = [];
-
-  // layer uniforms are getting updated
-  // in render loop
-  // for (let item of state.scene.editItems){
-  //   if(!item.update) continue;
-  //   let layer = layers.find(l => l.id === item.id);
-  //   stack.push(layer);
-  //   if(!layer && state.scene.editItem !== item.id){
-  //     layer = bakePrim(item);
-  //     stack.push(layer);
-  //   } else if(layer) {
-  //     updateUniforms(item, layer);
-  //   }
-  // }
-  // get rid of layers if we've deleted the item
-  // layers.filter(l => items.includes(l.id));
 
   return state;
 }; 
@@ -188,7 +169,7 @@ export function initDraw() {
     width: gl.canvas.width,
     height: gl.canvas.height,
     min: gl.LINEAR,
-    wrap: gl.CLAMP_TO_EDGE
+    wrap: gl.CLAMP_TO_EDGE,
   })
 
   let sceneTex = twgl.createTexture(gl, {
@@ -196,7 +177,7 @@ export function initDraw() {
     width: gl.canvas.width,
     height: gl.canvas.height,
     min: gl.LINEAR,
-    wrap: gl.CLAMP_TO_EDGE
+    wrap: gl.CLAMP_TO_EDGE,
   })
 
   // eventually would like 
@@ -205,6 +186,8 @@ export function initDraw() {
     {attachment:distTex, attachmentPoint:gl.COLOR_ATTACHMENT1}
   ], gl.canvas.width, gl.canvas.height)
 
+  addDistImg(distTex, {width:gl.canvas.width, height:gl.canvas.height}, {x: 0, y: 0})
+
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   
@@ -212,9 +195,55 @@ export function initDraw() {
 }
 
 // addImage function
-export function addImage(_src, dims, evPt) {
-  let src;
-  console.log(typeof _src);
+export function addDistImg(distTex, dims, evPt) {
+
+  let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
+  // texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
+
+  let imgUniforms = {
+    u_textureMatrix: twgl.m4.copy(texMatrix),
+    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+    u_dPt: dPt,
+    u_distTex: distTex,
+  }
+  
+  console.log(dims);
+  console.log(dims.height / dims.width);
+
+  // I have no idea where this number comes from
+  let width = dims.width/ dims.height;
+  let height = dims.height/ dims.height;
+
+  // transforms window / js space to sdf / frag space
+  evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - dPt[0];
+  evPt.y = (evPt.y/resolution.y)  - dPt[1];
+  evPt.x = evPt.x * (dPt[2] / 64.);
+  evPt.y = evPt.y * (dPt[2] / 64.);
+
+  let pt0 = new PRIM.vec(evPt.x + width, evPt.y + height);
+  let pt1 = new PRIM.vec(evPt.x, evPt.y);
+  let pts = [pt0, pt1];
+
+  let imgPrim = new PRIM.prim("img", pts, {}, PRIM.uuid());
+  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.distFrag, state.scene.editItems.length, imgUniforms, 10);
+
+  let bbox = new PRIM.bbox(imgPrim,0.0);
+  
+  imgPrim.bbox = bbox;
+  imgLayer.bbox = {...bbox};
+    
+  store.dispatch(ACT.scenePushEditItem(imgPrim, state.scene.editItem))
+
+  updateMatrices(imgLayer);
+
+  layers.push(imgLayer);
+}
+
+// addImage function
+export function addImage(_src, dims, evPt, _uName) {
+  // console.log(evPt)
+  // console.log(dims)
+  let src, image;
   switch(typeof _src){
     case "string":
       src = _src;
@@ -223,22 +252,22 @@ export function addImage(_src, dims, evPt) {
       src = "../assets/textures/leaves.jpg";
       break;
   }
+
   // let src = _src || "../assets/textures/leaves.jpg";
 
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
   texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
 
-  let image = twgl.createTexture(gl, {
+  image = twgl.createTexture(gl, {
     src: src,
     color: [0.125, 0.125, 0.125, 0.125],
   }, () => {
     // console.log(image);
   });
 
-  twgl.loadTextureFromUrl(gl, image);
-
+  twgl.loadTextureFromUrl(gl, image);  
+  
   let imgUniforms = {
-    // u_matrix: matrix,
     u_textureMatrix: twgl.m4.copy(texMatrix),
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
     u_dPt: dPt,
@@ -248,9 +277,8 @@ export function addImage(_src, dims, evPt) {
   // Will want to add some cool image processing stuff at some point...
   // Blending, edge detection, img -> sdf in some way :)
   
-  // let aspect = dims.width / dims.height;
-  let width = dims.width/1000;
-  let height = dims.height/1000; 
+  let width = dims.width/dims.height;
+  let height = dims.height/dims.height; 
 
   // transforms window / js space to sdf / frag space
   evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - dPt[0];
@@ -258,17 +286,12 @@ export function addImage(_src, dims, evPt) {
   evPt.x = evPt.x * (dPt[2] / 64.);
   evPt.y = evPt.y * (dPt[2] / 64.);
 
-  // let pts = [{x: evPt.x, y: evPt.y},
-  //               {x: evPt.x + width, y: evPt.y + height}];
-  
   let pt0 = new PRIM.vec(evPt.x, evPt.y);
   let pt1 = new PRIM.vec(evPt.x + width, evPt.y + height);
   let pts = [pt0, pt1];
 
-  // state.dispatch(ACT.sceneAddPts(pts))
-
   let imgPrim = new PRIM.prim("img", pts, {}, PRIM.uuid());
-  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, state.scene.editItems.length, imgUniforms);
+  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, state.scene.editItems.length, imgUniforms, 10);
 
   let bbox = new PRIM.bbox(imgPrim,0.0);
   
@@ -360,10 +383,10 @@ function updateUniforms(prim, layer){
     layer.uniforms.u_radius = prim.properties.radius; 
   }
   if(typeof layer.uniforms.u_distTex  === 'object'){
-    // console.log(layer);
     layer.uniforms.u_distTex = distTex;
   }
-  // box select pt A
+
+  // box select
   if(typeof layer.uniforms.u_boxSel  === 'object'){
     layer.uniforms.u_boxSel = twgl.v3.copy(state.ui.boxSel);
   }
@@ -393,13 +416,14 @@ function updateUniforms(prim, layer){
 function draw() {
   // spatial indexing / hashing for rendering
   // filtering the render list causes the framerate to drop
-  let bboxSearch = bboxTree.search(view).map(b => b.id);
-  layers.forEach(l => l.active = (bboxSearch.includes(l.id) || 
-                                 state.scene.editItem === l.id || 
-                                 l.primType === "grid" || l.primType === "ui") 
-                                 && l.visible 
-                                 && l.primType !== 'pointlight');
-
+  // let bboxSearch = bboxTree.search(view).map(b => b.id);
+  // layers.forEach(l => l.active = (bboxSearch.includes(l.id) || 
+  //                                state.scene.editItem === l.id) 
+  //                                && l.visible 
+  //                                && l.primType !== 'pointlight');
+  
+  // console.log(layers)
+  
   // draw to distTex
   twgl.bindFramebufferInfo(gl, distBuffer)
   gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
@@ -414,10 +438,10 @@ function draw() {
 
   //
   // an optimization could be to render sceneTex to the screen instead of re-rendering the scene
-  layers.forEach(l => l.active = (bboxSearch.includes(l.id) || 
-                                 state.scene.editItem === l.id || 
-                                 l.primType === "grid" || l.primType === "ui") 
-                                 && l.visible);
+  // layers.forEach(l => l.active = (bboxSearch.includes(l.id) || 
+  //                                state.scene.editItem === l.id || 
+  //                                l.primType === "grid" || l.primType === "ui") 
+  //                                && l.visible);
   // draw to canvas
   twgl.bindFramebufferInfo(gl, null)
   // Clear the canvas

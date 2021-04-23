@@ -25,6 +25,9 @@ export function bake(layer){
     case'rectangle':
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return rectangleCall(prim, layer);
+    case'pointlight':
+      console.log('bake pointlight not yet implemented.')
+      return;
     default:
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return polyLine(prim, layer);

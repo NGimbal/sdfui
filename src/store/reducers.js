@@ -127,7 +127,6 @@ function ui(_state=initialState, action){
         dragging: action.toggle
       });
     case ACT.UI_DRAGSTART:
-      console.log(action);
       return Object.assign({}, state,{
         dragStart: action.toggle,
         dragOrigin: twgl.v3.copy(action.pt),
