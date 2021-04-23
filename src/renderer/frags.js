@@ -80,11 +80,12 @@ out vec4 outColor;
 
 void main() {
   vec2 uv = v_texcoord;
-  // uv.x *= u_resolution.x / u_resolution.y;
-  uv.x = abs(uv.x - (u_resolution.x/1000.0)) - 0.5;
+  // flip x for some reason
+  // uv.x = abs(uv.x - (u_resolution.x/1000.0)) - 0.5;
+  uv.x = (u_resolution.x/1000.0) - uv.x - 0.5;
+  
   vec4 dist = texture(u_distTex, uv);
   outColor = mix(dist, vec4(1.0,0.0,0.0,0.25), dist.x);
-  // outColor = vec4(1.0,0.0,0.0,1.0);
 }`
 //---------------------------------------------
 export const demoFrag =
@@ -580,6 +581,7 @@ void main(){
 
   vec4 scene = sceneDist(uv);
 
+  outColorDist = vec4(vec3(scene.w),1.0);
 
   vec3 col = scene.xyz;
   float dist = line(scene.w, u_weight);
@@ -964,7 +966,7 @@ void main(){
 
   dist = min(stroke, fill);
 
-  if ( dist > 1.) discard;
+  if ( stroke + fill < 0.01) discard;
 
   outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
   outColorDist = vec4(vec3(dist),1.0);
@@ -1134,7 +1136,7 @@ void main(){
 
   dist = min(stroke, fill);
 
-  if ( dist > 1.) discard;
+  if ( fill + stroke < 0.01) discard;
 
   outColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);
   outColorDist = vec4(vec3(dist),1.0);
@@ -1222,7 +1224,7 @@ void main(){
 
   //$INSERT CALL$------
 
-  //$ENDINSERT CALL$---
+  //$ENDINSERT CALL$---  
   outColorDist = vec4(vec3(d),1.0);
 }`;
 //---------------------------------------------
@@ -1430,7 +1432,16 @@ float fillMask(float dist){
 }
 
 float sceneDist(vec2 uv) {
-  float d = texture(u_distTex, uv).x;
+  // need to figure out how to align uv to distTex
+  //
+  // uv.x = abs(uv.x - (u_resolution.x/1000.0))
+  uv *= (64. / u_dPt.z);
+  uv += u_dPt.xy;
+  uv.x *= u_resolution.y / u_resolution.x;
+
+  uv.y = (u_resolution.y/1000.0) - uv.y + 0.22;
+  
+  float d = 0.0 - texture(u_distTex, uv).x;
   return d;
 }
 
@@ -1476,7 +1487,7 @@ vec3 drawLight(vec2 p, vec2 pos, vec3 color, float range, float radius)
 	// out of range
 	if (ld > range) return vec3(0.0);
 	// shadow and falloff
-	float shad = shadow(p, pos, radius);
+	float shad = shadow(p, pos, range);
 	float fall = (range - ld)/range;
 	fall *= fall;
 	float source = fillMask(sdCircle(p - pos, vec2(0.,0.), radius));
@@ -1515,7 +1526,7 @@ void main(){
 
   //fill color
   //set luminance
-  vec3 col = drawLight(uv, u_mPt.xy, setLuminance(u_fill, 0.6), u_weight * 20.0, 0.1);
+  vec3 col = drawLight(uv, u_mPt.xy, setLuminance(u_fill, 0.8), 0.25, u_weight * 40.);
   //outColor += col.xyz
 
   // float fill = fillMask(d);
@@ -1525,9 +1536,7 @@ void main(){
   
   // float dist = min(stroke, fill);
 
-  // if ( dist > 1.){
-  //   discard;
-  // }
+  // if ( dist < 0.01) discard;
 
   outColor = vec4(col, 0.5);
 }

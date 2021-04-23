@@ -186,7 +186,7 @@ export function initDraw() {
     {attachment:distTex, attachmentPoint:gl.COLOR_ATTACHMENT1}
   ], gl.canvas.width, gl.canvas.height)
 
-  addDistImg(distTex, {width:gl.canvas.width, height:gl.canvas.height}, {x: 0, y: 0})
+  // addDistImg(distTex, {width:gl.canvas.width, height:gl.canvas.height}, {x: 0, y: 0})
 
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -432,7 +432,7 @@ function draw() {
     gl.COLOR_ATTACHMENT1
   ])
   // Clear
-  gl.clearColor(1, 1, 1, 0.0);
+  gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   twgl.drawObjectList(gl, layers.sort((a,b)=> a.order - b.order));
 
