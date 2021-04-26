@@ -48,9 +48,9 @@ void main() {
 export const imgFrag =
 `#version 300 es
 precision highp float;
- 
+
 in vec2 v_texcoord;
- 
+
 uniform sampler2D u_img;
 uniform vec3 u_resolution;
 uniform vec3 u_dPt;
@@ -59,10 +59,8 @@ out vec4 outColor;
  
 void main() {
   vec2 uv = v_texcoord;
-  // uv.x *= u_resolution.x / u_resolution.y;
 
   outColor = texture(u_img, uv);
-  // outColor = vec4(1.0,0.0,0.0,1.0);
 }`
 
 //---------------------------------------------
@@ -236,7 +234,7 @@ void main() {
   
   // red lines
   // vec3(x) is background color
-  vec3 col = vec3(0.35) - smoothstep( (u_dPt.z * 0.001),0.0, abs(gridMnr(uv.x)))*vec3(.25,0.15,0.02);
+  vec3 col = vec3(1.0) - smoothstep( (u_dPt.z * 0.001),0.0, abs(gridMnr(uv.x)))*vec3(.25,0.15,0.02);
   col -= smoothstep((u_dPt.z * 0.001), 0.0, abs(gridMnr(uv.y)))*vec3(.25,0.15,0.02);
   
   // blue lines
@@ -1526,17 +1524,7 @@ void main(){
 
   //fill color
   //set luminance
-  vec3 col = drawLight(uv, u_mPt.xy, setLuminance(u_fill, 0.8), 0.25, u_weight * 40.);
-  //outColor += col.xyz
-
-  // float fill = fillMask(d);
-  // vec4 fillCol = mix(vec4(vec3(1.),0.), vec4(u_fill, u_opacity), fill);
-  // float stroke = line(d, u_weight);
-  // vec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);
-  
-  // float dist = min(stroke, fill);
-
-  // if ( dist < 0.01) discard;
+  vec3 col = drawLight(uv, u_mPt.xy, setLuminance(u_fill, 0.8), 0.125, u_weight * 20.);
 
   outColor = vec4(col, 0.5);
 }

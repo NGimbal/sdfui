@@ -14,7 +14,8 @@
 // should rely on these as little as possible, eventually this stuff
 // will live in a scene object that is the singleton for this shit
 import {gl, state, resolution, mPt, dPt, bboxTree} from '../app/draw.js';
-import * as FS from './frags.js';
+// import * as FS from './frags.js';
+import * as FS from './shaders/shaders';
 import * as BAKE from './bakeLayer.js';
 import * as PRIM from './primitives.js';
 import * as chroma from 'chroma-js';

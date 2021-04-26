@@ -196,10 +196,11 @@ function drawUp(e){
 
   let currItem  = state.scene.editItems.find(item => item.id === state.scene.editItem);
 
-  // this condition isn't great but seems to work
   if ( (currItem.type == "circle" || currItem.type == "ellipse" || currItem.type == "rectangle") && currItem.pts.length == 2 ){    
     let bbox = new PRIM.bbox(currItem, 0.05);
+
     store.dispatch(ACT.editBbox(currItem.id, bbox));
+    store.dispatch(ACT.editSelectRmv(currItem.id));
 
     bakeLayer(currLayer);
     
@@ -230,14 +231,14 @@ function selUp(e){
 
     store.dispatch(ACT.uiDragStart(false, mPt.v3));
     store.dispatch(ACT.uiDragging(false));
-
-  } else if (state.ui.dragStart){
-
-    store.dispatch(ACT.uiDragStart(false, mPt.v3));
     
     if(state.scene.selected.includes(state.scene.hover)){
       store.dispatch(ACT.editSelectRmv(state.scene.hover));
     }
+  } else if (state.ui.dragStart){
+
+    store.dispatch(ACT.uiDragStart(false, mPt.v3));
+  
   }
   store.dispatch(ACT.uiBoxSelect(mPt.v3, 0));
 }
@@ -281,10 +282,10 @@ function selMv(){
 }
 
 //---SELECT----------------------------
-
 function endDrawClck(){
   this.toggle = true;
 }
+
 //
 function escDrawClck(){
   this.toggle = true;
@@ -305,13 +306,14 @@ function endDrawUpdate(){
 
   let bbox = new PRIM.bbox(currItem, 0.05);
   store.dispatch(ACT.editBbox(currItem.id, bbox));
+  store.dispatch(ACT.editSelectRmv(currItem.id));
 
   bakeLayer(layer);
 
   let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
   
   store.dispatch(ACT.scenePushEditItem(newPrim));
-
+  
   //next item
   let newLayer = createLayer(newPrim, state.scene.editItems.length);
 

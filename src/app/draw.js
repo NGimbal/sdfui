@@ -10,7 +10,7 @@ import { reducer } from '../store/reducers.js';
 
 import {DrawUI} from './drawUI.js';
 import * as PRIM from '../renderer/primitives.js';
-import * as SF from '../renderer/frags.js';
+import * as SF from '../renderer/shaders/shaders.js';
 import {Layer, updateMatrices} from '../renderer/layer.js';
 // import { DrawerPosition } from 'construct-ui';
 
@@ -73,8 +73,8 @@ function listener(){
 
 
 //subscribe to store changes - run listener to set relevant variables
-// store.subscribe(() => console.log(listener()));
-store.subscribe(() => listener());
+store.subscribe(() => console.log(listener()));
+// store.subscribe(() => listener());
 
 export function initDraw() {
   let canvasContainer = document.querySelector('#canvasContainer');
@@ -194,7 +194,7 @@ export function initDraw() {
   requestAnimationFrame(render);
 }
 
-// addImage function
+// addDistImage function
 export function addDistImg(distTex, dims, evPt) {
 
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
@@ -206,9 +206,6 @@ export function addDistImg(distTex, dims, evPt) {
     u_dPt: dPt,
     u_distTex: distTex,
   }
-  
-  console.log(dims);
-  console.log(dims.height / dims.width);
 
   // I have no idea where this number comes from
   let width = dims.width/ dims.height;
@@ -241,8 +238,6 @@ export function addDistImg(distTex, dims, evPt) {
 
 // addImage function
 export function addImage(_src, dims, evPt, _uName) {
-  // console.log(evPt)
-  // console.log(dims)
   let src, image;
   switch(typeof _src){
     case "string":
@@ -252,8 +247,6 @@ export function addImage(_src, dims, evPt, _uName) {
       src = "../assets/textures/leaves.jpg";
       break;
   }
-
-  // let src = _src || "../assets/textures/leaves.jpg";
 
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
   texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
@@ -299,8 +292,6 @@ export function addImage(_src, dims, evPt, _uName) {
   imgLayer.bbox = {...bbox};
     
   store.dispatch(ACT.scenePushEditItem(imgPrim, state.scene.editItem))
-
-  // bboxTree.insert({...bbox});
 
   updateMatrices(imgLayer);
 
@@ -415,12 +406,14 @@ function updateUniforms(prim, layer){
 
 function draw() {
   // spatial indexing / hashing for rendering
-  // filtering the render list causes the framerate to drop
-  // let bboxSearch = bboxTree.search(view).map(b => b.id);
-  // layers.forEach(l => l.active = (bboxSearch.includes(l.id) || 
-  //                                state.scene.editItem === l.id) 
-  //                                && l.visible 
-  //                                && l.primType !== 'pointlight');
+  // filtering the render list causes the framerate to drop, does using .active work better?
+  // only show edit item when state.ui.mode === "draw"
+  let bboxSearch = bboxTree.search(view).map(b => b.id);
+
+  layers.forEach(l => l.active = bboxSearch.includes(l.id) 
+                                 || (state.scene.editItem === l.id && state.ui.mode === "draw")
+                                 && l.primType !== 'pointlight'
+                                 && l.visible);
   
   // console.log(layers)
   
@@ -438,10 +431,11 @@ function draw() {
 
   //
   // an optimization could be to render sceneTex to the screen instead of re-rendering the scene
-  // layers.forEach(l => l.active = (bboxSearch.includes(l.id) || 
-  //                                state.scene.editItem === l.id || 
-  //                                l.primType === "grid" || l.primType === "ui") 
-  //                                && l.visible);
+  layers.forEach(l => l.active = bboxSearch.includes(l.id) || 
+                                 (state.scene.editItem === l.id && state.ui.mode === "draw") 
+                                 || l.primType === "grid" || l.primType === "ui" 
+                                 && l.visible);
+
   // draw to canvas
   twgl.bindFramebufferInfo(gl, null)
   // Clear the canvas
