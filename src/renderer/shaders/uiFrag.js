@@ -1,3 +1,5 @@
+import {sdCircle, filterLine, filterFill, drawPt, sdLine, sdBox} from "./shaderFunctions"
+
 export const uiFrag =
 `#version 300 es
 #define saturate(a) clamp(a, 0.0, 1.0)
@@ -24,36 +26,10 @@ uniform float u_boxState;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outColorDist;
 
-float sdCircle(vec2 uv, vec2 p, float r){
-  uv = uv - p;
-  return length(uv) - r;
-}
-
-//uv, p translation point, b 1/2 length, width, r radius
-float sdBox( in vec2 uv, in vec2 p, in vec2 b , in float r)
-{
-    b -= r;
-    uv = (uv-p);
-    vec2 d = abs(uv)-b;
-    return length(max(d,vec2(0))) + min(max(d.x,d.y),0.0) - r;
-}
-
-// fill
-float fillMask(float dist){
-	return smoothstep(0.0,0.003, clamp(-dist, 0.0, 1.0));
-}
-
-//smooth Line Filter
-float line(float d, float w){
-  d = clamp(abs(d) - w, 0.0, 1.0);
-  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
-  return d;
-}
-
-vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
-    vec3 color = mix(col, vec3(1.0, 0.25, 0.25), dist);
-    return color;
-}
+${sdCircle}
+${sdBox}
+${filterLine}
+${drawPt}
 
 void main(){
   outColor = vec4(1.0);
@@ -99,7 +75,6 @@ uniform vec3 u_dPt;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outColorDist;
 
-// float repeat(float x) { return abs(fract(x*0.5+0.5)-0.5)*2.0; }
 float gridMnr(float x) { return abs(fract(x*0.5+0.5)-0.5) * 2.; }
 
 void main() {

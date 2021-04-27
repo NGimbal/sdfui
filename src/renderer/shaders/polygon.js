@@ -1,3 +1,5 @@
+import {sdCircle, filterLine, filterFill, drawPt, sdLine} from "./shaderFunctions"
+
 export const polygonEdit =
 `#version 300 es
 #define saturate(a) clamp(a, 0.0, 1.0)
@@ -22,59 +24,10 @@ uniform float u_opacity;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outColorDist;
 
-//https://www.shadertoy.com/view/4tc3DX
-float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
-    // Don't let it get more round than circular.
-    rounded = min(thick.y, rounded);
-
-    vec2 mid = (pB + pA) * 0.5;
-    vec2 delta = pB - pA;
-    float lenD = length(delta);
-    vec2 unit = delta / lenD;
-
-    // Check for when line endpoints are the same
-    if (lenD < 0.0001) unit = vec2(1.0, 0.0);	// if pA and pB are same
-    
-    // Perpendicular vector to unit - also length 1.0
-    vec2 perp = unit.yx * vec2(-1.0, 1.0);
-    
-    // position along line from midpoint
-    float dpx = dot(unit, uv - mid);
-    
-    // distance away from line at a right angle
-    float dpy = dot(perp, uv - mid);
-    
-    // Make a distance function that is 0 at the transition from black to white
-    float disty = abs(dpy) - thick.y + rounded;
-    float distx = abs(dpx) - lenD * 0.5 - thick.x + rounded;
-
-    float dist = length(vec2(max(0.0, distx), max(0.0,disty))) - rounded;
-    dist = min(dist, max(distx, disty));
-
-    return dist;
-}
-
-float drawLine(vec2 uv, vec2 pA, vec2 pB, float weight, float dash){
-  float line = LineDistField(uv, pA, pB, vec2(weight), weight, dash);
-  return line;
-}
-
-float sdCircle(vec2 uv, vec2 p, float r){
-  uv = uv - p;
-  return length(uv) - r;
-}
-
-//smooth Line Filter
-float line(float d, float w){
-  d = clamp(abs(d) - w, 0.0, 1.0);
-  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
-  return d;
-}
-
-// fill
-float fillMask(float dist){
-	return smoothstep(0.0,0.003, clamp(-dist, 0.0, 1.0));
-}
+${sdLine}
+${sdCircle}
+${filterLine}
+${filterFill}
 
 void main(){
   outColor = vec4(1.0);
@@ -138,11 +91,11 @@ void main(){
   vec4 fillCol = mix(vec4(vec3(1.),0.), vec4(u_fill, u_opacity), fill);
 
   if (prevPt != vec2(0.)){
-    dist = min(dist, drawLine(uv, prevPt, u_mPt.xy, u_weight / 2., 0.0));
-    dist = min(dist, drawLine(uv, u_mPt.xy, first, u_weight / 2., 0.0));
+    dist = min(dist, sdLine(uv, prevPt, u_mPt.xy, u_weight / 2., 0.0));
+    dist = min(dist, sdLine(uv, u_mPt.xy, first, u_weight / 2., 0.0));
 
-    // dSh = min(dSh, drawLine(uv - dShTrans, prevPt, u_mPt.xy, u_weight / 2.0, 0.0));
-    // dSh = min(dSh, drawLine(uv - dShTrans, u_mPt.xy, first, u_weight / 2.0, 0.0));
+    // dSh = min(dSh, sdLine(uv - dShTrans, prevPt, u_mPt.xy, u_weight / 2.0, 0.0));
+    // dSh = min(dSh, sdLine(uv - dShTrans, u_mPt.xy, first, u_weight / 2.0, 0.0));
   }
 
   float stroke = line(dist, u_weight);
@@ -185,75 +138,10 @@ uniform vec3 u_idCol;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outColorDist;
 
-//https://www.shadertoy.com/view/4tc3DX
-float LineDistField(vec2 uv, vec2 pA, vec2 pB, vec2 thick, float rounded, float dashOn) {
-    // Don't let it get more round than circular.
-    rounded = min(thick.y, rounded);
-
-    vec2 mid = (pB + pA) * 0.5;
-    vec2 delta = pB - pA;
-    float lenD = length(delta);
-    vec2 unit = delta / lenD;
-
-    // Check for when line endpoints are the same
-    if (lenD < 0.0001) unit = vec2(1.0, 0.0);	// if pA and pB are same
-    
-    // Perpendicular vector to unit - also length 1.0
-    vec2 perp = unit.yx * vec2(-1.0, 1.0);
-    
-    // position along line from midpoint
-    float dpx = dot(unit, uv - mid);
-    
-    // distance away from line at a right angle
-    float dpy = dot(perp, uv - mid);
-    
-    // Make a distance function that is 0 at the transition from black to white
-    float disty = abs(dpy) - thick.y + rounded;
-    float distx = abs(dpx) - lenD * 0.5 - thick.x + rounded;
-
-    float dist = length(vec2(max(0.0, distx), max(0.0,disty))) - rounded;
-    dist = min(dist, max(distx, disty));
-
-    return dist;
-}
-
-float drawLine(vec2 uv, vec2 pA, vec2 pB, float weight, float dash){
-  float line = LineDistField(uv, pA, pB, vec2(weight), weight, dash);
-  // line = 1.0 - smoothstep(0.0, 0.003, line);
-  return line;
-}
-
-float sdCircle(vec2 uv, vec2 p, float r){
-  uv = uv - p;
-  return length(uv) - r;
-}
-
-//smooth Line Filter
-float line(float d, float w){
-  d = clamp(abs(d) - w, 0.0, 1.0);
-  //very simple lod
-  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
-  return d;
-}
-
-// fill
-float fillMask(float dist){
-	return smoothstep(0.0,0.003, clamp(-dist, 0.0, 1.0));
-}
-
-vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
-    vec3 color = mix(col, vec3(1.0, 0.25, 0.25), dist);
-    return color;
-}
-
-//smooth sdf Iso
-vec3 sdf(vec2 uv, float d){
-  vec3 col = vec3(1.0) - sign(d)*vec3(0.1,0.4,0.7);
-	col *= 1.0 - exp(-3.0*abs(d));
-	col *= 0.8 + 0.2*cos(150.0*d);
-	col = mix( col, vec3(1.0), 1.0-smoothstep(0.0,0.003,abs(d)));
-  return col;
-}
+${sdLine}
+${sdCircle}
+${filterLine}
+${filterFill}
 
 //$INSERT FUNCTION$------
 

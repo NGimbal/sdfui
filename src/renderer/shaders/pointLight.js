@@ -1,3 +1,5 @@
+import {sdCircle, filterLine, filterFill, drawPt} from "./shaderFunctions"
+
 export const pointLightEdit = 
 `#version 300 es
 #define saturate(a) clamp(a, 0.0, 1.0)
@@ -28,15 +30,9 @@ uniform float u_radius;
 
 out vec4 outColor;
 
-float sdCircle(vec2 uv, vec2 p, float r){
-  uv = uv - p;
-  return length(uv) - r;
-}
-
-// fill
-float fillMask(float dist){
-	return smoothstep(0.0,0.003, clamp(-dist, 0.0, 1.0));
-}
+${sdCircle}
+${filterFill}
+${drawPt}
 
 float sceneDist(vec2 uv) {
   // need to figure out how to align uv to distTex
@@ -46,6 +42,7 @@ float sceneDist(vec2 uv) {
   uv += u_dPt.xy;
   uv.x *= u_resolution.y / u_resolution.x;
 
+	// .22 is not correct yet... don't know what that number should be
   uv.y = (u_resolution.y/1000.0) - uv.y + 0.22;
   
   float d = 0.0 - texture(u_distTex, uv).x;
@@ -118,11 +115,6 @@ vec3 setLuminance(vec3 col, float lum)
 // 	return 1.0 - (pow(abs(a), 5.0) + 1.0) * intensity + (1.0 - intensity);
 // 	//return smoothstep(0.0, 1.0, dist / radius);
 // }
-
-vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
-    vec3 color = mix(col, vec3(1.0, 0.25, 0.25), dist);
-    return color;
-}
 
 void main(){
   outColor = vec4(0.0);

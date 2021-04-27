@@ -1,3 +1,5 @@
+import {sdCircle, filterLine, filterFill, drawPt, sdLine, sdBox, sdEllipse} from "./shaderFunctions"
+
 export const ellipseEdit =
 `#version 300 es
 #define saturate(a) clamp(a, 0.0, 1.0)
@@ -23,52 +25,10 @@ layout(location = 1) out vec4 outColorDist;
 
 float msign(in float x) { return (x<0.0)?-1.0:1.0; }
 
-float sdCircle(vec2 uv, vec2 p, float r){
-  uv = uv - p;
-  return length(uv) - r;
-}
-
-// https://www.shadertoy.com/view/tt3yz7
-float sdEllipse( vec2 p, vec2 e )
-{
-    vec2 pAbs = abs(p);
-    vec2 ei = 1.0 / e;
-    vec2 e2 = e*e;
-    vec2 ve = ei * vec2(e2.x - e2.y, e2.y - e2.x);
-    
-    vec2 t = vec2(0.70710678118654752, 0.70710678118654752);
-    for (int i = 0; i < 3; i++) {
-        vec2 v = ve*t*t*t;
-        vec2 u = normalize(pAbs - v) * length(t * e - v);
-        vec2 w = ei * (v + u);
-        t = normalize(clamp(w, 0.0, 1.0));
-    }
-    
-    vec2 nearestAbs = t * e;
-    float dist = length(pAbs - nearestAbs);
-    return dot(pAbs, pAbs) < dot(nearestAbs, nearestAbs) ? -dist : dist;
-}
-
-//smooth Line Filter
-float line(float d, float w){
-  d = clamp(abs(d) - w, 0.0, 1.0);
-  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
-  return d;
-}
-
-// fill
-float fillMask(float dist){
-	return smoothstep(0.0,0.003, clamp(-dist, 0.0, 1.0));
-}
-
-//smooth sdf Iso
-vec3 sdfMask(vec2 uv, float d){
-  vec3 col = vec3(1.0) - sign(d)*vec3(0.1,0.4,0.7);
-	col *= 1.0 - exp(-3.0*abs(d));
-	col *= 0.8 + 0.2*cos(150.0*d);
-	col = mix( col, vec3(1.0), 1.0-smoothstep(0.0,0.003,abs(d)));
-  return col;
-}
+${sdCircle}
+${sdEllipse}
+${filterLine}
+${filterFill}
 
 void main(){
   outColor = vec4(1.0);
@@ -131,49 +91,10 @@ layout(location = 1) out vec4 outColorDist;
 
 float msign(in float x) { return (x<0.0)?-1.0:1.0; }
 
-float sdCircle(vec2 uv, vec2 p, float r){
-  uv = uv - p;
-  return length(uv) - r;
-}
-
-// https://www.shadertoy.com/view/tt3yz7
-float sdEllipse( vec2 p, vec2 e )
-{
-    vec2 pAbs = abs(p);
-    vec2 ei = 1.0 / e;
-    vec2 e2 = e*e;
-    vec2 ve = ei * vec2(e2.x - e2.y, e2.y - e2.x);
-    
-    vec2 t = vec2(0.70710678118654752, 0.70710678118654752);
-    for (int i = 0; i < 3; i++) {
-        vec2 v = ve*t*t*t;
-        vec2 u = normalize(pAbs - v) * length(t * e - v);
-        vec2 w = ei * (v + u);
-        t = normalize(clamp(w, 0.0, 1.0));
-    }
-    
-    vec2 nearestAbs = t * e;
-    float dist = length(pAbs - nearestAbs);
-    return dot(pAbs, pAbs) < dot(nearestAbs, nearestAbs) ? -dist : dist;
-}
-
-//smooth Line Filter
-float line(float d, float w){
-  d = clamp(abs(d) - w, 0.0, 1.0);
-  //very simple lod
-  d = 1.0 - smoothstep(0.0,0.00004 * u_dPt.z,abs(d));
-  return d;
-}
-
-// fill
-float fillMask(float dist){
-	return smoothstep(0.0,0.003, clamp(-dist, 0.0, 1.0));
-}
-
-vec3 drawPt(vec2 uv, vec2 p, float dist, vec3 col){
-    vec3 color = mix(col, vec3(1.0, 0.25, 0.25), dist);
-    return color;
-}
+${sdCircle}
+${sdEllipse}
+${filterLine}
+${filterFill}
 
 void main(){
   outColor = vec4(u_idCol, 0.125);

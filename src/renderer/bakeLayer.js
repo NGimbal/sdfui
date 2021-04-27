@@ -106,7 +106,7 @@ function polyLineFunc(prim, shader, parameters){
 
       posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');';
       posString += '\n\tpos = texture(u_eTex, index).xy;';
-      posString += '\n\td = drawLine(tUv, oldPos, pos, u_weight, 0.0);';
+      posString += '\n\td = sdLine(tUv, oldPos, pos, u_weight, 0.0);'
       posString += '\n\taccumD = min(accumD, d);';
       posString += '\n\toldPos = pos;';
     }
@@ -200,13 +200,6 @@ function polygonFunc(prim, shader, parameters){
   let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
   let dataSize = parameters.dataSize;
 
-  // let rgbFill = hexToRgb(prim.properties.fill);
-  // let colorFill = 'vec3(' + rgbFill.r/255 + ',' + rgbFill.g/255 + ',' + rgbFill.b/255 +')';
-  // let rgbStroke = hexToRgb(prim.properties.stroke);
-  // let colorStroke = 'vec3(' + rgbStroke.r/255 + ',' + rgbStroke.g/255 + ',' + rgbStroke.b/255 +')';
-  // let weight = prim.properties.weight.toFixed(4);
-  // let radius = prim.properties.radius.toFixed(4);
-
   // p is a translation for polygon
   posString += 'vec4 ' + "pgon" + prim.id.substr(0,7) + '(vec2 uv, vec2 p) {';
 
@@ -219,7 +212,6 @@ function polygonFunc(prim, shader, parameters){
       indexX = (cTexel % dataSize) / dataSize + texelOffset;
       indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
      
-      // posString += '\n\tvec3 finalColor = vec3(1.0);';
       posString += '\n\tvec2 pos = vec2(0.0);';
       posString += '\n\tfloat accumD = 100.0;';
 
