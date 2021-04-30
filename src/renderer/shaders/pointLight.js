@@ -55,7 +55,7 @@ float shadow(vec2 p, vec2 pos, float radius)
 	float lf = radius * dl;
 	// distance traveled
 	float dt = 0.000001;
-	for (int i = 0; i < 100; ++i)
+	for (int i = 0; i < 1000; ++i)
 	{
 		// distance to scene at current position
 		float sd = sceneDist(p + dir * dt);
@@ -82,18 +82,19 @@ float shadow(vec2 p, vec2 pos, float radius)
 	return lf;
 }
 
-vec3 drawLight(vec2 p, vec2 pos, vec3 color, float range, float radius)
+vec4 drawLight(vec2 p, vec2 pos, vec3 color, float range, float radius)
 {
 	// distance to light
 	float ld = length(p - pos);
 	// out of range
-	if (ld > range) return vec3(0.0);
+	if (ld > range) return vec4(0.0);
 	// shadow and falloff
 	float shad = shadow(p, pos, range);
 	float fall = (range - ld)/range;
 	fall *= fall;
 	float source = fillMask(sdCircle(p - pos, vec2(0.,0.), radius));
-  return (shad * fall + source) * color;
+  return vec4((shad * fall + source) * color, shad * fall);
+	// return mix(color, vec3(1.0), shad * fall + source));
 }
 
 float luminance(vec3 col)
@@ -121,10 +122,15 @@ void main(){
   uv -= u_dPt.xy;
   uv *= (u_dPt.z / 64.);
 
+	vec2 q = v_texcoord;
+
   //fill color
   //set luminance
-  vec3 col = drawLight(uv, u_mPt.xy, setLuminance(u_fill, 0.8), 0.125, u_weight * 20.);
+  vec4 col = drawLight(uv, u_mPt.xy, setLuminance(u_fill, 0.9), u_weight * 100., u_weight);
 
-  outColor = vec4(col, 0.5);
+	//vignette
+  float vignette = clamp(pow( 256.0*q.x*q.y*(1.0-q.x)*(1.0-q.y), .125 ),0.,1.)*.5;
+
+  outColor = col + vec4(vec3(vignette), abs(vignette - 1.0));
 }
 `

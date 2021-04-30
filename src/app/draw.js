@@ -107,7 +107,6 @@ export function initDraw() {
     console.log("your browser/OS/drivers do not support WebGL2");
     return;
   }
-  // console.log(gl.getSupportedExtensions());
 
   ui = new DrawUI();
 
@@ -145,20 +144,6 @@ export function initDraw() {
   let uiLayer = new Layer({type:"ui"}, SF.simpleVert, SF.uiFrag, 10000, uiUniforms);
   layers.push(uiLayer);
 
-  // demo shader
-  // need to make it easier to add primitives to the scene...
-  // let demoUniforms = {
-  //   u_textureMatrix: twgl.m4.copy(texMatrix),
-  //   u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-  //   u_dPt: dPt,
-  //   u_eTex: {},
-  // }
-
-  // let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.raymarchFrag, 1, demoUniforms);
-  // demoLayer.bbox = new PRIM.bbox([{x:0., y:0.}, {x:1.0, y:1.0}], "demo"); 
-  // updateMatrices(demoLayer);
-  // layers.push(emoLayer);
-  console.log(resolution)
   // full screen edit layer
   let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
   let plineLayer = new Layer(currItem, SF.simpleVert, SF.pLineEdit, state.scene.editItems.length);
@@ -186,7 +171,7 @@ export function initDraw() {
     {attachment:distTex, attachmentPoint:gl.COLOR_ATTACHMENT1}
   ], gl.canvas.width, gl.canvas.height)
 
-  addDistImg(distTex, {width:gl.canvas.width, height:gl.canvas.height}, {x: 0, y: 0})
+  // addDistImg(distTex, {width:gl.canvas.width, height:gl.canvas.height}, {x: 0, y: 0})
 
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

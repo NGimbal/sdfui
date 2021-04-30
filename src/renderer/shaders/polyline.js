@@ -70,7 +70,9 @@ void main(){
   dist = min(dist, sdLine(uv, prevPt, u_mPt.xy, u_weight, 0.0));
   dSh = min(dSh, sdLine(uv - dShTrans, prevPt, u_mPt.xy, u_weight, 0.0));
   
-  outColorDist = vec4(vec3(dist * 50.0),1.0);
+  //ideally you'd map the distance from -1 to 1 then add 0.5
+  //dont know what the range for d is tho... have a feeling it's actually pretty small
+  outColorDist = vec4(vec3(clamp(dist + 0.5,0.0,1.0)),1.0);
 
   dist = line(dist, u_weight);
   vec3 col = mix(vec3(1.0), u_stroke, dist);
@@ -137,7 +139,7 @@ void main(){
 
   vec4 scene = sceneDist(uv);
 
-  outColorDist = vec4(vec3(scene.w * 50.0),1.0);
+  outColorDist = vec4(vec3(clamp(scene.w + 0.5,0.0,1.0)),1.0);
 
   vec3 col = scene.xyz;
   float dist = line(scene.w, u_weight);
@@ -154,5 +156,4 @@ void main(){
   }
 
   outColor = vec4(col * vec3(max(dSh, dist)), (dist + dSh) * u_opacity);
-  // outColorDist = vec4(vec3(dist),1.0);
 }`;
