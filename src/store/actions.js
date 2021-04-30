@@ -25,6 +25,8 @@ export const UI_TARGETHOME       = 'UI_TARGETHOME'; //return to origin rendering
 export const UI_MODE             = 'UI_MODE'; //toggle show points
 export const UI_DRAGGING         = 'UI_DRAGGING'; //dragging state
 export const UI_DRAGSTART        = 'UI_DRAGSTART'; //start drag state
+export const UI_BOXSELECT        = 'UI_BOXSELECT'; //set box select box
+
 //CURSOR 
 export const CURSOR_SET          = 'CURSOR_SET';  //curr cursor position
 export const CURSOR_SNAPGRID     = 'CURSOR_SNAPGRID'; //snap to grid
@@ -64,6 +66,7 @@ export const SCENE_ITEMUPDATE      = 'SCENE_ITEMUPDATE'; //toggle pt update
 export const EDIT_HOVERSET       = 'EDIT_HOVERSET'; // set current hover item
 export const EDIT_HOVERCLR       = 'EDIT_HOVERCLR'; // set current hover item
 export const EDIT_SELECTAPND     = 'EDIT_SELECTAPND'; //add selected item
+export const EDIT_SELECTREPLACE  = 'EDIT_SELECTREPLACE'; //replaces selection
 export const EDIT_SELECTRMV      = 'EDIT_SELECTRMV'; //Remove selected item
 export const EDIT_SELECTCLR      = 'EDIT_SELECTCLR'; //clears selection
 
@@ -147,10 +150,19 @@ export function uiMode(mode){
   return{
     type: ui,
     subtype: UI_MODE,
-    mode: mode,
+    mode,
   }
 }
 
+// 0 is off 1 is on
+export function uiBoxSelect(vec2, int){
+  return{
+    type: ui,
+    subtype: UI_BOXSELECT,
+    vec2,
+    int
+  }
+}
 
 //records cursor position
 export function cursorSet(vec2){
@@ -160,7 +172,6 @@ export function cursorSet(vec2){
     vec2
   };
 }
-
 
 //establishes grid offset
 export function cursorGrid(scale){
@@ -307,12 +318,21 @@ export function editHoverClr(){
     subtype: EDIT_HOVERCLR,
   }
 }
-// array of selected items
+// append to array of selected items
+// sel is an array
 // might want to have different types of selection?
 export function editSelectApnd(sel){
   return{
     type: scene,
     subtype: EDIT_SELECTAPND,
+    sel,
+  }
+}
+
+export function editSelectReplace(sel){
+  return{
+    type: scene,
+    subtype: EDIT_SELECTREPLACE,
     sel,
   }
 }
@@ -389,21 +409,12 @@ export function setEditItem(editItem){
 }
 
 //add point
-export function sceneAddPt(pt){
+export function sceneAddPt(pts, id){
   return {
     type: scene,
     subtype: SCENE_ADDPT,
-    pt
-  };
-}
-
-//adds points - pts [] and prim id
-export function sceneAddPts(pts, _id){
-  return {
-    type: scene,
-    subtype: SCENE_ADDPTS,
     pts,
-    _id
+    id
   };
 }
 

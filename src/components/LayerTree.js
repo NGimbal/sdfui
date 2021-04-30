@@ -32,18 +32,20 @@ function LayerTree() {
   function selectObject(e){
 
     let item = SDFUI.state.scene.editItems.find(item => item.id === this);
-    
+    console.log(this);
     if(SDFUI.state.scene.selected.filter(id => id === this).length > 0){
       SDFUI.store.dispatch(ACT.editSelectRmv(this));
     } else {
-      SDFUI.store.dispatch(ACT.editSelectApnd(this));
+      SDFUI.store.dispatch(ACT.editSelectApnd([this]));
     }
 
-    if(SDFUI.state.scene.selected.length > 0){
-      SDFUI.store.dispatch(ACT.uiMode("select"));
-    } else {
-      SDFUI.store.dispatch(ACT.uiMode("draw"));
-    }
+    // doesn't need to kick you to selection mode if you 
+    // use the LayerTree to select something
+    // if(SDFUI.state.scene.selected.length > 0){
+    //   SDFUI.store.dispatch(ACT.uiMode("select"));
+    // } else {
+    //   SDFUI.store.dispatch(ACT.uiMode("draw"));
+    // }
   }
 
   return {

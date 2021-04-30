@@ -3,57 +3,20 @@ import * as twgl from 'twgl.js';
 
 import * as ACT from '../store/actions.js';
 
-import {gl, store, state, resolution, mPt, dPt, bboxTree, layers, deleteLayer} from './draw.js';
+import {gl, store, state, resolution, mPt, dPt, ptTree, layers, deleteLayer, pushLayer} from './draw.js';
 import {bakeLayer, createLayer} from '../renderer/layer.js';
 
 import * as PRIM from '../renderer/primitives'
 
-import * as chroma from 'chroma-js';
-
-//So this is going to be a way to register
-//sets of functions to different UI modes
-//Try to move as much as this as possible to the redux store
-//will still need something that calls dispatch on events
-//like mouse move and keyup
-//so this is what will make sure that the right events are
-//registered / the right functions will be called on an event
-
 //store ui.state = "draw", "select", 
 //DrawUI.states = {draw: draw, select: select}
+
+// This is going to become an interaction manager that uses a simple event emitter
+// some of this code will be moved to a client
+// most of the UI modifier shit should be like events + event handlers
 export class DrawUI{
 
   constructor(){
-    // need to check endianess for half float usage
-    // https://abdulapopoola.com/2019/01/20/check-endianness-with-javascript/
-    function endianNess(){
-        let uInt32 = new Uint32Array([0x11223344]);
-        let uInt8 = new Uint8Array(uInt32.buffer);
-
-        if(uInt8[0] === 0x44) {
-            return 'Little Endian';
-        } else if (uInt8[0] === 0x11) {
-            return 'Big Endian';
-        } else {
-            return 'Maybe mixed-endian?';
-        }
-    }
-
-    this.endD = false;
-
-    switch(endianNess()){
-      case 'Little Endian':
-        this.endD = true;
-        break;
-      case 'Big Endian':
-        this.endD = false;
-        break;
-      case 'Maybe mixed-endian?':
-        this.endD = true;
-        break;
-      default:
-        this.endD = true;
-        break;
-    }
 
     //MODIFIERS
     // constructor(name, tag, keyCut, events, _pulse){
@@ -125,7 +88,7 @@ export class DrawUI{
         let mouse = twgl.v3.copy(mPt.v3);
 
         let translate = twgl.v3.subtract(mouse, state.ui.dragOrigin);
-        
+
         store.dispatch(ACT.editTranslate(id, translate));
       }
       // this is like a "prevPos" while dragging
@@ -226,16 +189,18 @@ function drawUp(e){
 
   // TODO: Make layers a pure function of primitives
   let currLayer = layers.find(l => l.id === state.scene.editItem);
+
   let pt = currLayer.uniforms.u_eTex.addPoint(mPt, state.scene.editItem);
 
-  store.dispatch(ACT.sceneAddPt(pt));
+  store.dispatch(ACT.sceneAddPt([pt], state.scene.editItem));
 
   let currItem  = state.scene.editItems.find(item => item.id === state.scene.editItem);
 
-  // this condition isn't great but seems to work
-  if ( (currItem.type == "circle" || currItem.type == "rectangle") && currItem.pts.length == 2 ){    
+  if ( (currItem.type == "circle" || currItem.type == "ellipse" || currItem.type == "rectangle") && currItem.pts.length == 2 ){    
     let bbox = new PRIM.bbox(currItem, 0.05);
+
     store.dispatch(ACT.editBbox(currItem.id, bbox));
+    store.dispatch(ACT.editSelectRmv(currItem.id));
 
     bakeLayer(currLayer);
     
@@ -266,22 +231,24 @@ function selUp(e){
 
     store.dispatch(ACT.uiDragStart(false, mPt.v3));
     store.dispatch(ACT.uiDragging(false));
-
-  } else if (state.ui.dragStart){
-
-    store.dispatch(ACT.uiDragStart(false, mPt.v3));
     
     if(state.scene.selected.includes(state.scene.hover)){
       store.dispatch(ACT.editSelectRmv(state.scene.hover));
-    }else{
-      store.dispatch(ACT.editSelectApnd(state.scene.hover));
     }
+  } else if (state.ui.dragStart){
+
+    store.dispatch(ACT.uiDragStart(false, mPt.v3));
+  
   }
+  store.dispatch(ACT.uiBoxSelect(mPt.v3, 0));
 }
 
 function selDwn(e){
   if(state.scene.hover !== ""){
     store.dispatch(ACT.uiDragStart(true, mPt.v3));
+    store.dispatch(ACT.editSelectApnd([state.scene.hover]));
+  } else {
+    store.dispatch(ACT.uiBoxSelect(mPt.v3, 1));
   }
 }
 
@@ -291,13 +258,34 @@ function selMv(){
     
     console.log("drag start")
   }
+
+  if(state.ui.boxSelectState){
+    // console.log(ptTree.all());
+    let selBox = {
+      minX: Math.min(state.ui.boxSel[0], mPt.v3[0]),
+      maxX: Math.max(state.ui.boxSel[0], mPt.v3[0]),
+      minY: Math.min(state.ui.boxSel[1], mPt.v3[1]),
+      maxY: Math.max(state.ui.boxSel[1], mPt.v3[1]),
+    }
+  
+    let boxSel = ptTree.search(selBox).reduce((prev,curr,index,array) => {
+      if(!prev.includes(curr.parent)) {
+        return [...prev, curr.parent]
+      } else {
+        return prev;
+      }
+    }, []);
+    
+    // console.log(boxSel);
+    store.dispatch(ACT.editSelectReplace(boxSel))
+  }
 }
 
 //---SELECT----------------------------
-
 function endDrawClck(){
   this.toggle = true;
 }
+
 //
 function escDrawClck(){
   this.toggle = true;
@@ -318,13 +306,14 @@ function endDrawUpdate(){
 
   let bbox = new PRIM.bbox(currItem, 0.05);
   store.dispatch(ACT.editBbox(currItem.id, bbox));
+  store.dispatch(ACT.editSelectRmv(currItem.id));
 
   bakeLayer(layer);
 
   let newPrim = new PRIM.prim(currItem.type, [], {...currItem.properties});
   
   store.dispatch(ACT.scenePushEditItem(newPrim));
-
+  
   //next item
   let newLayer = createLayer(newPrim, state.scene.editItems.length);
 
@@ -340,20 +329,22 @@ function escDrawUpdate(){
   let id = state.scene.editItem;
   let currItem = state.scene.editItems.find(i => i.id === id);
   
+  // console.log(currItem);
+
   let props = {...currItem.properties};
   let newPrim = new PRIM.prim(currItem.type, [], props);
-  
+  // console.log(newPrim);
   store.dispatch(ACT.scenePushEditItem(newPrim));
-
-  layers.push(createLayer(newPrim, state.scene.editItems.length));
-
+  let newLayer = createLayer(newPrim, state.scene.editItems.length);
+  pushLayer(newLayer);
+  console.log(newLayer);
   let del = deleteItem(id);
   
-  if (!del) {
-    // store.dispatch(ACT.uiMode("select"));
-    this.toggle = false;
-    return;
-  }
+  // if (!del) {
+  //   store.dispatch(ACT.uiMode("select"));
+  //   this.toggle = false;
+  //   return;
+  // }
 
   this.toggle = false;
   return;

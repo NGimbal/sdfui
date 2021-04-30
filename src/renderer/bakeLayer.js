@@ -19,9 +19,15 @@ export function bake(layer){
     case'circle':
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return circleCall(prim, layer);
+    case'ellipse':
+      prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
+      return ellipseCall(prim, layer);
     case'rectangle':
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return rectangleCall(prim, layer);
+    case'pointlight':
+      console.log('bake pointlight not yet implemented.')
+      return;
     default:
       prim = SDFUI.state.scene.editItems.find(e => e.id === layer.id);
       return polyLine(prim, layer);
@@ -100,7 +106,7 @@ function polyLineFunc(prim, shader, parameters){
 
       posString += '\n\tindex = vec2(' + indexX + ',' + indexY + ');';
       posString += '\n\tpos = texture(u_eTex, index).xy;';
-      posString += '\n\td = drawLine(tUv, oldPos, pos, u_weight, 0.0);';
+      posString += '\n\td = sdLine(tUv, oldPos, pos, u_weight, 0.0);'
       posString += '\n\taccumD = min(accumD, d);';
       posString += '\n\toldPos = pos;';
     }
@@ -194,13 +200,6 @@ function polygonFunc(prim, shader, parameters){
   let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
   let dataSize = parameters.dataSize;
 
-  // let rgbFill = hexToRgb(prim.properties.fill);
-  // let colorFill = 'vec3(' + rgbFill.r/255 + ',' + rgbFill.g/255 + ',' + rgbFill.b/255 +')';
-  // let rgbStroke = hexToRgb(prim.properties.stroke);
-  // let colorStroke = 'vec3(' + rgbStroke.r/255 + ',' + rgbStroke.g/255 + ',' + rgbStroke.b/255 +')';
-  // let weight = prim.properties.weight.toFixed(4);
-  // let radius = prim.properties.radius.toFixed(4);
-
   // p is a translation for polygon
   posString += 'vec4 ' + "pgon" + prim.id.substr(0,7) + '(vec2 uv, vec2 p) {';
 
@@ -213,7 +212,6 @@ function polygonFunc(prim, shader, parameters){
       indexX = (cTexel % dataSize) / dataSize + texelOffset;
       indexY = (Math.floor(cTexel / dataSize)) / dataSize  + texelOffset;
      
-      // posString += '\n\tvec3 finalColor = vec3(1.0);';
       posString += '\n\tvec2 pos = vec2(0.0);';
       posString += '\n\tfloat accumD = 100.0;';
 
@@ -334,7 +332,7 @@ export function circleCall(prim, layer){
   posString += '\tvec2 rad = vec2(' + indexX + ', ' + indexY + ');\n';
 
   posString += '\tfloat radius = distance(texture(u_eTex, pos).xy, texture(u_eTex, rad).xy);\n';
-  posString += '\tfloat d = sdCircle(uv - vec2(' + p +'), texture(u_eTex, pos).xy, radius);\n';
+  posString += '\td = sdCircle(uv - vec2(' + p +'), texture(u_eTex, pos).xy, radius);\n';
   posString += '\tfloat stroke = line(d, u_weight);\n';
   posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';
   posString += '\tfloat fill = fillMask(d);';
@@ -351,6 +349,64 @@ export function circleCall(prim, layer){
   return fragShader;
 }
 //CIRCLE-------------------------------------------------------------------
+
+//ELLIPSE---------------------------------------------------------
+//creates function call that draws prim - circle
+export function ellipseCall(prim, layer){
+  let shader = LAYER.getFragStub(prim.type, false);
+  let parameters = layer.uniforms.u_eTex;
+  let dataSize = layer.uniforms.u_eTex.dataSize;
+
+  let texelOffset = 0.5 * (1.0 / (parameters.dataSize * parameters.dataSize));
+
+  let insString = "//$INSERT CALL$------";
+  let insIndex = shader.indexOf(insString);
+  insIndex += insString.length;
+
+  let startShader = shader.slice(0, insIndex);
+  let endShader = shader.slice(insIndex);
+
+  // normalize coordinates of object
+  let norm = twgl.v3.subtract(twgl.v3.create(), prim.bbox.min.v3);
+  let p = norm[0] + ',' + norm[1];
+
+  //create function call
+  let posString = '\n';
+
+  let indexX = (0 % dataSize) / dataSize + texelOffset;
+  let indexY = (Math.floor(0 / dataSize)) / dataSize  + texelOffset;
+
+  posString += '\tvec2 cIndex = vec2(' + indexX + ', ' + indexY + ');\n';
+  
+  indexX = (1. % dataSize) / dataSize + texelOffset;
+  indexY = (Math.floor(1. / dataSize)) / dataSize  + texelOffset;
+ 
+  posString += '\tvec2 dIndex = vec2(' + indexX + ', ' + indexY + ');\n';
+
+  // vec2 center = texture(u_eTex, vec2(texelOffset, texelOffset)).xy;
+  // if(center.x != 0.0){
+  //   dist = sdEllipse(uv - center, abs(u_mPt.xy - center));
+  // }
+
+  posString += '\tvec2 center = texture(u_eTex, cIndex).xy;\n';
+  posString += '\tvec2 dims = texture(u_eTex, dIndex).xy;\n';
+  posString += '\td = sdEllipse(uv - vec2(' + p +') - center, max(abs(dims - center), vec2(0.01,0.01)));\n';
+  posString += '\tfloat stroke = line(d, u_weight);\n';
+  posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';
+  posString += '\tfloat fill = fillMask(d);';
+  posString += '\tvec4 fillCol = mix(vec4(vec3(1.),0.), vec4(u_fill, u_opacity), fill);\n';
+  posString += '\td = min(stroke, fill);\n';
+  // posString += '\tif ( d > 1.) discard;\n';
+  posString += '\toutColor = vec4(vec3(fillCol.rgb * strokeCol.rgb), fillCol.a + strokeCol.a);\n';
+ 
+  startShader += posString;
+  let fragShader = startShader + endShader;
+
+  // console.log(posString);
+
+  return fragShader;
+}
+//EllIPSE-------------------------------------------------------------------
 
 
 //RECTANGLE---------------------------------------------------------
@@ -390,7 +446,7 @@ export function rectangleCall(prim, layer){
   posString += '\tvec2 rect2 = texture(u_eTex, vec2('+index+')).xy;\n';
   posString += '\tvec2 center = 0.5 * (rect2 - rect1) + rect1;\n';
   posString += '\tvec2 rPt = abs(rect2 - center);\n';
-  posString += '\tfloat d = sdBox(uv - vec2('+ p + '), center, rPt, u_radius);\n';
+  posString += '\td = sdBox(uv - vec2('+ p + '), center, rPt, u_radius);\n';
 
   posString += '\tfloat stroke = line(d, u_weight);\n';
   posString += '\tvec4 strokeCol = mix(vec4(vec3(1.),0.), vec4(u_stroke,stroke) , stroke);\n';

@@ -10,8 +10,9 @@ import { reducer } from '../store/reducers.js';
 
 import {DrawUI} from './drawUI.js';
 import * as PRIM from '../renderer/primitives.js';
-import * as SF from '../renderer/frags.js';
+import * as SF from '../renderer/shaders/shaders.js';
 import {Layer, updateMatrices} from '../renderer/layer.js';
+// import { DrawerPosition } from 'construct-ui';
 
 var canvas, ctx, ui;
 var view;
@@ -31,6 +32,8 @@ export var ptTree = new RBush();
 export var bboxTree = new RBush();
 
 export var layers = [];
+
+var distBuffer, distTex, sceneTex;
 
 var mouseDragStart = new PRIM.vec(0, 0);
 
@@ -59,38 +62,19 @@ function listener(){
   bboxTree = new RBush();
 
   let boxes = state.scene.editItems.reduce((prev, curr, index, arr) => {
-    if(state.scene.editItem === curr.id) return prev;
+    if(state.scene.editItem === curr.id || curr.bbox === null) return prev;
     return [...prev, ...[curr.bbox]];
   }, []);
 
   bboxTree.load(boxes)
-
-  // update layers[]
-  // let stack = [];
-
-  // layer uniforms are getting updated
-  // in render loop
-  // for (let item of state.scene.editItems){
-  //   if(!item.update) continue;
-  //   let layer = layers.find(l => l.id === item.id);
-  //   stack.push(layer);
-  //   if(!layer && state.scene.editItem !== item.id){
-  //     layer = bakePrim(item);
-  //     stack.push(layer);
-  //   } else if(layer) {
-  //     updateUniforms(item, layer);
-  //   }
-  // }
-  // get rid of layers if we've deleted the item
-  // layers.filter(l => items.includes(l.id));
 
   return state;
 }; 
 
 
 //subscribe to store changes - run listener to set relevant variables
-store.subscribe(() => console.log(listener()));
-// store.subscribe(() => listener());
+// store.subscribe(() => console.log(listener()));
+store.subscribe(() => listener());
 
 export function initDraw() {
   let canvasContainer = document.querySelector('#canvasContainer');
@@ -123,7 +107,6 @@ export function initDraw() {
     console.log("your browser/OS/drivers do not support WebGL2");
     return;
   }
-  // console.log(gl.getSupportedExtensions());
 
   ui = new DrawUI();
 
@@ -143,7 +126,6 @@ export function initDraw() {
 
   // grid layer
   let gridLayer = new Layer({type:"grid"}, SF.simpleVert, SF.gridFrag, 0, gridUniforms);
-  // store.dispatch(ACT.layerPush(gridLayer));
   layers.push(gridLayer);
 
   let uiUniforms = {
@@ -154,60 +136,116 @@ export function initDraw() {
     u_eTex: {},
     u_weight: 0.001,
     u_stroke: chroma("#ffa724").gl().slice(0,3),
+    u_boxSel: twgl.v3.create(),
+    u_boxState: state.ui.boxSelectState,
   }
 
   // grid layer
   let uiLayer = new Layer({type:"ui"}, SF.simpleVert, SF.uiFrag, 10000, uiUniforms);
-  // store.dispatch(ACT.layerPush(gridLayer));
   layers.push(uiLayer);
-
-  // demo shader
-  // let demoUniforms = {
-  //   u_textureMatrix: twgl.m4.copy(texMatrix),
-  //   u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
-  //   u_dPt: dPt,
-  //   u_eTex: {},
-  // }
-
-  // let demoLayer = new Layer({type:"demo"}, SF.simpleVert, SF.raymarchFrag, demoUniforms);
-  // demoLayer.bbox = new PRIM.bbox([{x:0., y:0.}, {x:1.0, y:1.0}], "demo"); 
-  // updateMatrices(demoLayer);
-  // store.dispatch(ACT.layerPush(demoLayer));
 
   // full screen edit layer
   let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
   let plineLayer = new Layer(currItem, SF.simpleVert, SF.pLineEdit, state.scene.editItems.length);
-  // store.dispatch(ACT.layerPush(plineLayer));
   layers.push(plineLayer);
+  //---
+  distTex = twgl.createTexture(gl, {
+    level: 0,
+    width: gl.canvas.width,
+    height: gl.canvas.height,
+    min: gl.LINEAR,
+    wrap: gl.CLAMP_TO_EDGE,
+  })
+
+  sceneTex = twgl.createTexture(gl, {
+    level: 0,
+    width: gl.canvas.width,
+    height: gl.canvas.height,
+    min: gl.LINEAR,
+    wrap: gl.CLAMP_TO_EDGE,
+  })
+
+  // eventually would like 
+  distBuffer = twgl.createFramebufferInfo(gl, [
+    {attachment:sceneTex, attachmentPoint:gl.COLOR_ATTACHMENT0},
+    {attachment:distTex, attachmentPoint:gl.COLOR_ATTACHMENT1}
+  ], gl.canvas.width, gl.canvas.height)
+
+  // addDistImg(distTex, {width:gl.canvas.width, height:gl.canvas.height}, {x: 0, y: 0})
 
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-  // would like to try and render "distance" to accumulating buffer like color
-  // https://stackoverflow.com/questions/51793336/webgl-2-0-multiple-output-textures-from-the-same-program/51798078#51798078
-  // gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
-
+  
   requestAnimationFrame(render);
 }
 
+// addDistImage function
+export function addDistImg(distTex, dims, evPt) {
+
+  let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
+  // texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
+
+  let imgUniforms = {
+    u_textureMatrix: twgl.m4.copy(texMatrix),
+    u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
+    u_dPt: dPt,
+    u_distTex: distTex,
+  }
+
+  // I have no idea where this number comes from
+  let width = dims.width/ dims.height;
+  let height = dims.height/ dims.height;
+
+  // transforms window / js space to sdf / frag space
+  evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - dPt[0];
+  evPt.y = (evPt.y/resolution.y)  - dPt[1];
+  evPt.x = evPt.x * (dPt[2] / 64.);
+  evPt.y = evPt.y * (dPt[2] / 64.);
+
+  let pt0 = new PRIM.vec(evPt.x + width, evPt.y + height);
+  let pt1 = new PRIM.vec(evPt.x, evPt.y);
+  let pts = [pt0, pt1];
+
+  let imgPrim = new PRIM.prim("img", pts, {}, PRIM.uuid());
+  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.distFrag, state.scene.editItems.length, imgUniforms, 10);
+
+  let bbox = new PRIM.bbox(imgPrim,0.0);
+  
+  imgPrim.bbox = bbox;
+  imgLayer.bbox = {...bbox};
+    
+  store.dispatch(ACT.scenePushEditItem(imgPrim, state.scene.editItem))
+
+  updateMatrices(imgLayer);
+
+  layers.push(imgLayer);
+}
+
 // addImage function
-export function addImage(_srcURL, dims, evPt) {
-  let srcURL = _srcURL || "../assets/textures/leaves.jpg";
+export function addImage(_src, dims, evPt, _uName) {
+  let src, image;
+  switch(typeof _src){
+    case "string":
+      src = _src;
+      break;
+    default :
+      src = "../assets/textures/leaves.jpg";
+      break;
+  }
 
   let texMatrix = twgl.m4.translation(twgl.v3.create(0,0,0));
   texMatrix = twgl.m4.scale(texMatrix, twgl.v3.create(1, 1, 1));
 
-  let image = twgl.createTexture(gl, {
-    src: srcURL,
+  image = twgl.createTexture(gl, {
+    src: src,
     color: [0.125, 0.125, 0.125, 0.125],
   }, () => {
     // console.log(image);
   });
 
-  twgl.loadTextureFromUrl(gl, image);
-
+  twgl.loadTextureFromUrl(gl, image);  
+  
   let imgUniforms = {
-    // u_matrix: matrix,
     u_textureMatrix: twgl.m4.copy(texMatrix),
     u_resolution: twgl.v3.create(gl.canvas.width, gl.canvas.height, 0),
     u_dPt: dPt,
@@ -217,9 +255,8 @@ export function addImage(_srcURL, dims, evPt) {
   // Will want to add some cool image processing stuff at some point...
   // Blending, edge detection, img -> sdf in some way :)
   
-  // let aspect = dims.width / dims.height;
-  let width = dims.width/1000;
-  let height = dims.height/1000; 
+  let width = dims.width/dims.height;
+  let height = dims.height/dims.height; 
 
   // transforms window / js space to sdf / frag space
   evPt.x = ((evPt.x/resolution.x) * (resolution.x/resolution.y)) - dPt[0];
@@ -227,17 +264,12 @@ export function addImage(_srcURL, dims, evPt) {
   evPt.x = evPt.x * (dPt[2] / 64.);
   evPt.y = evPt.y * (dPt[2] / 64.);
 
-  // let pts = [{x: evPt.x, y: evPt.y},
-  //               {x: evPt.x + width, y: evPt.y + height}];
-  
   let pt0 = new PRIM.vec(evPt.x, evPt.y);
   let pt1 = new PRIM.vec(evPt.x + width, evPt.y + height);
   let pts = [pt0, pt1];
 
-  // state.dispatch(ACT.sceneAddPts(pts))
-
-  let imgPrim = new PRIM.prim("img", pts, {}, PRIM.uuid(), bbox);
-  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, state.scene.editItems.length, imgUniforms);
+  let imgPrim = new PRIM.prim("img", pts, {}, PRIM.uuid());
+  let imgLayer = new Layer(imgPrim, SF.imgVert, SF.imgFrag, state.scene.editItems.length, imgUniforms, 10);
 
   let bbox = new PRIM.bbox(imgPrim,0.0);
   
@@ -245,8 +277,6 @@ export function addImage(_srcURL, dims, evPt) {
   imgLayer.bbox = {...bbox};
     
   store.dispatch(ACT.scenePushEditItem(imgPrim, state.scene.editItem))
-
-  // bboxTree.insert({...bbox});
 
   updateMatrices(imgLayer);
 
@@ -276,6 +306,20 @@ function update() {
 
   if(resize){
     twgl.resizeCanvasToDisplaySize(ctx.canvas);
+    twgl.resizeTexture(gl, distTex, {
+      level: 0,
+      width: gl.canvas.width,
+      height: gl.canvas.height,
+      min: gl.LINEAR,
+      wrap: gl.CLAMP_TO_EDGE,
+    })
+    twgl.resizeTexture(gl, sceneTex, {
+      level: 0,
+      width: gl.canvas.width,
+      height: gl.canvas.height,
+      min: gl.LINEAR,
+      wrap: gl.CLAMP_TO_EDGE,
+    })
     store.dispatch(ACT.statusRes({x:gl.canvas.clientWidth, y:gl.canvas.clientHeight}));
   }
 
@@ -328,6 +372,18 @@ function updateUniforms(prim, layer){
   if(typeof layer.uniforms.u_radius  === 'number'){
     layer.uniforms.u_radius = prim.properties.radius; 
   }
+  if(typeof layer.uniforms.u_distTex  === 'object'){
+    layer.uniforms.u_distTex = distTex;
+  }
+
+  // box select
+  if(typeof layer.uniforms.u_boxSel  === 'object'){
+    layer.uniforms.u_boxSel = twgl.v3.copy(state.ui.boxSel);
+  }
+  // box select state 0, 1
+  if(typeof layer.uniforms.u_boxState  === 'number'){
+    layer.uniforms.u_boxState = state.ui.boxSelectState; 
+  }
 
   if(typeof layer.uniforms.u_sel  === 'number'){
     if(state.scene.selected.includes(prim.id)){
@@ -347,40 +403,45 @@ function updateUniforms(prim, layer){
   twgl.setUniforms(layer.programInfo, layer.uniforms);
 }
 
-// so bake edit layer currently works by baking the current edit layer
-// this should be a different type of function that creates a layer 
-// whole cloth from a prim
-// does this make more sense than the bakeLayer paradigm?
-// function bakePrim(prim){
-  // set bounding box
-  // layer.bbox = new PRIM.bbox(layer.uniforms.u_eTex.pts, layer.id, 0.05, layer.primType);
-  // updateMatrices(layer);
-
-  // let fs = BAKE.bake(layer);
-  // layer.frag = fs;
-  // layer.programInfo = twgl.createProgramInfo(gl, [layer.vert, fs]);
-  
-  // // This line is important
-  // gl.useProgram(layer.programInfo.program);
-  // twgl.setUniforms(layer.programInfo, layer.uniforms);
-// }
-
 function draw() {
+  // spatial indexing / hashing for rendering
+  // filtering the render list causes the framerate to drop, does using .active work better?
+  // only show edit item when state.ui.mode === "draw"
+  let bboxSearch = bboxTree.search(view).map(b => b.id);
 
+  layers.forEach(l => l.active = bboxSearch.includes(l.id) 
+                                 || (state.scene.editItem === l.id && state.ui.mode === "draw")
+                                 && l.primType !== 'pointlight'
+                                 && l.visible);
+  
+  // console.log(layers)
+  
+  // draw to distTex
+  twgl.bindFramebufferInfo(gl, distBuffer)
+  gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
+  gl.drawBuffers([
+    gl.COLOR_ATTACHMENT0,
+    gl.COLOR_ATTACHMENT1
+  ])
+  // Clear
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  twgl.drawObjectList(gl, layers.sort((a,b)=> a.order - b.order));
+
+  //
+  // an optimization could be to render sceneTex to the screen instead of re-rendering the scene
+  layers.forEach(l => l.active = bboxSearch.includes(l.id) || 
+                                 (state.scene.editItem === l.id && state.ui.mode === "draw") 
+                                 || l.primType === "grid" || l.primType === "ui" 
+                                 && l.visible);
+
+  // draw to canvas
+  twgl.bindFramebufferInfo(gl, null)
+  // Clear the canvas
+  gl.clearColor(1, 1, 1, 0.0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   // Tell WebGL how to convert from clip space to pixels
   gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
-
-  // Clear the canvas
-  gl.clearColor(1, 1, 1, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-  // bringing objects in and out of the render list causes the framerate to drop
-  // spatial indexing / hashing for rendering
-  // let bboxSearch = bboxTree.search(view).map(b => b.id);
-  // let inView = state.render.layers.filter(l => bboxSearch.includes(l.id) || 
-  //                                              state.scene.editItems[state.scene.editItem].id === l.id || 
-  //                                              l.idType === "grid");
-  
   twgl.drawObjectList(gl, layers.sort((a,b)=> a.order - b.order));
 
   // save raster image
@@ -391,8 +452,6 @@ function draw() {
     store.dispatch(ACT.statusRaster(false));
   }
 }
-
-
 
 function render() {
   update();
@@ -452,13 +511,13 @@ function updateCtx(selDist){
   pixelPt.y = ((mPt.y * (64. / dPt[2]) + dPt[1]) * resolution.y);
 
   // display current mouse pos
-  // ctx.fillStyle = 'black';
-  // let mPtString = '(' + mPt.x.toFixed(3) + ', ' + mPt.y.toFixed(3) + ')';
-  // ctx.fillText("Cursor: " + mPtString, pixelPt.x + 10, pixelPt.y);
+  ctx.fillStyle = 'black';
+  let mPtString = '(' + mPt.x.toFixed(3) + ', ' + mPt.y.toFixed(3) + ')';
+  ctx.fillText("Cursor: " + mPtString, pixelPt.x + 12, pixelPt.y);
   
   if(typeof selPrim !== "undefined" && dist < 0){
     ctx.fillStyle = selPrim.idColHex;
-    ctx.fillText(selPrim.type + ': ' + selPrim.id, pixelPt.x + 14, pixelPt.y);
+    ctx.fillText(selPrim.type + ': ' + selPrim.id, pixelPt.x + 12, pixelPt.y + 14);
   }
 }
 
@@ -496,6 +555,10 @@ function sceneDist(){
 
 export function deleteLayer(id){
   layers = layers.filter(l => l.id !== id);
+}
+
+export function pushLayer(layer){
+  layers.push(layer);
 }
 
 const saveBlob = (function() {

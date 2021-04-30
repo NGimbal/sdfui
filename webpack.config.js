@@ -9,8 +9,8 @@ module.exports = {
     './src/renderer/layer.js',
     './src/renderer/bakeLayer.js',
     './src/renderer/primitives.js',
-    './src/renderer/vert.js',
-    './src/renderer/frags.js',
+
+    './src/renderer/shaders/shaders.js',
 
     './src/store/actions.js',
     './src/store/reducers.js',
