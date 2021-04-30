@@ -12,8 +12,9 @@ out vec4 outColor;
 
 void main() {
   vec2 uv = v_texcoord;
+
   // flip x for some reason
-  uv.x = (u_resolution.x/1000.0) - uv.x - 0.5;
+  uv.x = 1.0 - uv.x;
   
   vec4 dist = texture(u_distTex, uv);
   outColor = mix(dist, vec4(1.0,0.0,0.0,0.25), dist.x);

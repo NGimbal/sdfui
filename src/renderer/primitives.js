@@ -29,14 +29,6 @@ export function uuid(){
 //   });
 // }
 
-//simple class for packaging shader and polypoint
-export class DataShader{
-  constructor(shader, parameters){
-    this.shader = shader;
-    this.parameters = parameters;
-  }
-}
-
 // simple point, color vector
 // ideally this would be a thin wrapper around twgl v3
 export class vec{
@@ -186,6 +178,13 @@ export class bbox{
         this.minY = points[0].y;
         this.maxX = points[1].x;
         this.maxY = points[1].y;
+        break;
+      default:
+        this.minX = points[0].x;
+        this.minY = points[0].y;
+        this.maxX = points[1].x;
+        this.maxY = points[1].y;
+        break;
     }
 
     this.min = new vec(this.minX, this.minY);

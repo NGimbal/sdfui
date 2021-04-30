@@ -18,7 +18,6 @@ uniform float u_weight;
 uniform vec3 u_stroke;
 uniform float u_opacity;
 
-// out vec4 outColor;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outColorDist;
 
@@ -138,7 +137,7 @@ void main(){
 
   vec4 scene = sceneDist(uv);
 
-  outColorDist = vec4(vec3(scene.w),1.0);
+  outColorDist = vec4(vec3(scene.w * 50.0),1.0);
 
   vec3 col = scene.xyz;
   float dist = line(scene.w, u_weight);
@@ -150,7 +149,7 @@ void main(){
   dSh = (1. - smoothstep(0., 0.15, sqrt(dSh)))*.25;
   dSh *= u_sel;
   
-  if ( dist + dSh < 0.01){
+  if ( dist + dSh < 0.001){
     discard;
   }
 

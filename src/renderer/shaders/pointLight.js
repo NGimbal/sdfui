@@ -35,15 +35,13 @@ ${filterFill}
 ${drawPt}
 
 float sceneDist(vec2 uv) {
-  // need to figure out how to align uv to distTex
-  //
-  // uv.x = abs(uv.x - (u_resolution.x/1000.0))
-  uv *= (64. / u_dPt.z);
+// reverse transformation of uv
+	uv *= (64. / u_dPt.z);
   uv += u_dPt.xy;
   uv.x *= u_resolution.y / u_resolution.x;
 
-	// .22 is not correct yet... don't know what that number should be
-  uv.y = (u_resolution.y/1000.0) - uv.y + 0.22;
+	// flip y
+	uv.y = 1.0 - uv.y;
   
   float d = 0.0 - texture(u_distTex, uv).x;
   return d;

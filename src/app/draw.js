@@ -33,7 +33,7 @@ export var bboxTree = new RBush();
 
 export var layers = [];
 
-var distBuffer, distTex;
+var distBuffer, distTex, sceneTex;
 
 var mouseDragStart = new PRIM.vec(0, 0);
 
@@ -73,8 +73,8 @@ function listener(){
 
 
 //subscribe to store changes - run listener to set relevant variables
-store.subscribe(() => console.log(listener()));
-// store.subscribe(() => listener());
+// store.subscribe(() => console.log(listener()));
+store.subscribe(() => listener());
 
 export function initDraw() {
   let canvasContainer = document.querySelector('#canvasContainer');
@@ -158,7 +158,7 @@ export function initDraw() {
   // demoLayer.bbox = new PRIM.bbox([{x:0., y:0.}, {x:1.0, y:1.0}], "demo"); 
   // updateMatrices(demoLayer);
   // layers.push(emoLayer);
-
+  console.log(resolution)
   // full screen edit layer
   let currItem = state.scene.editItems.find(i => i.id === state.scene.editItem);
   let plineLayer = new Layer(currItem, SF.simpleVert, SF.pLineEdit, state.scene.editItems.length);
@@ -172,7 +172,7 @@ export function initDraw() {
     wrap: gl.CLAMP_TO_EDGE,
   })
 
-  let sceneTex = twgl.createTexture(gl, {
+  sceneTex = twgl.createTexture(gl, {
     level: 0,
     width: gl.canvas.width,
     height: gl.canvas.height,
@@ -186,7 +186,7 @@ export function initDraw() {
     {attachment:distTex, attachmentPoint:gl.COLOR_ATTACHMENT1}
   ], gl.canvas.width, gl.canvas.height)
 
-  // addDistImg(distTex, {width:gl.canvas.width, height:gl.canvas.height}, {x: 0, y: 0})
+  addDistImg(distTex, {width:gl.canvas.width, height:gl.canvas.height}, {x: 0, y: 0})
 
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -321,6 +321,20 @@ function update() {
 
   if(resize){
     twgl.resizeCanvasToDisplaySize(ctx.canvas);
+    twgl.resizeTexture(gl, distTex, {
+      level: 0,
+      width: gl.canvas.width,
+      height: gl.canvas.height,
+      min: gl.LINEAR,
+      wrap: gl.CLAMP_TO_EDGE,
+    })
+    twgl.resizeTexture(gl, sceneTex, {
+      level: 0,
+      width: gl.canvas.width,
+      height: gl.canvas.height,
+      min: gl.LINEAR,
+      wrap: gl.CLAMP_TO_EDGE,
+    })
     store.dispatch(ACT.statusRes({x:gl.canvas.clientWidth, y:gl.canvas.clientHeight}));
   }
 
